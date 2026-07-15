@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="${0:A:h}"
 BUILD="$ROOT/build"
 APP="$BUILD/持仓宠物.app"
-VERSION="0.3.2"
+VERSION="0.3.3"
 DMG="$BUILD/持仓宠物.dmg"
 
 rm -rf "$APP" "$BUILD/dmg-root"

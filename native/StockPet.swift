@@ -531,6 +531,133 @@ struct CompactPetInteractionLayer: NSViewRepresentable {
     }
 }
 
+private enum WindowResizeRegion: Equatable {
+    case none
+    case left, right, top, bottom
+    case topLeft, topRight, bottomLeft, bottomRight
+
+    var resizesLeft: Bool {
+        self == .left || self == .topLeft || self == .bottomLeft
+    }
+
+    var resizesRight: Bool {
+        self == .right || self == .topRight || self == .bottomRight
+    }
+
+    var resizesTop: Bool {
+        self == .top || self == .topLeft || self == .topRight
+    }
+
+    var resizesBottom: Bool {
+        self == .bottom || self == .bottomLeft || self == .bottomRight
+    }
+}
+
+private struct WindowResizeHandle: View {
+    let region: WindowResizeRegion
+    @State private var initialWindowFrame: NSRect?
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                if hovering {
+                    ((region.resizesLeft || region.resizesRight) ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).set()
+                } else {
+                    NSCursor.arrow.set()
+                }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged(resizeWindow)
+                    .onEnded { _ in initialWindowFrame = nil }
+            )
+    }
+
+    private func resizeWindow(_ value: DragGesture.Value) {
+        guard region != .none,
+              let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else { return }
+
+        if initialWindowFrame == nil {
+            initialWindowFrame = window.frame
+        }
+        guard let initialFrame = initialWindowFrame else { return }
+
+        let deltaX = value.translation.width
+        let deltaY = value.translation.height
+        var frame = initialFrame
+
+        if region.resizesLeft {
+            frame.origin.x += deltaX
+            frame.size.width -= deltaX
+        }
+        if region.resizesRight {
+            frame.size.width += deltaX
+        }
+        if region.resizesTop {
+            frame.size.height -= deltaY
+        }
+        if region.resizesBottom {
+            frame.origin.y -= deltaY
+            frame.size.height += deltaY
+        }
+
+        let minimum = window.contentMinSize
+        let maximum = window.contentMaxSize
+        let minWidth = max(1, minimum.width)
+        let minHeight = max(1, minimum.height)
+        let maxWidth = maximum.width > 0 ? maximum.width : .greatestFiniteMagnitude
+        let maxHeight = maximum.height > 0 ? maximum.height : .greatestFiniteMagnitude
+
+        let clampedWidth = min(max(frame.width, minWidth), maxWidth)
+        if region.resizesLeft {
+            frame.origin.x = initialFrame.maxX - clampedWidth
+        }
+        frame.size.width = clampedWidth
+
+        let clampedHeight = min(max(frame.height, minHeight), maxHeight)
+        if region.resizesBottom {
+            frame.origin.y = initialFrame.maxY - clampedHeight
+        }
+        frame.size.height = clampedHeight
+
+        window.setFrame(frame, display: true)
+        window.invalidateShadow()
+    }
+}
+
+private struct WindowResizeInteractionLayer: View {
+    private let edgeThickness: CGFloat = 8
+    private let cornerSize: CGFloat = 18
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                WindowResizeHandle(region: .left).frame(width: edgeThickness)
+                Spacer(minLength: 0)
+                WindowResizeHandle(region: .right).frame(width: edgeThickness)
+            }
+            VStack(spacing: 0) {
+                WindowResizeHandle(region: .top).frame(height: edgeThickness)
+                Spacer(minLength: 0)
+                WindowResizeHandle(region: .bottom).frame(height: edgeThickness)
+            }
+            WindowResizeHandle(region: .topLeft)
+                .frame(width: cornerSize, height: cornerSize)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            WindowResizeHandle(region: .topRight)
+                .frame(width: cornerSize, height: cornerSize)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            WindowResizeHandle(region: .bottomLeft)
+                .frame(width: cornerSize, height: cornerSize)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            WindowResizeHandle(region: .bottomRight)
+                .frame(width: cornerSize, height: cornerSize)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        }
+    }
+}
+
 @main
 struct StockPetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -619,8 +746,8 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         switch self {
         case .market: return "随涨跌切换牛熊形态"
         case .robot: return "经典动态行情机器人"
-        case .mech: return "上涨起跳，下跌滑倒，十帧机甲动画"
-        case .polar: return "红绿战衣，涨时欢跑，跌时眩晕"
+        case .mech: return "七档收益动作：奔跑、跳跃、攻击、滑倒"
+        case .polar: return "八档收益动作：欢跑、投掷、受击、眩晕"
         case .pbull: return "横冲直撞小棕牛，涨了哞哞叫"
         case .ox: return "原野公牛本色出演，困了就躺平"
         case .minicow: return "口袋小奶牛，蹄子迈不停"
@@ -720,6 +847,12 @@ struct ContentView: View {
                 compactPet
                     .frame(width: compactWindowSize.width, height: compactWindowSize.height)
                     .transition(.scale(scale: 0.82).combined(with: .opacity))
+            }
+        }
+        .overlay {
+            if isExpanded {
+                WindowResizeInteractionLayer()
+                    .accessibilityHidden(true)
             }
         }
         .preferredColorScheme(.dark)
@@ -1876,17 +2009,19 @@ struct ContentView: View {
 
         isExpanded = expanded
         window.hasShadow = expanded
+        window.styleMask.remove(.resizable)
         if expanded {
-            window.styleMask.insert(.resizable)
             window.contentMinSize = isMainDashboard
                 ? NSSize(width: 760, height: 560)
                 : NSSize(width: 390, height: 560)
             window.contentMaxSize = NSSize(width: 1600, height: 1100)
         } else {
-            window.styleMask.remove(.resizable)
             window.contentMinSize = newSize
             window.contentMaxSize = newSize
         }
+        window.contentView?.wantsLayer = true
+        window.contentView?.layer?.cornerRadius = expanded ? 22 : 0
+        window.contentView?.layer?.masksToBounds = expanded
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.24
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -2082,6 +2217,76 @@ struct OpenPetsMascot: View {
     let actionActive: Bool
     let appearance: PetAppearance
 
+    private func frameIndex(count: Int, speed: Double, pingPong: Bool = false) -> Int {
+        guard count > 1 else { return 0 }
+        let tick = max(0, Int(time * speed))
+        guard pingPong else { return tick % count }
+        let cycle = (count - 1) * 2
+        let position = tick % cycle
+        return position < count ? position : cycle - position
+    }
+
+    private func skinFrame(
+        _ skin: String,
+        state: String,
+        count: Int,
+        speed: Double,
+        pingPong: Bool = false
+    ) -> String {
+        "skin_\(skin)_\(state)_\(frameIndex(count: count, speed: speed, pingPong: pingPong))"
+    }
+
+    private var mechFrameName: String {
+        if actionActive {
+            return mood == .bull
+                ? skinFrame("mech", state: "attack", count: 8, speed: 12, pingPong: true)
+                : skinFrame("mech", state: "crash", count: 10, speed: 10, pingPong: true)
+        }
+        if returnRate >= 5 {
+            return skinFrame("mech", state: "shoot", count: 4, speed: 9, pingPong: true)
+        }
+        if returnRate >= 2 {
+            return skinFrame("mech", state: "happy", count: 10, speed: 10, pingPong: true)
+        }
+        if returnRate >= 0.5 {
+            return skinFrame("mech", state: "run", count: 8, speed: 12)
+        }
+        if returnRate >= -0.5 {
+            return skinFrame("mech", state: "idle", count: 10, speed: 7)
+        }
+        if returnRate >= -2 {
+            return skinFrame("mech", state: "sad", count: 10, speed: 9, pingPong: true)
+        }
+        return skinFrame("mech", state: "crash", count: 10, speed: 8, pingPong: true)
+    }
+
+    private var polarFrameName: String {
+        if actionActive {
+            return mood == .bull
+                ? skinFrame("polar", state: "attack", count: 8, speed: 11, pingPong: true)
+                : skinFrame("polar", state: "hurt", count: 6, speed: 11, pingPong: true)
+        }
+        if returnRate >= 5 {
+            return skinFrame("polar", state: "jump", count: 10, speed: 10)
+        }
+        if returnRate >= 2 {
+            return skinFrame("polar", state: "run", count: 10, speed: 12)
+        }
+        if returnRate >= 0.5 {
+            return skinFrame("polar", state: "happy", count: 12, speed: 10)
+        }
+        if returnRate >= -0.5 {
+            return skinFrame("polar", state: "idle", count: 12, speed: 7)
+        }
+        if returnRate >= -1.5 {
+            return skinFrame("polar", state: "hurt", count: 6, speed: 9, pingPong: true)
+        }
+        if returnRate >= -4 {
+            return skinFrame("polar", state: "sad", count: 10, speed: 9)
+        }
+        return skinFrame("polar", state: "crash", count: 10, speed: 7, pingPong: true)
+    }
+
     private var frameName: String {
         let isBull = mood == .bull
         let isExpressive = isBull
@@ -2104,6 +2309,9 @@ struct OpenPetsMascot: View {
             let count = state == "sad" ? 4 : 6
             return "skin_gbear_\(state)_\(Int(time * speed) % count)"
         }
+
+        if appearance == .mech { return mechFrameName }
+        if appearance == .polar { return polarFrameName }
 
         if let spec = appearance.skinSpec {
             let state = isBull
