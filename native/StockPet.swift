@@ -459,7 +459,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         UNUserNotificationCenter.current().delegate = self
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard let window = NSApplication.shared.windows.first else { return }
+            guard let window = NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" }) else { return }
             window.level = .floating
             window.isMovableByWindowBackground = true
             window.styleMask = [.borderless, .fullSizeContentView]
@@ -658,15 +658,30 @@ private struct WindowResizeInteractionLayer: View {
     }
 }
 
+@MainActor
+final class PetDebugState: ObservableObject {
+    @Published var isMockingReturn = false
+    @Published var mockReturnRate = 0.0
+    @Published var actionToken = UUID()
+}
+
 @main
 struct StockPetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var store = PetStore()
+    @StateObject private var debugState = PetDebugState()
 
     var body: some Scene {
         WindowGroup("持仓宠物") {
-            ContentView(store: store)
+            ContentView(store: store, debugState: debugState)
         }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.automatic)
+
+        Window("宠物调试", id: "pet-debug") {
+            ContentView(store: store, debugState: debugState, isDebugWindow: true)
+        }
+        .defaultSize(width: 440, height: 680)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.automatic)
     }
@@ -760,6 +775,10 @@ enum PetAppearance: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @ObservedObject var store: PetStore
+    @ObservedObject var debugState: PetDebugState
+    let isDebugWindow: Bool
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
     @AppStorage("stockPet.appearance.v1") private var selectedAppearanceRaw = PetAppearance.market.rawValue
     @State private var isExpanded = false
     @State private var showingNews = false
@@ -770,20 +789,22 @@ struct ContentView: View {
     @State private var importingScreenshot = false
     @State private var alertPulse = false
     @State private var motionToken = UUID()
-    @State private var showingDebugPanel = false
-    @State private var debugReturnsToMainPage = false
     @State private var showingPetStore = false
     @State private var showingShareCard = false
     @State private var shareIncludePositions = false
     @State private var shareFeedback = ""
-    @State private var mockReturnRate = 0.0
-    @State private var isMockingReturn = false
     private let gainColor = Color(red: 1.0, green: 0.28, blue: 0.30)
     private let lossColor = Color(red: 0.20, green: 1.0, blue: 0.56)
     private let popoverBackground = Color(red: 0.035, green: 0.05, blue: 0.08)
 
+    init(store: PetStore, debugState: PetDebugState, isDebugWindow: Bool = false) {
+        self.store = store
+        self.debugState = debugState
+        self.isDebugWindow = isDebugWindow
+    }
+
     private var displayReturn: Double {
-        isMockingReturn ? mockReturnRate : store.totalReturn
+        debugState.isMockingReturn ? debugState.mockReturnRate : store.totalReturn
     }
 
     private var selectedAppearance: PetAppearance {
@@ -792,10 +813,10 @@ struct ContentView: View {
 
     private var mockReturnBinding: Binding<Double> {
         Binding(
-            get: { mockReturnRate },
+            get: { debugState.mockReturnRate },
             set: {
-                mockReturnRate = $0
-                isMockingReturn = true
+                debugState.mockReturnRate = $0
+                debugState.isMockingReturn = true
             }
         )
     }
@@ -835,10 +856,14 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if showingDebugPanel {
+            if isDebugWindow {
                 debugExpandedView
-                    .frame(minWidth: 390, minHeight: 560)
-                    .transition(.scale(scale: 0.82, anchor: .topLeading).combined(with: .opacity))
+                    .frame(
+                        minWidth: 420,
+                        idealWidth: 440,
+                        minHeight: 620,
+                        idealHeight: 680
+                    )
             } else if isExpanded {
                 expandedView
                     .frame(minWidth: 760, minHeight: 560)
@@ -850,7 +875,7 @@ struct ContentView: View {
             }
         }
         .overlay {
-            if isExpanded {
+            if !isDebugWindow && isExpanded {
                 WindowResizeInteractionLayer()
                     .accessibilityHidden(true)
             }
@@ -867,15 +892,17 @@ struct ContentView: View {
         }
         .onChange(of: displayReturn) { _, _ in
             triggerPetMotion()
-            if !isExpanded {
+            if !isDebugWindow && !isExpanded {
                 DispatchQueue.main.async {
                     resizeCompactWindowForReturn()
                 }
             }
         }
         .onAppear {
-            DispatchQueue.main.async {
-                resizeCompactWindowForReturn(animated: false)
+            if !isDebugWindow {
+                DispatchQueue.main.async {
+                    resizeCompactWindowForReturn(animated: false)
+                }
             }
         }
         .sheet(isPresented: $showingPetStore) {
@@ -891,8 +918,11 @@ struct ContentView: View {
         .sheet(isPresented: $showingShareCard) {
             shareCardPage
         }
-        .onChange(of: showingDebugPanel) { wasShowing, isShowing in
-            if wasShowing && !isShowing { resetDebugState() }
+        .onChange(of: debugState.actionToken) { _, _ in
+            triggerPetMotion()
+        }
+        .onDisappear {
+            if isDebugWindow { resetDebugState() }
         }
     }
 
@@ -1832,8 +1862,8 @@ struct ContentView: View {
                 HStack(spacing: 5) {
                     ForEach([-10.0, -5.0, 0.0, 5.0, 10.0], id: \.self) { rate in
                         Button(percent(rate)) {
-                            mockReturnRate = rate
-                            isMockingReturn = true
+                            debugState.mockReturnRate = rate
+                            debugState.isMockingReturn = true
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -1842,8 +1872,9 @@ struct ContentView: View {
             }
 
             Button {
-                isMockingReturn = true
-                store.testAlert(returnRate: mockReturnRate)
+                debugState.isMockingReturn = true
+                store.testAlert(returnRate: debugState.mockReturnRate)
+                debugState.actionToken = UUID()
                 triggerPetMotion()
             } label: {
                 Label("播放调试动作", systemImage: "waveform.path.ecg")
@@ -1855,8 +1886,8 @@ struct ContentView: View {
             .tint(mood.color)
 
             Button("恢复真实收益率") {
-                isMockingReturn = false
-                mockReturnRate = store.totalReturn
+                debugState.isMockingReturn = false
+                debugState.mockReturnRate = store.totalReturn
             }
             .buttonStyle(.plain)
             .font(.system(size: 10))
@@ -1938,30 +1969,26 @@ struct ContentView: View {
     }
 
     private func openDebugPanel() {
-        debugReturnsToMainPage = isExpanded
-        if !isMockingReturn {
-            mockReturnRate = store.totalReturn
-            isMockingReturn = true
+        if !debugState.isMockingReturn {
+            debugState.mockReturnRate = store.totalReturn
+            debugState.isMockingReturn = true
         }
-        showingDebugPanel = true
-        toggleExpanded(true)
+        openWindow(id: "pet-debug")
     }
 
     private func closeDebugPanel() {
-        let returnToMainPage = debugReturnsToMainPage
-        showingDebugPanel = false
         resetDebugState()
-        toggleExpanded(returnToMainPage)
+        dismissWindow(id: "pet-debug")
     }
 
     private func resetDebugState() {
-        isMockingReturn = false
-        mockReturnRate = store.totalReturn
+        debugState.isMockingReturn = false
+        debugState.mockReturnRate = store.totalReturn
     }
 
     private func resizeCompactWindowForReturn(animated: Bool = true) {
         guard !isExpanded,
-              let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else { return }
+              let window = mainPetWindow else { return }
 
         let oldFrame = window.frame
         let newSize = compactWindowSize
@@ -1986,18 +2013,15 @@ struct ContentView: View {
     }
 
     private func toggleExpanded(_ expanded: Bool) {
-        guard let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else {
+        guard let window = mainPetWindow else {
             isExpanded = expanded
             return
         }
 
         let oldFrame = window.frame
-        let isMainDashboard = expanded && !showingDebugPanel
         let newSize: NSSize
-        if isMainDashboard {
+        if expanded {
             newSize = NSSize(width: 980, height: 700)
-        } else if expanded {
-            newSize = NSSize(width: 390, height: expandedWindowHeight)
         } else {
             newSize = compactWindowSize
         }
@@ -2011,9 +2035,7 @@ struct ContentView: View {
         window.hasShadow = expanded
         window.styleMask.remove(.resizable)
         if expanded {
-            window.contentMinSize = isMainDashboard
-                ? NSSize(width: 760, height: 560)
-                : NSSize(width: 390, height: 560)
+            window.contentMinSize = NSSize(width: 760, height: 560)
             window.contentMaxSize = NSSize(width: 1600, height: 1100)
         } else {
             window.contentMinSize = newSize
@@ -2027,6 +2049,10 @@ struct ContentView: View {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             window.animator().setFrame(target, display: true)
         }
+    }
+
+    private var mainPetWindow: NSWindow? {
+        NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" })
     }
 }
 
