@@ -182,7 +182,12 @@ final class StockNewsRSSParser: NSObject, XMLParserDelegate {
 
 @MainActor
 final class PetStore: ObservableObject {
-    @Published var positions: [Position] = []
+    @Published var positions: [Position] = [] {
+        didSet {
+            guard !isRestoringPositions else { return }
+            schedulePositionsSave()
+        }
+    }
     @Published var notificationsEnabled = true
     @Published var screenshot: NSImage?
     @Published var showingEditor = false
@@ -202,30 +207,49 @@ final class PetStore: ObservableObject {
     private let key = "stockPet.positions.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
     private let speaker = AVSpeechSynthesizer()
+    private var isRestoringPositions = true
     private var hasLoadedNews = false
+    private var positionsSaveTask: Task<Void, Never>?
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: key),
-           let saved = try? JSONDecoder().decode([Position].self, from: data), !saved.isEmpty {
-            positions = saved.map { position in
-                var position = position
-                if position.symbol?.isEmpty != false {
-                    position.symbol = Self.defaultSymbol(for: position.name)
-                }
-                return position
-            }
+        if let saved = Self.loadSavedPositions(forKey: key) {
+            positions = saved
         } else {
-            positions = [
-                Position(name: "贵州茅台", value: 52_000, change: 2.35, symbol: "sh600519"),
-                Position(name: "宁德时代", value: 38_000, change: 0.42, symbol: "sz300750"),
-                Position(name: "腾讯控股", value: 26_000, change: -1.15, symbol: "hk00700")
-            ]
+            positions = Self.defaultPositions
         }
+        isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
         startNewsPolling()
         startMarketPolling()
+    }
+
+    private static func loadSavedPositions(forKey key: String) -> [Position]? {
+        guard UserDefaults.standard.object(forKey: key) != nil,
+              let data = UserDefaults.standard.data(forKey: key),
+              let saved = try? JSONDecoder().decode([Position].self, from: data) else {
+            return nil
+        }
+        return normalizePositions(saved)
+    }
+
+    private static var defaultPositions: [Position] {
+        [
+            Position(name: "贵州茅台", value: 52_000, change: 2.35, symbol: "sh600519"),
+            Position(name: "宁德时代", value: 38_000, change: 0.42, symbol: "sz300750"),
+            Position(name: "腾讯控股", value: 26_000, change: -1.15, symbol: "hk00700")
+        ]
+    }
+
+    private static func normalizePositions(_ positions: [Position]) -> [Position] {
+        positions.map { position in
+            var position = position
+            if position.symbol?.isEmpty != false {
+                position.symbol = defaultSymbol(for: position.name)
+            }
+            return position
+        }
     }
 
     private func startNewsPolling() {
@@ -481,6 +505,17 @@ final class PetStore: ObservableObject {
             return
         }
         positions.append(Position(name: result.name, value: 0, change: 0, symbol: result.symbol))
+        save()
+    }
+
+    func addManualPosition() {
+        positions.append(Position(name: "未命名股票", value: 0, change: 0, symbol: ""))
+        save()
+    }
+
+    func removePosition(id: UUID) {
+        positions.removeAll { $0.id == id }
+        save()
     }
 
     static func fallbackTrend(seed: Double, count: Int = 72) -> [Double] {
@@ -528,8 +563,31 @@ final class PetStore: ObservableObject {
     }
 
     func save() {
+        positionsSaveTask?.cancel()
+        positionsSaveTask = nil
+        persistPositions()
+    }
+
+    private func schedulePositionsSave() {
+        positionsSaveTask?.cancel()
+        positionsSaveTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 400_000_000)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.positionsSaveTask = nil
+                self?.persistPositions()
+            }
+        }
+    }
+
+    private func persistPositions() {
         if let data = try? JSONEncoder().encode(positions) {
             UserDefaults.standard.set(data, forKey: key)
+            UserDefaults.standard.synchronize()
         }
     }
 
@@ -1262,6 +1320,11 @@ struct ContentView: View {
         }
         .onDisappear {
             if isDebugWindow { resetDebugState() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            if !isDebugWindow {
+                store.save()
+            }
         }
     }
 
@@ -2536,7 +2599,7 @@ struct ContentView: View {
                         .background(gainColor.opacity(0.13), in: Capsule())
                     Spacer()
                     Button {
-                        store.positions.append(Position(name: "未命名股票", value: 0, change: 0, symbol: ""))
+                        store.addManualPosition()
                     } label: {
                         Label("手动添加", systemImage: "plus")
                             .font(.system(size: 9, weight: .medium))
@@ -2583,7 +2646,7 @@ struct ContentView: View {
                                         .frame(width: 90)
                                     Button {
                                         withAnimation(.easeOut(duration: 0.18)) {
-                                            store.positions.removeAll { $0.id == item.id }
+                                            store.removePosition(id: item.id)
                                         }
                                     } label: {
                                         Image(systemName: "trash")
@@ -2670,6 +2733,7 @@ struct ContentView: View {
             stockSearchTask?.cancel()
             stockSearchTask = nil
             store.clearStockSearch()
+            store.save()
         }
     }
 
