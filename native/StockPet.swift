@@ -691,17 +691,42 @@ final class PetStore: ObservableObject {
 }
 
 private let mainPetWindowTitle = "持仓宠物"
+private let mainPetWindowExpandedKey = "stockPet.window.isExpanded.current.v1"
+private let expandedWindowStaysOnTopKey = "stockPet.expandedWindow.staysOnTop.v1"
 
-private func configureMainPetWindowPresentation(_ window: NSWindow) {
-    window.level = .statusBar
+private func configureMainPetWindowPresentation(_ window: NSWindow, isExpanded: Bool, expandedStaysOnTop: Bool) {
+    let shouldFloatAboveApps = !isExpanded || expandedStaysOnTop
+    window.level = shouldFloatAboveApps ? .statusBar : .normal
     window.isMovableByWindowBackground = true
     window.styleMask = [.borderless, .fullSizeContentView]
     window.titleVisibility = .hidden
     window.titlebarAppearsTransparent = true
     window.isOpaque = false
     window.backgroundColor = .clear
-    window.canHide = false
-    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+    window.canHide = !shouldFloatAboveApps
+    window.collectionBehavior = shouldFloatAboveApps
+        ? [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        : [.fullScreenAuxiliary]
+}
+
+private func configureMainPetWindowPresentationFromDefaults(_ window: NSWindow) {
+    configureMainPetWindowPresentation(
+        window,
+        isExpanded: UserDefaults.standard.bool(forKey: mainPetWindowExpandedKey),
+        expandedStaysOnTop: UserDefaults.standard.bool(forKey: expandedWindowStaysOnTopKey)
+    )
+}
+
+private func defaultCompactWindowFrame(for window: NSWindow) -> NSRect {
+    let size = window.frame.size
+    let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
+    let margin: CGFloat = 24
+    return NSRect(
+        x: visible.maxX - size.width - margin,
+        y: visible.minY + margin,
+        width: size.width,
+        height: size.height
+    )
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
@@ -713,10 +738,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             guard let window = self.mainPetWindow else { return }
-            configureMainPetWindowPresentation(window)
+            UserDefaults.standard.set(false, forKey: mainPetWindowExpandedKey)
+            configureMainPetWindowPresentation(window, isExpanded: false, expandedStaysOnTop: false)
             window.hasShadow = false
             window.setContentSize(NSSize(width: 150, height: 165))
-            window.center()
+            window.setFrame(defaultCompactWindowFrame(for: window), display: true)
         }
     }
 
@@ -743,7 +769,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private func restoreMainPetWindow() {
         guard let window = mainPetWindow else { return }
-        configureMainPetWindowPresentation(window)
+        configureMainPetWindowPresentationFromDefaults(window)
         if window.isMiniaturized {
             window.deminiaturize(nil)
         }
@@ -753,7 +779,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private func keepMainPetWindowFloating() {
         guard let window = mainPetWindow, !window.isMiniaturized else { return }
-        configureMainPetWindowPresentation(window)
+        let isExpanded = UserDefaults.standard.bool(forKey: mainPetWindowExpandedKey)
+        let expandedStaysOnTop = UserDefaults.standard.bool(forKey: expandedWindowStaysOnTopKey)
+        configureMainPetWindowPresentation(window, isExpanded: isExpanded, expandedStaysOnTop: expandedStaysOnTop)
+        guard !isExpanded || expandedStaysOnTop else { return }
         window.setIsVisible(true)
         window.orderFrontRegardless()
     }
@@ -1162,6 +1191,7 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     @AppStorage("stockPet.appearance.v1") private var selectedAppearanceRaw = PetAppearance.robot.rawValue
+    @AppStorage(expandedWindowStaysOnTopKey) private var expandedWindowStaysOnTop = false
     @State private var isExpanded = false
     @State private var showingNews = false
     @State private var hoveringCompact = false
@@ -1691,6 +1721,11 @@ struct ContentView: View {
                 toolbarIcon("arrow.clockwise", help: "刷新行情") {
                     Task { await store.refreshMarketData() }
                 }
+                toolbarIcon(
+                    expandedWindowStaysOnTop ? "pin.fill" : "pin",
+                    help: expandedWindowStaysOnTop ? "取消置顶" : "保持置顶",
+                    action: toggleExpandedWindowPriority
+                )
             } else {
                 Button(action: openPositionEditor) {
                     Label("添加股票", systemImage: "plus")
@@ -1712,6 +1747,11 @@ struct ContentView: View {
                 toolbarIcon("square.and.arrow.up", help: "晒收益", action: openShareCard)
                 toolbarIcon("bag.fill", help: "宠物商城") { showingPetStore = true }
                 toolbarIcon("ladybug.fill", help: "调试", action: openDebugPanel)
+                toolbarIcon(
+                    expandedWindowStaysOnTop ? "pin.fill" : "pin",
+                    help: expandedWindowStaysOnTop ? "取消置顶" : "保持置顶",
+                    action: toggleExpandedWindowPriority
+                )
             }
             toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
             toolbarIcon("xmark", help: "收起到宠物", action: collapseToCompactPet)
@@ -2926,6 +2966,25 @@ struct ContentView: View {
         debugState.mockReturnRate = store.totalReturn
     }
 
+    private func applyMainPetWindowPresentation(bringToFront: Bool = false) {
+        guard let window = mainPetWindow else { return }
+        UserDefaults.standard.set(isExpanded, forKey: mainPetWindowExpandedKey)
+        configureMainPetWindowPresentation(
+            window,
+            isExpanded: isExpanded,
+            expandedStaysOnTop: expandedWindowStaysOnTop
+        )
+        if bringToFront || !isExpanded || expandedWindowStaysOnTop {
+            window.setIsVisible(true)
+            window.orderFrontRegardless()
+        }
+    }
+
+    private func toggleExpandedWindowPriority() {
+        expandedWindowStaysOnTop.toggle()
+        applyMainPetWindowPresentation(bringToFront: expandedWindowStaysOnTop)
+    }
+
     private func resizeCompactWindowForReturn(animated: Bool = true) {
         guard !isExpanded,
               let window = mainPetWindow else { return }
@@ -2988,10 +3047,10 @@ struct ContentView: View {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = expanded ? 22 : 0
         window.contentView?.layer?.masksToBounds = expanded
-        // 重新确认悬浮层级和跨桌面展示（SwiftUI 有时会把窗口配置重置回普通层级）。
-        configureMainPetWindowPresentation(window)
+        // 重新确认窗口层级；紧凑宠物置顶，展开面板按图钉按钮决定是否置顶。
+        applyMainPetWindowPresentation(bringToFront: expanded)
         if expanded {
-            window.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
             NSApp.activate()
         }
         NSAnimationContext.runAnimationGroup { context in
