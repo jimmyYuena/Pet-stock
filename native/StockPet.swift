@@ -975,7 +975,8 @@ private struct WindowResizeInteractionLayer: View {
     let onResizeEnded: () -> Void
     private let edgeThickness: CGFloat = 7
     private let bottomEdgeThickness: CGFloat = 10
-    private let cornerSize: CGFloat = 8
+    private let topCornerSize: CGFloat = 20
+    private let bottomCornerSize: CGFloat = 26
     private let topControlSafeHeight: CGFloat = 56
 
     var body: some View {
@@ -986,6 +987,9 @@ private struct WindowResizeInteractionLayer: View {
                         .frame(height: topControlSafeHeight)
                         .allowsHitTesting(false)
                     WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(height: bottomCornerSize)
+                        .allowsHitTesting(false)
                 }
                 .frame(width: edgeThickness)
                 Spacer(minLength: 0)
@@ -994,26 +998,53 @@ private struct WindowResizeInteractionLayer: View {
                         .frame(height: topControlSafeHeight)
                         .allowsHitTesting(false)
                     WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(height: bottomCornerSize)
+                        .allowsHitTesting(false)
                 }
                 .frame(width: edgeThickness)
             }
+            .zIndex(1)
             VStack(spacing: 0) {
-                WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
+                HStack(spacing: 0) {
+                    Color.clear
+                        .frame(width: topCornerSize)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(width: topCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(height: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded).frame(height: bottomEdgeThickness)
+                HStack(spacing: 0) {
+                    Color.clear
+                        .frame(width: bottomCornerSize)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(width: bottomCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(height: bottomEdgeThickness)
             }
+            .zIndex(1)
             WindowResizeHandle(region: .topLeft, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: topCornerSize, height: topCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .zIndex(2)
             WindowResizeHandle(region: .topRight, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: topCornerSize, height: topCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .zIndex(2)
             WindowResizeHandle(region: .bottomLeft, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: bottomCornerSize, height: bottomCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .zIndex(2)
             WindowResizeHandle(region: .bottomRight, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: bottomCornerSize, height: bottomCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .zIndex(2)
         }
     }
 }
