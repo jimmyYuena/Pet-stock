@@ -144,6 +144,15 @@ private enum MarketSessionPhase: Equatable {
         case .closed, .unknown: return Color.white.opacity(0.36)
         }
     }
+
+    var shouldRefreshLatestPrice: Bool {
+        switch self {
+        case .preMarket, .regular, .afterHours:
+            return true
+        case .middayBreak, .overnight, .closed, .unknown:
+            return false
+        }
+    }
 }
 
 private struct MarketSessionBadge {
@@ -616,10 +625,20 @@ final class PetStore: ObservableObject {
             for position in positions {
                 let symbol = position.symbol ?? ""
                 let quote = quotes[symbol]
-                let changePercent = quote?.percent ?? position.change
                 let previous = positionMarkets[position.id]
+                let session = MarketSessionResolver.session(for: symbol)
+                let shouldRefreshLatestPrice = session.phase.shouldRefreshLatestPrice
+                let displayedPrice = shouldRefreshLatestPrice
+                    ? quote?.price
+                    : (previous?.currentPrice ?? quote?.price)
+                let changeAmount = shouldRefreshLatestPrice
+                    ? quote?.change ?? 0
+                    : (previous?.changeAmount ?? quote?.change ?? 0)
+                let changePercent = shouldRefreshLatestPrice
+                    ? quote?.percent ?? position.change
+                    : (previous?.changePercent ?? quote?.percent ?? position.change)
                 var liveTrend: [Double]? = nil
-                if includeTrend, !symbol.isEmpty {
+                if includeTrend, shouldRefreshLatestPrice, !symbol.isEmpty {
                     liveTrend = try? await fetchMinuteTrend(symbol)
                 }
 
@@ -638,11 +657,11 @@ final class PetStore: ObservableObject {
                 }
 
                 snapshots[position.id] = PositionMarketSnapshot(
-                    currentPrice: quote?.price,
-                    changeAmount: quote?.change ?? 0,
+                    currentPrice: displayedPrice,
+                    changeAmount: changeAmount,
                     changePercent: changePercent,
                     trend: resolvedTrend,
-                    isLive: isLive
+                    isLive: isLive && shouldRefreshLatestPrice
                 )
             }
             positionMarkets = snapshots
@@ -670,9 +689,57 @@ final class PetStore: ObservableObject {
         let percent: Double
     }
 
+    private struct YahooChartResponse: Decodable {
+        let chart: YahooChart
+    }
+
+    private struct YahooChart: Decodable {
+        let result: [YahooChartResult]?
+    }
+
+    private struct YahooChartResult: Decodable {
+        let meta: YahooChartMeta
+        let indicators: YahooChartIndicators
+    }
+
+    private struct YahooChartMeta: Decodable {
+        let regularMarketPrice: Double?
+        let chartPreviousClose: Double?
+        let previousClose: Double?
+    }
+
+    private struct YahooChartIndicators: Decodable {
+        let quote: [YahooChartQuote]
+    }
+
+    private struct YahooChartQuote: Decodable {
+        let close: [Double?]?
+    }
+
+    private struct NasdaqQuoteInfoResponse: Decodable {
+        let data: NasdaqQuoteData?
+    }
+
+    private struct NasdaqQuoteData: Decodable {
+        let primaryData: NasdaqQuotePriceData?
+    }
+
+    private struct NasdaqQuotePriceData: Decodable {
+        let lastSalePrice: String?
+        let netChange: String?
+        let percentageChange: String?
+    }
+
     private func fetchQuotes(_ symbols: [String]) async throws -> [String: QuoteValue] {
-        guard !symbols.isEmpty,
-              let url = URL(string: "https://qt.gtimg.cn/q=" + symbols.map { "s_\($0)" }.joined(separator: ",")) else {
+        guard !symbols.isEmpty else {
+            return [:]
+        }
+        let querySymbols = symbols.flatMap { symbol -> [String] in
+            symbol.lowercased().hasPrefix("us")
+                ? ["s_\(symbol)", symbol]
+                : ["s_\(symbol)"]
+        }
+        guard let url = URL(string: "https://qt.gtimg.cn/q=" + querySymbols.joined(separator: ",")) else {
             return [:]
         }
         var request = URLRequest(url: url)
@@ -690,16 +757,121 @@ final class PetStore: ObservableObject {
                   let firstQuote = line.firstIndex(of: "\""),
                   let lastQuote = line.lastIndex(of: "\""), firstQuote < lastQuote else { continue }
             let rawKey = String(line[..<equals]).trimmingCharacters(in: .whitespacesAndNewlines)
-            let key = rawKey.replacingOccurrences(of: "v_s_", with: "")
+            let key = rawKey
+                .replacingOccurrences(of: "v_s_", with: "")
+                .replacingOccurrences(of: "v_", with: "")
             let start = line.index(after: firstQuote)
             let fields = line[start..<lastQuote].split(separator: "~", omittingEmptySubsequences: false)
             guard fields.count > 5,
                   let price = Double(fields[3]),
-                  let change = Double(fields[4]),
-                  let percent = Double(fields[5]) else { continue }
+                  let change = Double(fields.count > 30 ? fields[30] : fields[4]),
+                  let percent = Double(fields.count > 31 ? fields[31] : fields[5]) else { continue }
             result[key] = QuoteValue(price: price, change: change, percent: percent)
         }
+
+        for symbol in symbols where shouldFetchUSPrePostQuote(for: symbol) {
+            if let quote = try? await fetchUSPrePostQuote(symbol) {
+                result[symbol] = quote
+            }
+        }
         return result
+    }
+
+    private func shouldFetchUSPrePostQuote(for symbol: String) -> Bool {
+        let normalized = symbol.lowercased()
+        guard normalized.hasPrefix("us") else { return false }
+        return MarketSessionResolver.session(for: normalized).phase.shouldRefreshLatestPrice
+    }
+
+    private func fetchUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
+        if let quote = try? await fetchYahooUSPrePostQuote(symbol) {
+            return quote
+        }
+        return try await fetchNasdaqUSQuote(symbol)
+    }
+
+    private func fetchYahooUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
+        let ticker = String(symbol.dropFirst(2)).uppercased()
+        guard !ticker.isEmpty,
+              var components = URLComponents(string: "https://query1.finance.yahoo.com/v8/finance/chart/\(ticker)") else {
+            return nil
+        }
+        components.queryItems = [
+            URLQueryItem(name: "range", value: "1d"),
+            URLQueryItem(name: "interval", value: "1m"),
+            URLQueryItem(name: "includePrePost", value: "true")
+        ]
+        guard let url = components.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("application/json,text/plain,*/*", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let decoded = try JSONDecoder().decode(YahooChartResponse.self, from: data)
+        guard let chart = decoded.chart.result?.first else { return nil }
+
+        let latestPrice = chart.indicators.quote
+            .first?
+            .close?
+            .reversed()
+            .compactMap { $0 }
+            .first ?? chart.meta.regularMarketPrice
+        guard let price = latestPrice else { return nil }
+
+        let previousClose = chart.meta.chartPreviousClose ?? chart.meta.previousClose ?? price
+        let change = price - previousClose
+        let percent = previousClose == 0 ? 0 : change / previousClose * 100
+        return QuoteValue(price: price, change: change, percent: percent)
+    }
+
+    private func fetchNasdaqUSQuote(_ symbol: String) async throws -> QuoteValue? {
+        let ticker = String(symbol.dropFirst(2)).uppercased()
+        guard !ticker.isEmpty,
+              var components = URLComponents(string: "https://api.nasdaq.com/api/quote/\(ticker)/info") else {
+            return nil
+        }
+        components.queryItems = [URLQueryItem(name: "assetclass", value: "stocks")]
+        guard let url = components.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("application/json,text/plain,*/*", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let decoded = try JSONDecoder().decode(NasdaqQuoteInfoResponse.self, from: data)
+        guard let primaryData = decoded.data?.primaryData,
+              let price = Self.parseMarketNumber(primaryData.lastSalePrice) else {
+            return nil
+        }
+
+        return QuoteValue(
+            price: price,
+            change: Self.parseMarketNumber(primaryData.netChange) ?? 0,
+            percent: Self.parseMarketNumber(primaryData.percentageChange) ?? 0
+        )
+    }
+
+    private static func parseMarketNumber(_ value: String?) -> Double? {
+        guard let value else { return nil }
+        let cleaned = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: "%", with: "")
+            .replacingOccurrences(of: "+", with: "")
+        guard !cleaned.isEmpty, cleaned.lowercased() != "n/a" else { return nil }
+        return Double(cleaned)
     }
 
     private func fetchMinuteTrend(_ symbol: String) async throws -> [Double] {
