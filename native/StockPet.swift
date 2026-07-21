@@ -632,6 +632,20 @@ final class PetStore: ObservableObject {
     }
 }
 
+private let mainPetWindowTitle = "持仓宠物"
+
+private func configureMainPetWindowPresentation(_ window: NSWindow) {
+    window.level = .statusBar
+    window.isMovableByWindowBackground = true
+    window.styleMask = [.borderless, .fullSizeContentView]
+    window.titleVisibility = .hidden
+    window.titlebarAppearsTransparent = true
+    window.isOpaque = false
+    window.backgroundColor = .clear
+    window.canHide = false
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let iconURL = Bundle.main.url(forResource: "StockPet", withExtension: "icns"),
@@ -640,14 +654,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         UNUserNotificationCenter.current().delegate = self
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard let window = NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" }) else { return }
-            window.level = .floating
-            window.isMovableByWindowBackground = true
-            window.styleMask = [.borderless, .fullSizeContentView]
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
-            window.isOpaque = false
-            window.backgroundColor = .clear
+            guard let window = self.mainPetWindow else { return }
+            configureMainPetWindowPresentation(window)
             window.hasShadow = false
             window.setContentSize(NSSize(width: 150, height: 165))
             window.center()
@@ -655,6 +663,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        restoreMainPetWindow()
+        return true
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        restoreMainPetWindow()
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.keepMainPetWindowFloating()
+        }
+    }
+
+    private var mainPetWindow: NSWindow? {
+        NSApplication.shared.windows.first(where: { $0.title == mainPetWindowTitle })
+    }
+
+    private func restoreMainPetWindow() {
+        guard let window = mainPetWindow else { return }
+        configureMainPetWindowPresentation(window)
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        window.setIsVisible(true)
+        window.orderFrontRegardless()
+    }
+
+    private func keepMainPetWindowFloating() {
+        guard let window = mainPetWindow, !window.isMiniaturized else { return }
+        configureMainPetWindowPresentation(window)
+        window.setIsVisible(true)
+        window.orderFrontRegardless()
+    }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
@@ -1050,6 +1094,7 @@ struct ContentView: View {
     @State private var showingNews = false
     @State private var hoveringCompact = false
     @State private var compactPetHovering = false
+    @State private var compactWindowFrameBeforeExpansion: NSRect?
     @GestureState private var draggingCompactWindow = false
     @State private var hoveringPet = false
     @State private var importingScreenshot = false
@@ -1153,7 +1198,7 @@ struct ContentView: View {
                         minWidth: expandedWindowMinimumSize.width,
                         minHeight: expandedWindowMinimumSize.height
                     )
-                    .transition(.scale(scale: 0.82, anchor: .topLeading).combined(with: .opacity))
+                    .transition(.scale(scale: 0.82, anchor: .center).combined(with: .opacity))
             } else {
                 compactPet
                     .frame(width: compactWindowSize.width, height: compactWindowSize.height)
@@ -2787,14 +2832,8 @@ struct ContentView: View {
 
         let oldFrame = window.frame
         let newSize = compactWindowSize
-        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? oldFrame
-        var origin = NSPoint(
-            x: oldFrame.midX - newSize.width / 2,
-            y: oldFrame.midY - newSize.height / 2
-        )
-        origin.x = min(max(visible.minX, origin.x), visible.maxX - newSize.width)
-        origin.y = min(max(visible.minY, origin.y), visible.maxY - newSize.height)
-        let target = NSRect(origin: origin, size: newSize)
+        let visible = visibleFrame(for: window, fallback: oldFrame)
+        let target = clampedFrame(size: newSize, centeredAt: NSPoint(x: oldFrame.midX, y: oldFrame.midY), in: visible)
 
         if animated {
             NSAnimationContext.runAnimationGroup { context in
@@ -2815,21 +2854,26 @@ struct ContentView: View {
 
         let oldFrame = window.frame
         var newSize: NSSize
+        var target: NSRect
         if expanded {
+            compactWindowFrameBeforeExpansion = oldFrame
             newSize = savedExpandedWindowSize
+            let visible = visibleFrame(for: window, fallback: oldFrame)
+            newSize.width = min(newSize.width, visible.width)
+            newSize.height = min(newSize.height, visible.height)
+            target = centeredFrame(size: newSize, in: visible)
         } else {
             persistExpandedWindowSize()
             newSize = compactWindowSize
+            let restoreFrame = compactWindowFrameBeforeExpansion ?? oldFrame
+            let visible = visibleFrame(for: window, fallback: restoreFrame)
+            target = clampedFrame(
+                size: newSize,
+                centeredAt: NSPoint(x: restoreFrame.midX, y: restoreFrame.midY),
+                in: visible
+            )
+            compactWindowFrameBeforeExpansion = nil
         }
-        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? oldFrame
-        if expanded {
-            newSize.width = min(newSize.width, visible.width)
-            newSize.height = min(newSize.height, visible.height)
-        }
-        var origin = NSPoint(x: oldFrame.minX, y: oldFrame.maxY - newSize.height)
-        origin.x = min(max(visible.minX, origin.x), visible.maxX - newSize.width)
-        origin.y = min(max(visible.minY, origin.y), visible.maxY - newSize.height)
-        let target = NSRect(origin: origin, size: newSize)
 
         isExpanded = expanded
         window.hasShadow = expanded
@@ -2844,10 +2888,8 @@ struct ContentView: View {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = expanded ? 22 : 0
         window.contentView?.layer?.masksToBounds = expanded
-        // 重新确认浮动层级（SwiftUI 有时会把它重置回普通层级），展开时主动置顶，
-        // 保证展开后的面板能盖在其它应用的窗口之上。
-        window.level = .floating
-        window.collectionBehavior.insert(.fullScreenAuxiliary)
+        // 重新确认悬浮层级和跨桌面展示（SwiftUI 有时会把窗口配置重置回普通层级）。
+        configureMainPetWindowPresentation(window)
         if expanded {
             window.orderFrontRegardless()
             NSApp.activate()
@@ -2857,6 +2899,28 @@ struct ContentView: View {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             window.animator().setFrame(target, display: true)
         }
+    }
+
+    private func visibleFrame(for window: NSWindow, fallback: NSRect) -> NSRect {
+        window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? fallback
+    }
+
+    private func centeredFrame(size: NSSize, in visible: NSRect) -> NSRect {
+        clampedFrame(
+            size: size,
+            centeredAt: NSPoint(x: visible.midX, y: visible.midY),
+            in: visible
+        )
+    }
+
+    private func clampedFrame(size: NSSize, centeredAt center: NSPoint, in visible: NSRect) -> NSRect {
+        var origin = NSPoint(
+            x: center.x - size.width / 2,
+            y: center.y - size.height / 2
+        )
+        origin.x = min(max(visible.minX, origin.x), visible.maxX - size.width)
+        origin.y = min(max(visible.minY, origin.y), visible.maxY - size.height)
+        return NSRect(origin: origin, size: size)
     }
 
     private var savedExpandedWindowSize: NSSize {
@@ -2886,7 +2950,7 @@ struct ContentView: View {
     }
 
     private var mainPetWindow: NSWindow? {
-        NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" })
+        NSApplication.shared.windows.first(where: { $0.title == mainPetWindowTitle })
     }
 }
 
