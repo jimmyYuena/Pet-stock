@@ -106,6 +106,289 @@ struct StockNews: Identifiable, Hashable {
     let publishedAt: Date
 }
 
+private enum MarketRegion {
+    case mainlandChina
+    case hongKong
+    case unitedStates
+    case unknown
+}
+
+private enum MarketSessionPhase: Equatable {
+    case preMarket
+    case regular
+    case middayBreak
+    case afterHours
+    case overnight
+    case closed
+    case unknown
+
+    var label: String {
+        switch self {
+        case .preMarket: return "盘前交易"
+        case .regular: return "已开市"
+        case .middayBreak: return "午间休市"
+        case .afterHours: return "盘后交易"
+        case .overnight: return "隔夜交易"
+        case .closed: return "休市"
+        case .unknown: return "未设置"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .preMarket: return Color(red: 1.0, green: 0.70, blue: 0.16)
+        case .regular: return Color(red: 0.24, green: 0.78, blue: 0.28)
+        case .middayBreak: return Color(red: 0.78, green: 0.66, blue: 0.34)
+        case .afterHours: return Color(red: 0.57, green: 0.32, blue: 1.0)
+        case .overnight: return Color(red: 0.21, green: 0.54, blue: 1.0)
+        case .closed, .unknown: return Color.white.opacity(0.36)
+        }
+    }
+}
+
+private struct MarketSessionBadge {
+    let phase: MarketSessionPhase
+    let marketName: String
+    let detail: String
+
+    var label: String { phase.label }
+    var color: Color { phase.color }
+}
+
+private enum USMarketClockMode {
+    case daylightSaving
+    case standard
+
+    var timeZone: TimeZone {
+        switch self {
+        case .daylightSaving:
+            return TimeZone(secondsFromGMT: -4 * 60 * 60)!
+        case .standard:
+            return TimeZone(secondsFromGMT: -5 * 60 * 60)!
+        }
+    }
+}
+
+private enum MarketSessionResolver {
+    private static let utcPlus8 = TimeZone(secondsFromGMT: 8 * 60 * 60)!
+    private static let newYork = TimeZone(identifier: "America/New_York")!
+
+    private struct USMarketClock {
+        let mode: USMarketClockMode
+
+        var calendar: Calendar {
+            MarketSessionResolver.calendar(in: mode.timeZone)
+        }
+    }
+
+    private static let mainlandHolidays2026: Set<String> = [
+        "2026-01-01", "2026-01-02", "2026-01-03",
+        "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
+        "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23",
+        "2026-04-04", "2026-04-05", "2026-04-06",
+        "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05",
+        "2026-06-19", "2026-06-20", "2026-06-21",
+        "2026-09-25", "2026-09-26", "2026-09-27",
+        "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04",
+        "2026-10-05", "2026-10-06", "2026-10-07"
+    ]
+
+    private static let hongKongHolidays2026: Set<String> = [
+        "2026-01-01",
+        "2026-02-17", "2026-02-18", "2026-02-19",
+        "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07",
+        "2026-05-01", "2026-05-25",
+        "2026-06-19",
+        "2026-07-01",
+        "2026-09-26",
+        "2026-10-01", "2026-10-19",
+        "2026-12-25", "2026-12-26"
+    ]
+
+    private static let hongKongHalfDays2026: Set<String> = [
+        "2026-02-16",
+        "2026-12-24",
+        "2026-12-31"
+    ]
+
+    private static let usHolidays2026: Set<String> = [
+        "2026-01-01",
+        "2026-01-19",
+        "2026-02-16",
+        "2026-04-03",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-09-07",
+        "2026-11-26",
+        "2026-12-25"
+    ]
+
+    private static let usEarlyCloseDays2026: Set<String> = [
+        "2026-11-27",
+        "2026-12-24"
+    ]
+
+    static func session(for symbol: String?, at date: Date = Date()) -> MarketSessionBadge {
+        let region = region(for: symbol)
+        switch region {
+        case .mainlandChina:
+            return mainlandSession(at: date)
+        case .hongKong:
+            return hongKongSession(at: date)
+        case .unitedStates:
+            return usSession(at: date)
+        case .unknown:
+            return MarketSessionBadge(phase: .unknown, marketName: "未知市场", detail: "请先设置股票代码")
+        }
+    }
+
+    private static func region(for symbol: String?) -> MarketRegion {
+        let normalized = (symbol ?? "").lowercased()
+        if normalized.hasPrefix("sh") || normalized.hasPrefix("sz") { return .mainlandChina }
+        if normalized.hasPrefix("hk") { return .hongKong }
+        if normalized.hasPrefix("us") { return .unitedStates }
+        return .unknown
+    }
+
+    private static func mainlandSession(at date: Date) -> MarketSessionBadge {
+        let calendar = calendar(in: utcPlus8)
+        let key = dateKey(for: date, calendar: calendar)
+        guard isTradingDay(date, calendar: calendar, holidays: mainlandHolidays2026) else {
+            return MarketSessionBadge(phase: .closed, marketName: "A股", detail: "A股今日休市")
+        }
+
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let phase: MarketSessionPhase
+        switch minute {
+        case ..<minutes(9, 15):
+            phase = .closed
+        case minutes(9, 15)..<minutes(9, 30):
+            phase = .preMarket
+        case minutes(9, 30)..<minutes(11, 30):
+            phase = .regular
+        case minutes(11, 30)..<minutes(13, 0):
+            phase = .middayBreak
+        case minutes(13, 0)..<minutes(15, 0):
+            phase = .regular
+        case minutes(15, 0)..<minutes(15, 30):
+            phase = .afterHours
+        default:
+            phase = .closed
+        }
+        return MarketSessionBadge(phase: phase, marketName: "A股", detail: "A股交易日 \(key) · UTC+8")
+    }
+
+    private static func hongKongSession(at date: Date) -> MarketSessionBadge {
+        let calendar = calendar(in: utcPlus8)
+        let key = dateKey(for: date, calendar: calendar)
+        guard isTradingDay(date, calendar: calendar, holidays: hongKongHolidays2026) else {
+            return MarketSessionBadge(phase: .closed, marketName: "港股", detail: "港股今日休市")
+        }
+
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let isHalfDay = hongKongHalfDays2026.contains(key)
+        let afternoonClose = isHalfDay ? minutes(12, 10) : minutes(16, 10)
+        let afterHoursEnd = isHalfDay ? minutes(13, 0) : minutes(18, 0)
+        let phase: MarketSessionPhase
+        if minute < minutes(9, 0) {
+            phase = .closed
+        } else if minute < minutes(9, 30) {
+            phase = .preMarket
+        } else if minute < minutes(12, 0) {
+            phase = .regular
+        } else if isHalfDay, minute < afternoonClose {
+            phase = .regular
+        } else if !isHalfDay, minute < minutes(13, 0) {
+            phase = .middayBreak
+        } else if !isHalfDay, minute < afternoonClose {
+            phase = .regular
+        } else if minute < afterHoursEnd {
+            phase = .afterHours
+        } else {
+            phase = .closed
+        }
+        return MarketSessionBadge(phase: phase, marketName: "港股", detail: "港股交易日 \(key) · UTC+8")
+    }
+
+    private static func usSession(at date: Date) -> MarketSessionBadge {
+        let marketClock = usMarketClock(at: date)
+        let calendar = marketClock.calendar
+        let key = dateKey(for: date, calendar: calendar)
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let regularClose = usEarlyCloseDays2026.contains(key) ? minutes(13, 0) : minutes(16, 0)
+        let afterHoursEnd = usEarlyCloseDays2026.contains(key) ? minutes(17, 0) : minutes(20, 0)
+        let isTodayTradingDay = isTradingDay(date, calendar: calendar, holidays: usHolidays2026)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        let nextKey = dateKey(for: nextDate, calendar: calendar)
+        let isNextCalendarDayTradingDay = isTradingDay(nextDate, calendar: calendar, holidays: usHolidays2026)
+        let phase: MarketSessionPhase
+        if minute < minutes(4, 0) {
+            phase = isTodayTradingDay ? .overnight : .closed
+        } else if !isTodayTradingDay {
+            phase = .closed
+        } else if minute < minutes(9, 30) {
+            phase = .preMarket
+        } else if minute < regularClose {
+            phase = .regular
+        } else if minute < afterHoursEnd {
+            phase = .afterHours
+        } else if minute >= minutes(20, 0), isNextCalendarDayTradingDay {
+            phase = .overnight
+        } else {
+            phase = .closed
+        }
+
+        let detail: String
+        if phase == .overnight, minute >= minutes(20, 0) {
+            detail = "隔夜交易连接 \(nextKey) 美股交易日 · 纽约时间"
+        } else if isTodayTradingDay {
+            detail = "美股交易日 \(key) · 纽约时间"
+        } else {
+            detail = "美股今日休市"
+        }
+        return MarketSessionBadge(phase: phase, marketName: "美股", detail: detail)
+    }
+
+    private static func usMarketClock(at date: Date) -> USMarketClock {
+        let mode: USMarketClockMode = newYork.isDaylightSavingTime(for: date)
+            ? .daylightSaving
+            : .standard
+        return USMarketClock(mode: mode)
+    }
+
+    private static func calendar(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    private static func isTradingDay(_ date: Date, calendar: Calendar, holidays: Set<String>) -> Bool {
+        let weekday = calendar.component(.weekday, from: date)
+        guard weekday != 1, weekday != 7 else { return false }
+        return !holidays.contains(dateKey(for: date, calendar: calendar))
+    }
+
+    private static func dateKey(for date: Date, calendar: Calendar) -> String {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
+    }
+
+    private static func minuteOfDay(for date: Date, calendar: Calendar) -> Int {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return minutes(components.hour ?? 0, components.minute ?? 0)
+    }
+
+    private static func minutes(_ hour: Int, _ minute: Int) -> Int {
+        hour * 60 + minute
+    }
+}
+
 final class StockNewsRSSParser: NSObject, XMLParserDelegate {
     private let stock: String
     private var insideItem = false
@@ -2104,10 +2387,13 @@ struct ContentView: View {
                 Text(position.name)
                     .font(.system(size: 11, weight: .semibold))
                     .lineLimit(1)
-                Text(position.symbol?.uppercased() ?? "未设置代码")
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.3))
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(position.symbol?.uppercased() ?? "未设置代码")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .lineLimit(1)
+                    marketSessionTag(for: position, compact: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -2161,11 +2447,7 @@ struct ContentView: View {
                     Text(position.symbol?.uppercased() ?? "未设置代码")
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.34))
-                    Text(snapshot?.isLive == true ? "实时" : "回退")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(snapshot?.isLive == true ? .blue : .white.opacity(0.32))
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(.white.opacity(0.05), in: Capsule())
+                    marketSessionTag(for: position)
                 }
             }
             .frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
@@ -2190,6 +2472,20 @@ struct ContentView: View {
         }
         .padding(.horizontal, 20)
         .frame(height: 82)
+    }
+
+    private func marketSessionTag(for position: Position, compact: Bool = false) -> some View {
+        let session = MarketSessionResolver.session(for: position.symbol)
+        return Text(session.label)
+            .font(.system(size: compact ? 7 : 8, weight: .semibold))
+            .foregroundStyle(session.color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, compact ? 4 : 5)
+            .padding(.vertical, 2)
+            .background(session.color.opacity(0.13), in: Capsule())
+            .overlay(Capsule().stroke(session.color.opacity(0.24), lineWidth: 1))
+            .help("\(session.marketName) · \(session.detail)")
     }
 
     private var marketUpdateText: String {
