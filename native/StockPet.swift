@@ -944,20 +944,34 @@ private struct WindowResizeHandle: View {
 
 private struct WindowResizeInteractionLayer: View {
     let onResizeEnded: () -> Void
-    private let edgeThickness: CGFloat = 10
-    private let cornerSize: CGFloat = 16
+    private let edgeThickness: CGFloat = 7
+    private let bottomEdgeThickness: CGFloat = 10
+    private let cornerSize: CGFloat = 8
+    private let topControlSafeHeight: CGFloat = 56
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: topControlSafeHeight)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded)
+                }
+                .frame(width: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: topControlSafeHeight)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded)
+                }
+                .frame(width: edgeThickness)
             }
             VStack(spacing: 0) {
                 WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
+                WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded).frame(height: bottomEdgeThickness)
             }
             WindowResizeHandle(region: .topLeft, onResizeEnded: onResizeEnded)
                 .frame(width: cornerSize, height: cornerSize)
@@ -1170,7 +1184,7 @@ struct ContentView: View {
     private let popoverBackground = Color(red: 0.035, green: 0.05, blue: 0.08)
     private let expandedWindowWidthKey = "stockPet.expandedWindow.width.v1"
     private let expandedWindowHeightKey = "stockPet.expandedWindow.height.v1"
-    private let expandedWindowMinimumSize = NSSize(width: 340, height: 260)
+    private let expandedWindowMinimumSize = NSSize(width: 360, height: 280)
     private let expandedWindowMaximumSize = NSSize(width: 1600, height: 1100)
 
     init(store: PetStore, debugState: PetDebugState, isDebugWindow: Bool = false) {
@@ -1636,7 +1650,7 @@ struct ContentView: View {
 
     private var expandedView: some View {
         GeometryReader { proxy in
-            let usesPeekLayout = proxy.size.width < 660 || proxy.size.height < 500
+            let usesPeekLayout = proxy.size.width < 820 || proxy.size.height < 540
             ZStack {
                 LinearGradient(colors: [Color(red: 0.12, green: 0.13, blue: 0.17), Color(red: 0.045, green: 0.05, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing)
 
@@ -1846,7 +1860,12 @@ struct ContentView: View {
 
     private var peekMarketDashboard: some View {
         GeometryReader { proxy in
-            let tableWidth = max(560, proxy.size.width)
+            let availableWidth = max(360, proxy.size.width)
+            let showsTrend = availableWidth >= 430
+            let horizontalPadding: CGFloat = availableWidth < 430 ? 10 : 14
+            let priceWidth: CGFloat = availableWidth < 430 ? 58 : 68
+            let changeWidth: CGFloat = availableWidth < 430 ? 64 : 68
+            let chartWidth: CGFloat = max(82, min(120, availableWidth * 0.22))
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
@@ -1872,39 +1891,45 @@ struct ContentView: View {
                 .frame(height: 66)
                 .background(.black.opacity(0.08))
 
-                ScrollView(.horizontal, showsIndicators: true) {
-                    VStack(spacing: 0) {
-                        HStack(spacing: 8) {
-                            Text("股票").frame(maxWidth: .infinity, alignment: .leading)
-                            Text("分时").frame(width: 120, alignment: .leading)
-                            Text("最新").frame(width: 68, alignment: .trailing)
-                            Text("涨跌").frame(width: 68, alignment: .trailing)
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Text("股票").frame(maxWidth: .infinity, alignment: .leading)
+                        if showsTrend {
+                            Text("分时").frame(width: chartWidth, alignment: .leading)
                         }
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .padding(.horizontal, 14)
-                        .frame(height: 28)
-                        .background(.black.opacity(0.14))
+                        Text("最新").frame(width: priceWidth, alignment: .trailing)
+                        Text("涨跌").frame(width: changeWidth, alignment: .trailing)
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.3))
+                    .padding(.horizontal, horizontalPadding)
+                    .frame(height: 28)
+                    .background(.black.opacity(0.14))
 
-                        ScrollView(.vertical) {
-                            LazyVStack(spacing: 0) {
-                                ForEach(store.positions) { position in
-                                    peekPositionRow(position, showsTrend: true)
-                                    Divider().overlay(.white.opacity(0.055)).padding(.horizontal, 14)
+                    ScrollView(.vertical) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(store.positions) { position in
+                                peekPositionRow(
+                                    position,
+                                    showsTrend: showsTrend,
+                                    chartWidth: chartWidth,
+                                    priceWidth: priceWidth,
+                                    changeWidth: changeWidth,
+                                    horizontalPadding: horizontalPadding
+                                )
+                                Divider().overlay(.white.opacity(0.055)).padding(.horizontal, horizontalPadding)
+                            }
+                            if store.positions.isEmpty {
+                                Button(action: openPositionEditor) {
+                                    Label("搜索并添加股票", systemImage: "magnifyingglass")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(gainColor)
+                                        .frame(maxWidth: .infinity, minHeight: 92)
                                 }
-                                if store.positions.isEmpty {
-                                    Button(action: openPositionEditor) {
-                                        Label("搜索并添加股票", systemImage: "magnifyingglass")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(gainColor)
-                                            .frame(maxWidth: .infinity, minHeight: 92)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
-                    .frame(width: tableWidth)
                 }
                 .frame(maxHeight: .infinity)
             }
@@ -1912,7 +1937,14 @@ struct ContentView: View {
         .background(.black.opacity(0.12))
     }
 
-    private func peekPositionRow(_ position: Position, showsTrend: Bool) -> some View {
+    private func peekPositionRow(
+        _ position: Position,
+        showsTrend: Bool,
+        chartWidth: CGFloat,
+        priceWidth: CGFloat,
+        changeWidth: CGFloat,
+        horizontalPadding: CGFloat
+    ) -> some View {
         let snapshot = store.positionMarkets[position.id]
         let change = snapshot?.changePercent ?? position.change
         let color = change >= 0 ? gainColor : lossColor
@@ -1931,20 +1963,24 @@ struct ContentView: View {
 
             if showsTrend {
                 SparklineView(values: trend, color: color)
-                    .frame(width: 120, height: 30)
+                    .frame(width: chartWidth, height: 30)
             }
 
             Text(snapshot?.currentPrice.map(price) ?? "--")
                 .font(.system(size: 11, weight: .medium, design: .rounded))
-                .frame(width: 68, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+                .frame(width: priceWidth, alignment: .trailing)
 
             Text(percent(change))
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
-                .frame(width: 68, height: 26)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+                .frame(width: changeWidth, height: 26)
                 .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, horizontalPadding)
         .frame(height: 56)
     }
 
