@@ -843,7 +843,7 @@ private struct WindowResizeHandle: View {
 private struct WindowResizeInteractionLayer: View {
     let onResizeEnded: () -> Void
     private let edgeThickness: CGFloat = 10
-    private let cornerSize: CGFloat = 44
+    private let cornerSize: CGFloat = 16
 
     var body: some View {
         ZStack {
@@ -1592,7 +1592,7 @@ struct ContentView: View {
                 toolbarIcon("ladybug.fill", help: "调试", action: openDebugPanel)
             }
             toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
-            toolbarIcon("xmark", help: "退出", action: quitApplication)
+            toolbarIcon("xmark", help: "收起到宠物", action: collapseToCompactPet)
         }
         .padding(.horizontal, usesPeekLayout ? 12 : 20)
         .frame(height: usesPeekLayout ? 46 : 54)
@@ -2881,9 +2881,8 @@ struct ContentView: View {
         defaults.set(Double(size.height), forKey: expandedWindowHeightKey)
     }
 
-    private func quitApplication() {
-        persistExpandedWindowSize()
-        NSApplication.shared.terminate(nil)
+    private func collapseToCompactPet() {
+        toggleExpanded(false)
     }
 
     private var mainPetWindow: NSWindow? {
