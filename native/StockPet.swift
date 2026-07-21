@@ -1864,7 +1864,6 @@ struct ContentView: View {
                     action: toggleExpandedWindowPriority
                 )
             }
-            toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
             toolbarIcon("xmark", help: "收起到宠物", action: collapseToCompactPet)
         }
         .padding(.horizontal, usesPeekLayout ? 12 : 20)
