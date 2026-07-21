@@ -188,7 +188,14 @@ final class PetStore: ObservableObject {
             schedulePositionsSave()
         }
     }
-    @Published var notificationsEnabled = true
+    @Published var notificationsEnabled = true {
+        didSet {
+            UserDefaults.standard.set(notificationsEnabled, forKey: Self.notificationsEnabledKey)
+            if notificationsEnabled {
+                requestNotificationAuthorizationIfNeeded()
+            }
+        }
+    }
     @Published var screenshot: NSImage?
     @Published var showingEditor = false
     @Published var newsItems: [StockNews] = []
@@ -206,14 +213,19 @@ final class PetStore: ObservableObject {
 
     private let key = "stockPet.positions.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
+    private static let notificationsEnabledKey = "stockPet.notifications.enabled.v1"
+    private static let notifiedNewsKey = "stockPet.news.notifiedIDs.v1"
     private let speaker = AVSpeechSynthesizer()
     private var isRestoringPositions = true
-    private var hasLoadedNews = false
+    private var notifiedNewsIDs: Set<String> = []
     private var positionsSaveTask: Task<Void, Never>?
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
 
     init() {
+        if UserDefaults.standard.object(forKey: Self.notificationsEnabledKey) != nil {
+            notificationsEnabled = UserDefaults.standard.bool(forKey: Self.notificationsEnabledKey)
+        }
         if let saved = Self.loadSavedPositions(forKey: key) {
             positions = saved
         } else {
@@ -221,6 +233,10 @@ final class PetStore: ObservableObject {
         }
         isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
+        notifiedNewsIDs = Set(UserDefaults.standard.stringArray(forKey: Self.notifiedNewsKey) ?? [])
+        if notificationsEnabled {
+            requestNotificationAuthorizationIfNeeded()
+        }
         startNewsPolling()
         startMarketPolling()
     }
@@ -597,7 +613,6 @@ final class PetStore: ObservableObject {
         newsError = nil
         defer { isLoadingNews = false }
 
-        let previousIDs = Set(newsItems.map(\.id))
         var gathered: [StockNews] = []
 
         for position in topPositions {
@@ -629,11 +644,10 @@ final class PetStore: ObservableObject {
             .prefix(9)
             .map { $0 }
 
-        if hasLoadedNews,
-           let newest = newsItems.first(where: { !previousIDs.contains($0.id) }) {
-            sendNewsNotification(newest)
+        let unnotifiedNews = newsItems.filter {
+            !hiddenNewsIDs.contains($0.id) && !notifiedNewsIDs.contains($0.id)
         }
-        hasLoadedNews = true
+        sendNewsNotification(unnotifiedNews)
     }
 
     func hideNews(_ item: StockNews) {
@@ -650,19 +664,87 @@ final class PetStore: ObservableObject {
         UserDefaults.standard.set(Array(hiddenNewsIDs.suffix(100)), forKey: hiddenNewsKey)
     }
 
-    private func sendNewsNotification(_ item: StockNews) {
-        guard notificationsEnabled else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
-            guard allowed else { return }
+    private func markNewsAsNotified(_ ids: [String]) {
+        notifiedNewsIDs.formUnion(ids.filter { !$0.isEmpty })
+        UserDefaults.standard.set(Array(Array(notifiedNewsIDs).suffix(200)), forKey: Self.notifiedNewsKey)
+    }
+
+    private func requestNotificationAuthorizationIfNeeded() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else { return }
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        }
+    }
+
+    private func sendSystemNotification(
+        identifier: String,
+        title: String,
+        body: String,
+        threadIdentifier: String,
+        userInfo: [AnyHashable: Any] = [:],
+        completion: ((Bool) -> Void)? = nil
+    ) {
+        guard notificationsEnabled else {
+            completion?(false)
+            return
+        }
+
+        let scheduleNotification = {
             let content = UNMutableNotificationContent()
-            content.title = "\(item.stock) · 热门资讯"
-            content.body = item.title
+            content.title = title
+            content.body = body
             content.sound = .default
-            // 记录对应新闻链接，点击通知时打开网页。
-            if let link = item.link?.absoluteString {
-                content.userInfo = ["link": link]
+            content.threadIdentifier = threadIdentifier
+            content.userInfo = userInfo
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request) { error in
+                completion?(error == nil)
             }
-            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: item.id, content: content, trigger: nil))
+        }
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                scheduleNotification()
+            case .notDetermined:
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
+                    if allowed {
+                        scheduleNotification()
+                    } else {
+                        completion?(false)
+                    }
+                }
+            case .denied:
+                completion?(false)
+            @unknown default:
+                completion?(false)
+            }
+        }
+    }
+
+    private func sendNewsNotification(_ items: [StockNews]) {
+        guard notificationsEnabled, let newest = items.first else { return }
+        let ids = items.map(\.id)
+        let title = items.count == 1 ? "\(newest.stock) · 热门资讯" : "持仓热门资讯"
+        let body = items.count == 1
+            ? newest.title
+            : "新增 \(items.count) 条，\(newest.stock)：\(newest.title)"
+        var userInfo: [AnyHashable: Any] = [:]
+        if let link = newest.link?.absoluteString {
+            userInfo["link"] = link
+        }
+
+        sendSystemNotification(
+            identifier: "stock-news-\(newest.id)",
+            title: title,
+            body: body,
+            threadIdentifier: "stock-news",
+            userInfo: userInfo
+        ) { [weak self] delivered in
+            guard delivered else { return }
+            Task { @MainActor in
+                self?.markNewsAsNotified(ids)
+            }
         }
     }
 
@@ -679,14 +761,12 @@ final class PetStore: ObservableObject {
         speaker.stopSpeaking(at: .immediate)
         speaker.speak(speech)
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
-            guard allowed else { return }
-            let content = UNMutableNotificationContent()
-            content.title = "持仓异动提醒"
-            content.body = message
-            content.sound = .default
-            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
-        }
+        sendSystemNotification(
+            identifier: "stock-alert-\(UUID().uuidString)",
+            title: "持仓异动提醒",
+            body: message,
+            threadIdentifier: "stock-alert"
+        )
     }
 }
 
@@ -788,7 +868,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound])
+        completionHandler([.banner, .list, .sound])
     }
 
     // 点击通知：如果带有新闻链接就用默认浏览器打开对应网页。
@@ -2249,8 +2329,8 @@ struct ContentView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("异动提醒").font(.system(size: 11, weight: .semibold))
-                    Text("语音与系统弹窗").font(.system(size: 8)).foregroundStyle(.white.opacity(0.34))
+                    Text("系统推送").font(.system(size: 11, weight: .semibold))
+                    Text("热门资讯与异动提醒").font(.system(size: 8)).foregroundStyle(.white.opacity(0.34))
                 }
                 Spacer()
                 Toggle("", isOn: $store.notificationsEnabled).labelsHidden().toggleStyle(.switch).tint(.red)
