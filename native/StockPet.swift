@@ -182,7 +182,12 @@ final class StockNewsRSSParser: NSObject, XMLParserDelegate {
 
 @MainActor
 final class PetStore: ObservableObject {
-    @Published var positions: [Position] = []
+    @Published var positions: [Position] = [] {
+        didSet {
+            guard !isRestoringPositions else { return }
+            schedulePositionsSave()
+        }
+    }
     @Published var notificationsEnabled = true
     @Published var screenshot: NSImage?
     @Published var showingEditor = false
@@ -202,30 +207,49 @@ final class PetStore: ObservableObject {
     private let key = "stockPet.positions.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
     private let speaker = AVSpeechSynthesizer()
+    private var isRestoringPositions = true
     private var hasLoadedNews = false
+    private var positionsSaveTask: Task<Void, Never>?
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: key),
-           let saved = try? JSONDecoder().decode([Position].self, from: data), !saved.isEmpty {
-            positions = saved.map { position in
-                var position = position
-                if position.symbol?.isEmpty != false {
-                    position.symbol = Self.defaultSymbol(for: position.name)
-                }
-                return position
-            }
+        if let saved = Self.loadSavedPositions(forKey: key) {
+            positions = saved
         } else {
-            positions = [
-                Position(name: "贵州茅台", value: 52_000, change: 2.35, symbol: "sh600519"),
-                Position(name: "宁德时代", value: 38_000, change: 0.42, symbol: "sz300750"),
-                Position(name: "腾讯控股", value: 26_000, change: -1.15, symbol: "hk00700")
-            ]
+            positions = Self.defaultPositions
         }
+        isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
         startNewsPolling()
         startMarketPolling()
+    }
+
+    private static func loadSavedPositions(forKey key: String) -> [Position]? {
+        guard UserDefaults.standard.object(forKey: key) != nil,
+              let data = UserDefaults.standard.data(forKey: key),
+              let saved = try? JSONDecoder().decode([Position].self, from: data) else {
+            return nil
+        }
+        return normalizePositions(saved)
+    }
+
+    private static var defaultPositions: [Position] {
+        [
+            Position(name: "贵州茅台", value: 52_000, change: 2.35, symbol: "sh600519"),
+            Position(name: "宁德时代", value: 38_000, change: 0.42, symbol: "sz300750"),
+            Position(name: "腾讯控股", value: 26_000, change: -1.15, symbol: "hk00700")
+        ]
+    }
+
+    private static func normalizePositions(_ positions: [Position]) -> [Position] {
+        positions.map { position in
+            var position = position
+            if position.symbol?.isEmpty != false {
+                position.symbol = defaultSymbol(for: position.name)
+            }
+            return position
+        }
     }
 
     private func startNewsPolling() {
@@ -481,6 +505,17 @@ final class PetStore: ObservableObject {
             return
         }
         positions.append(Position(name: result.name, value: 0, change: 0, symbol: result.symbol))
+        save()
+    }
+
+    func addManualPosition() {
+        positions.append(Position(name: "未命名股票", value: 0, change: 0, symbol: ""))
+        save()
+    }
+
+    func removePosition(id: UUID) {
+        positions.removeAll { $0.id == id }
+        save()
     }
 
     static func fallbackTrend(seed: Double, count: Int = 72) -> [Double] {
@@ -528,8 +563,31 @@ final class PetStore: ObservableObject {
     }
 
     func save() {
+        positionsSaveTask?.cancel()
+        positionsSaveTask = nil
+        persistPositions()
+    }
+
+    private func schedulePositionsSave() {
+        positionsSaveTask?.cancel()
+        positionsSaveTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 400_000_000)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.positionsSaveTask = nil
+                self?.persistPositions()
+            }
+        }
+    }
+
+    private func persistPositions() {
         if let data = try? JSONEncoder().encode(positions) {
             UserDefaults.standard.set(data, forKey: key)
+            UserDefaults.standard.synchronize()
         }
     }
 
@@ -632,6 +690,45 @@ final class PetStore: ObservableObject {
     }
 }
 
+private let mainPetWindowTitle = "持仓宠物"
+private let mainPetWindowExpandedKey = "stockPet.window.isExpanded.current.v1"
+private let expandedWindowStaysOnTopKey = "stockPet.expandedWindow.staysOnTop.v1"
+
+private func configureMainPetWindowPresentation(_ window: NSWindow, isExpanded: Bool, expandedStaysOnTop: Bool) {
+    let shouldFloatAboveApps = !isExpanded || expandedStaysOnTop
+    window.level = shouldFloatAboveApps ? .statusBar : .normal
+    window.isMovableByWindowBackground = true
+    window.styleMask = [.borderless, .fullSizeContentView]
+    window.titleVisibility = .hidden
+    window.titlebarAppearsTransparent = true
+    window.isOpaque = false
+    window.backgroundColor = .clear
+    window.canHide = !shouldFloatAboveApps
+    window.collectionBehavior = shouldFloatAboveApps
+        ? [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        : [.fullScreenAuxiliary]
+}
+
+private func configureMainPetWindowPresentationFromDefaults(_ window: NSWindow) {
+    configureMainPetWindowPresentation(
+        window,
+        isExpanded: UserDefaults.standard.bool(forKey: mainPetWindowExpandedKey),
+        expandedStaysOnTop: UserDefaults.standard.bool(forKey: expandedWindowStaysOnTopKey)
+    )
+}
+
+private func defaultCompactWindowFrame(for window: NSWindow) -> NSRect {
+    let size = window.frame.size
+    let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
+    let margin: CGFloat = 24
+    return NSRect(
+        x: visible.maxX - size.width - margin,
+        y: visible.minY + margin,
+        width: size.width,
+        height: size.height
+    )
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let iconURL = Bundle.main.url(forResource: "StockPet", withExtension: "icns"),
@@ -640,21 +737,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         UNUserNotificationCenter.current().delegate = self
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard let window = NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" }) else { return }
-            window.level = .floating
-            window.isMovableByWindowBackground = true
-            window.styleMask = [.borderless, .fullSizeContentView]
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
-            window.isOpaque = false
-            window.backgroundColor = .clear
+            guard let window = self.mainPetWindow else { return }
+            UserDefaults.standard.set(false, forKey: mainPetWindowExpandedKey)
+            configureMainPetWindowPresentation(window, isExpanded: false, expandedStaysOnTop: false)
             window.hasShadow = false
             window.setContentSize(NSSize(width: 150, height: 165))
-            window.center()
+            window.setFrame(defaultCompactWindowFrame(for: window), display: true)
         }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        restoreMainPetWindow()
+        return true
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        restoreMainPetWindow()
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.keepMainPetWindowFloating()
+        }
+    }
+
+    private var mainPetWindow: NSWindow? {
+        NSApplication.shared.windows.first(where: { $0.title == mainPetWindowTitle })
+    }
+
+    private func restoreMainPetWindow() {
+        guard let window = mainPetWindow else { return }
+        configureMainPetWindowPresentationFromDefaults(window)
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        window.setIsVisible(true)
+        window.orderFrontRegardless()
+    }
+
+    private func keepMainPetWindowFloating() {
+        guard let window = mainPetWindow, !window.isMiniaturized else { return }
+        let isExpanded = UserDefaults.standard.bool(forKey: mainPetWindowExpandedKey)
+        let expandedStaysOnTop = UserDefaults.standard.bool(forKey: expandedWindowStaysOnTopKey)
+        configureMainPetWindowPresentation(window, isExpanded: isExpanded, expandedStaysOnTop: expandedStaysOnTop)
+        guard !isExpanded || expandedStaysOnTop else { return }
+        window.setIsVisible(true)
+        window.orderFrontRegardless()
+    }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
@@ -842,33 +973,78 @@ private struct WindowResizeHandle: View {
 
 private struct WindowResizeInteractionLayer: View {
     let onResizeEnded: () -> Void
-    private let edgeThickness: CGFloat = 10
-    private let cornerSize: CGFloat = 44
+    private let edgeThickness: CGFloat = 7
+    private let bottomEdgeThickness: CGFloat = 10
+    private let topCornerSize: CGFloat = 20
+    private let bottomCornerSize: CGFloat = 26
+    private let topControlSafeHeight: CGFloat = 56
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: topControlSafeHeight)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(height: bottomCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(width: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: topControlSafeHeight)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(height: bottomCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(width: edgeThickness)
             }
+            .zIndex(1)
             VStack(spacing: 0) {
-                WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
+                HStack(spacing: 0) {
+                    Color.clear
+                        .frame(width: topCornerSize)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(width: topCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(height: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
+                HStack(spacing: 0) {
+                    Color.clear
+                        .frame(width: bottomCornerSize)
+                        .allowsHitTesting(false)
+                    WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded)
+                    Color.clear
+                        .frame(width: bottomCornerSize)
+                        .allowsHitTesting(false)
+                }
+                .frame(height: bottomEdgeThickness)
             }
+            .zIndex(1)
             WindowResizeHandle(region: .topLeft, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: topCornerSize, height: topCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .zIndex(2)
             WindowResizeHandle(region: .topRight, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: topCornerSize, height: topCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .zIndex(2)
             WindowResizeHandle(region: .bottomLeft, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: bottomCornerSize, height: bottomCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .zIndex(2)
             WindowResizeHandle(region: .bottomRight, onResizeEnded: onResizeEnded)
-                .frame(width: cornerSize, height: cornerSize)
+                .frame(width: bottomCornerSize, height: bottomCornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .zIndex(2)
         }
     }
 }
@@ -1046,10 +1222,12 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     @AppStorage("stockPet.appearance.v1") private var selectedAppearanceRaw = PetAppearance.robot.rawValue
+    @AppStorage(expandedWindowStaysOnTopKey) private var expandedWindowStaysOnTop = false
     @State private var isExpanded = false
     @State private var showingNews = false
     @State private var hoveringCompact = false
     @State private var compactPetHovering = false
+    @State private var compactWindowFrameBeforeExpansion: NSRect?
     @GestureState private var draggingCompactWindow = false
     @State private var hoveringPet = false
     @State private var importingScreenshot = false
@@ -1067,7 +1245,7 @@ struct ContentView: View {
     private let popoverBackground = Color(red: 0.035, green: 0.05, blue: 0.08)
     private let expandedWindowWidthKey = "stockPet.expandedWindow.width.v1"
     private let expandedWindowHeightKey = "stockPet.expandedWindow.height.v1"
-    private let expandedWindowMinimumSize = NSSize(width: 340, height: 260)
+    private let expandedWindowMinimumSize = NSSize(width: 360, height: 280)
     private let expandedWindowMaximumSize = NSSize(width: 1600, height: 1100)
 
     init(store: PetStore, debugState: PetDebugState, isDebugWindow: Bool = false) {
@@ -1153,7 +1331,7 @@ struct ContentView: View {
                         minWidth: expandedWindowMinimumSize.width,
                         minHeight: expandedWindowMinimumSize.height
                     )
-                    .transition(.scale(scale: 0.82, anchor: .topLeading).combined(with: .opacity))
+                    .transition(.scale(scale: 0.82, anchor: .center).combined(with: .opacity))
             } else {
                 compactPet
                     .frame(width: compactWindowSize.width, height: compactWindowSize.height)
@@ -1217,6 +1395,11 @@ struct ContentView: View {
         }
         .onDisappear {
             if isDebugWindow { resetDebugState() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            if !isDebugWindow {
+                store.save()
+            }
         }
     }
 
@@ -1528,7 +1711,7 @@ struct ContentView: View {
 
     private var expandedView: some View {
         GeometryReader { proxy in
-            let usesPeekLayout = proxy.size.width < 660 || proxy.size.height < 500
+            let usesPeekLayout = proxy.size.width < 820 || proxy.size.height < 540
             ZStack {
                 LinearGradient(colors: [Color(red: 0.12, green: 0.13, blue: 0.17), Color(red: 0.045, green: 0.05, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing)
 
@@ -1569,6 +1752,11 @@ struct ContentView: View {
                 toolbarIcon("arrow.clockwise", help: "刷新行情") {
                     Task { await store.refreshMarketData() }
                 }
+                toolbarIcon(
+                    expandedWindowStaysOnTop ? "pin.fill" : "pin",
+                    help: expandedWindowStaysOnTop ? "取消置顶" : "保持置顶",
+                    action: toggleExpandedWindowPriority
+                )
             } else {
                 Button(action: openPositionEditor) {
                     Label("添加股票", systemImage: "plus")
@@ -1590,9 +1778,14 @@ struct ContentView: View {
                 toolbarIcon("square.and.arrow.up", help: "晒收益", action: openShareCard)
                 toolbarIcon("bag.fill", help: "宠物商城") { showingPetStore = true }
                 toolbarIcon("ladybug.fill", help: "调试", action: openDebugPanel)
+                toolbarIcon(
+                    expandedWindowStaysOnTop ? "pin.fill" : "pin",
+                    help: expandedWindowStaysOnTop ? "取消置顶" : "保持置顶",
+                    action: toggleExpandedWindowPriority
+                )
             }
             toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
-            toolbarIcon("xmark", help: "退出", action: quitApplication)
+            toolbarIcon("xmark", help: "收起到宠物", action: collapseToCompactPet)
         }
         .padding(.horizontal, usesPeekLayout ? 12 : 20)
         .frame(height: usesPeekLayout ? 46 : 54)
@@ -1738,7 +1931,12 @@ struct ContentView: View {
 
     private var peekMarketDashboard: some View {
         GeometryReader { proxy in
-            let tableWidth = max(560, proxy.size.width)
+            let availableWidth = max(360, proxy.size.width)
+            let showsTrend = availableWidth >= 430
+            let horizontalPadding: CGFloat = availableWidth < 430 ? 10 : 14
+            let priceWidth: CGFloat = availableWidth < 430 ? 58 : 68
+            let changeWidth: CGFloat = availableWidth < 430 ? 64 : 68
+            let chartWidth: CGFloat = max(82, min(120, availableWidth * 0.22))
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
@@ -1764,39 +1962,45 @@ struct ContentView: View {
                 .frame(height: 66)
                 .background(.black.opacity(0.08))
 
-                ScrollView(.horizontal, showsIndicators: true) {
-                    VStack(spacing: 0) {
-                        HStack(spacing: 8) {
-                            Text("股票").frame(maxWidth: .infinity, alignment: .leading)
-                            Text("分时").frame(width: 120, alignment: .leading)
-                            Text("最新").frame(width: 68, alignment: .trailing)
-                            Text("涨跌").frame(width: 68, alignment: .trailing)
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Text("股票").frame(maxWidth: .infinity, alignment: .leading)
+                        if showsTrend {
+                            Text("分时").frame(width: chartWidth, alignment: .leading)
                         }
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .padding(.horizontal, 14)
-                        .frame(height: 28)
-                        .background(.black.opacity(0.14))
+                        Text("最新").frame(width: priceWidth, alignment: .trailing)
+                        Text("涨跌").frame(width: changeWidth, alignment: .trailing)
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.3))
+                    .padding(.horizontal, horizontalPadding)
+                    .frame(height: 28)
+                    .background(.black.opacity(0.14))
 
-                        ScrollView(.vertical) {
-                            LazyVStack(spacing: 0) {
-                                ForEach(store.positions) { position in
-                                    peekPositionRow(position, showsTrend: true)
-                                    Divider().overlay(.white.opacity(0.055)).padding(.horizontal, 14)
+                    ScrollView(.vertical) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(store.positions) { position in
+                                peekPositionRow(
+                                    position,
+                                    showsTrend: showsTrend,
+                                    chartWidth: chartWidth,
+                                    priceWidth: priceWidth,
+                                    changeWidth: changeWidth,
+                                    horizontalPadding: horizontalPadding
+                                )
+                                Divider().overlay(.white.opacity(0.055)).padding(.horizontal, horizontalPadding)
+                            }
+                            if store.positions.isEmpty {
+                                Button(action: openPositionEditor) {
+                                    Label("搜索并添加股票", systemImage: "magnifyingglass")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(gainColor)
+                                        .frame(maxWidth: .infinity, minHeight: 92)
                                 }
-                                if store.positions.isEmpty {
-                                    Button(action: openPositionEditor) {
-                                        Label("搜索并添加股票", systemImage: "magnifyingglass")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(gainColor)
-                                            .frame(maxWidth: .infinity, minHeight: 92)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
-                    .frame(width: tableWidth)
                 }
                 .frame(maxHeight: .infinity)
             }
@@ -1804,7 +2008,14 @@ struct ContentView: View {
         .background(.black.opacity(0.12))
     }
 
-    private func peekPositionRow(_ position: Position, showsTrend: Bool) -> some View {
+    private func peekPositionRow(
+        _ position: Position,
+        showsTrend: Bool,
+        chartWidth: CGFloat,
+        priceWidth: CGFloat,
+        changeWidth: CGFloat,
+        horizontalPadding: CGFloat
+    ) -> some View {
         let snapshot = store.positionMarkets[position.id]
         let change = snapshot?.changePercent ?? position.change
         let color = change >= 0 ? gainColor : lossColor
@@ -1823,20 +2034,24 @@ struct ContentView: View {
 
             if showsTrend {
                 SparklineView(values: trend, color: color)
-                    .frame(width: 120, height: 30)
+                    .frame(width: chartWidth, height: 30)
             }
 
             Text(snapshot?.currentPrice.map(price) ?? "--")
                 .font(.system(size: 11, weight: .medium, design: .rounded))
-                .frame(width: 68, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+                .frame(width: priceWidth, alignment: .trailing)
 
             Text(percent(change))
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
-                .frame(width: 68, height: 26)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+                .frame(width: changeWidth, height: 26)
                 .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, horizontalPadding)
         .frame(height: 56)
     }
 
@@ -2491,7 +2706,7 @@ struct ContentView: View {
                         .background(gainColor.opacity(0.13), in: Capsule())
                     Spacer()
                     Button {
-                        store.positions.append(Position(name: "未命名股票", value: 0, change: 0, symbol: ""))
+                        store.addManualPosition()
                     } label: {
                         Label("手动添加", systemImage: "plus")
                             .font(.system(size: 9, weight: .medium))
@@ -2538,7 +2753,7 @@ struct ContentView: View {
                                         .frame(width: 90)
                                     Button {
                                         withAnimation(.easeOut(duration: 0.18)) {
-                                            store.positions.removeAll { $0.id == item.id }
+                                            store.removePosition(id: item.id)
                                         }
                                     } label: {
                                         Image(systemName: "trash")
@@ -2625,6 +2840,7 @@ struct ContentView: View {
             stockSearchTask?.cancel()
             stockSearchTask = nil
             store.clearStockSearch()
+            store.save()
         }
     }
 
@@ -2781,20 +2997,33 @@ struct ContentView: View {
         debugState.mockReturnRate = store.totalReturn
     }
 
+    private func applyMainPetWindowPresentation(bringToFront: Bool = false) {
+        guard let window = mainPetWindow else { return }
+        UserDefaults.standard.set(isExpanded, forKey: mainPetWindowExpandedKey)
+        configureMainPetWindowPresentation(
+            window,
+            isExpanded: isExpanded,
+            expandedStaysOnTop: expandedWindowStaysOnTop
+        )
+        if bringToFront || !isExpanded || expandedWindowStaysOnTop {
+            window.setIsVisible(true)
+            window.orderFrontRegardless()
+        }
+    }
+
+    private func toggleExpandedWindowPriority() {
+        expandedWindowStaysOnTop.toggle()
+        applyMainPetWindowPresentation(bringToFront: expandedWindowStaysOnTop)
+    }
+
     private func resizeCompactWindowForReturn(animated: Bool = true) {
         guard !isExpanded,
               let window = mainPetWindow else { return }
 
         let oldFrame = window.frame
         let newSize = compactWindowSize
-        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? oldFrame
-        var origin = NSPoint(
-            x: oldFrame.midX - newSize.width / 2,
-            y: oldFrame.midY - newSize.height / 2
-        )
-        origin.x = min(max(visible.minX, origin.x), visible.maxX - newSize.width)
-        origin.y = min(max(visible.minY, origin.y), visible.maxY - newSize.height)
-        let target = NSRect(origin: origin, size: newSize)
+        let visible = visibleFrame(for: window, fallback: oldFrame)
+        let target = clampedFrame(size: newSize, centeredAt: NSPoint(x: oldFrame.midX, y: oldFrame.midY), in: visible)
 
         if animated {
             NSAnimationContext.runAnimationGroup { context in
@@ -2815,21 +3044,26 @@ struct ContentView: View {
 
         let oldFrame = window.frame
         var newSize: NSSize
+        var target: NSRect
         if expanded {
+            compactWindowFrameBeforeExpansion = oldFrame
             newSize = savedExpandedWindowSize
+            let visible = visibleFrame(for: window, fallback: oldFrame)
+            newSize.width = min(newSize.width, visible.width)
+            newSize.height = min(newSize.height, visible.height)
+            target = centeredFrame(size: newSize, in: visible)
         } else {
             persistExpandedWindowSize()
             newSize = compactWindowSize
+            let restoreFrame = compactWindowFrameBeforeExpansion ?? oldFrame
+            let visible = visibleFrame(for: window, fallback: restoreFrame)
+            target = clampedFrame(
+                size: newSize,
+                centeredAt: NSPoint(x: restoreFrame.midX, y: restoreFrame.midY),
+                in: visible
+            )
+            compactWindowFrameBeforeExpansion = nil
         }
-        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? oldFrame
-        if expanded {
-            newSize.width = min(newSize.width, visible.width)
-            newSize.height = min(newSize.height, visible.height)
-        }
-        var origin = NSPoint(x: oldFrame.minX, y: oldFrame.maxY - newSize.height)
-        origin.x = min(max(visible.minX, origin.x), visible.maxX - newSize.width)
-        origin.y = min(max(visible.minY, origin.y), visible.maxY - newSize.height)
-        let target = NSRect(origin: origin, size: newSize)
 
         isExpanded = expanded
         window.hasShadow = expanded
@@ -2844,12 +3078,10 @@ struct ContentView: View {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = expanded ? 22 : 0
         window.contentView?.layer?.masksToBounds = expanded
-        // 重新确认浮动层级（SwiftUI 有时会把它重置回普通层级），展开时主动置顶，
-        // 保证展开后的面板能盖在其它应用的窗口之上。
-        window.level = .floating
-        window.collectionBehavior.insert(.fullScreenAuxiliary)
+        // 重新确认窗口层级；紧凑宠物置顶，展开面板按图钉按钮决定是否置顶。
+        applyMainPetWindowPresentation(bringToFront: expanded)
         if expanded {
-            window.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
             NSApp.activate()
         }
         NSAnimationContext.runAnimationGroup { context in
@@ -2857,6 +3089,28 @@ struct ContentView: View {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             window.animator().setFrame(target, display: true)
         }
+    }
+
+    private func visibleFrame(for window: NSWindow, fallback: NSRect) -> NSRect {
+        window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? fallback
+    }
+
+    private func centeredFrame(size: NSSize, in visible: NSRect) -> NSRect {
+        clampedFrame(
+            size: size,
+            centeredAt: NSPoint(x: visible.midX, y: visible.midY),
+            in: visible
+        )
+    }
+
+    private func clampedFrame(size: NSSize, centeredAt center: NSPoint, in visible: NSRect) -> NSRect {
+        var origin = NSPoint(
+            x: center.x - size.width / 2,
+            y: center.y - size.height / 2
+        )
+        origin.x = min(max(visible.minX, origin.x), visible.maxX - size.width)
+        origin.y = min(max(visible.minY, origin.y), visible.maxY - size.height)
+        return NSRect(origin: origin, size: size)
     }
 
     private var savedExpandedWindowSize: NSSize {
@@ -2881,13 +3135,12 @@ struct ContentView: View {
         defaults.set(Double(size.height), forKey: expandedWindowHeightKey)
     }
 
-    private func quitApplication() {
-        persistExpandedWindowSize()
-        NSApplication.shared.terminate(nil)
+    private func collapseToCompactPet() {
+        toggleExpanded(false)
     }
 
     private var mainPetWindow: NSWindow? {
-        NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" })
+        NSApplication.shared.windows.first(where: { $0.title == mainPetWindowTitle })
     }
 }
 
