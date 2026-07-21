@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="${0:A:h}"
 BUILD="$ROOT/build"
 APP="$BUILD/持仓宠物.app"
-VERSION="0.3.3"
+VERSION="0.4.1"
 DMG="$BUILD/持仓宠物.dmg"
 
 rm -rf "$APP" "$BUILD/dmg-root"
@@ -21,15 +21,13 @@ swiftc -parse-as-library \
   -o "$APP/Contents/MacOS/StockPet"
 
 cp "$ROOT/native/Info.plist" "$APP/Contents/Info.plist"
-cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
-cp "$ROOT/native/Resources/OpenPets/"skin_rbull_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_gbear_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_pbull_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_ox_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_minicow_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_bubu_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_jokebear_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_obear_*.png "$APP/Contents/Resources/"
+if command -v iconutil >/dev/null 2>&1; then
+  iconutil -c icns "$ROOT/native/Resources/StockPet.iconset" -o "$APP/Contents/Resources/StockPet.icns"
+else
+  cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
+fi
+# Public releases contain only original artwork and assets with confirmed
+# redistribution terms. Local-only OpenPets packs are intentionally excluded.
 cp "$ROOT/native/Resources/OpenPets/"skin_mech_*.png "$APP/Contents/Resources/"
 cp "$ROOT/native/Resources/OpenPets/"skin_polar_*.png "$APP/Contents/Resources/"
 codesign --force --deep --sign - "$APP"

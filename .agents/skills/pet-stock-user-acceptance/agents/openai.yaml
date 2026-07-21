@@ -1,0 +1,7 @@
+interface:
+  display_name: "持仓宠物：用户验收"
+  short_description: "禁止 Codex 调试验收，但发布时允许直接打包并提交 GitHub"
+  default_prompt: "Use $pet-stock-user-acceptance to modify StockPet without UI debugging, while allowing direct packaging and GitHub publishing for release requests."
+
+policy:
+  allow_implicit_invocation: true

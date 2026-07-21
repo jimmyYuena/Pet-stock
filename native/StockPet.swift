@@ -12,6 +12,63 @@ struct Position: Identifiable, Codable, Equatable {
     var symbol: String? = nil
 }
 
+struct StockSearchResult: Identifiable, Equatable {
+    let market: String
+    let code: String
+    let name: String
+    let category: String
+
+    var id: String { symbol }
+
+    var symbol: String {
+        switch market.lowercased() {
+        case "us":
+            let ticker = code.split(separator: ".").first.map(String.init) ?? code
+            return "us\(ticker.uppercased())"
+        default:
+            return "\(market.lowercased())\(code)"
+        }
+    }
+
+    var marketName: String {
+        switch market.lowercased() {
+        case "sh": return "沪市"
+        case "sz": return "深市"
+        case "hk": return "港股"
+        case "us": return "美股"
+        default: return market.uppercased()
+        }
+    }
+
+    var instrumentName: String {
+        let normalizedCategory = category.uppercased()
+        let normalizedName = name.uppercased()
+        if normalizedCategory.contains("ETF") || normalizedName.contains("ETF") {
+            return "ETF"
+        }
+        if normalizedCategory.contains("LOF") || normalizedName.contains("LOF") {
+            return "LOF"
+        }
+        if normalizedCategory.hasPrefix("JJ") || normalizedName.contains("基金") {
+            return "基金"
+        }
+        return "股票"
+    }
+
+    var isSupportedInstrument: Bool {
+        let normalizedCategory = category.uppercased()
+        let normalizedName = name.uppercased()
+        return normalizedCategory.hasPrefix("GP")
+            || normalizedCategory.hasPrefix("JJ")
+            || normalizedCategory.contains("ETF")
+            || normalizedCategory.contains("LOF")
+            || normalizedCategory.contains("FUND")
+            || normalizedName.contains("ETF")
+            || normalizedName.contains("LOF")
+            || normalizedName.contains("基金")
+    }
+}
+
 struct MarketIndexSnapshot: Identifiable {
     let id: String
     let name: String
@@ -138,6 +195,9 @@ final class PetStore: ObservableObject {
     @Published var isLoadingMarket = false
     @Published var marketUpdatedAt: Date?
     @Published var marketError: String?
+    @Published var stockSearchResults: [StockSearchResult] = []
+    @Published var isSearchingStocks = false
+    @Published var stockSearchError: String?
 
     private let key = "stockPet.positions.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
@@ -186,11 +246,14 @@ final class PetStore: ObservableObject {
     private func startMarketPolling() {
         guard marketPollingTask == nil else { return }
         marketPollingTask = Task { [weak self] in
+            var tick = 0
             while !Task.isCancelled {
                 guard let self else { return }
-                await self.refreshMarketData()
+                // 报价（收益率数字）每 2 秒刷新一次；分时走势较重，约每 30 秒才重新拉取。
+                await self.refreshMarketData(includeTrend: tick % 15 == 0)
+                tick += 1
                 do {
-                    try await Task.sleep(nanoseconds: 30_000_000_000)
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
                 } catch {
                     return
                 }
@@ -198,7 +261,7 @@ final class PetStore: ObservableObject {
         }
     }
 
-    func refreshMarketData() async {
+    func refreshMarketData(includeTrend: Bool = true) async {
         guard !isLoadingMarket else { return }
         isLoadingMarket = true
         marketError = nil
@@ -230,14 +293,33 @@ final class PetStore: ObservableObject {
             for position in positions {
                 let symbol = position.symbol ?? ""
                 let quote = quotes[symbol]
-                let liveTrend = symbol.isEmpty ? nil : try? await fetchMinuteTrend(symbol)
                 let changePercent = quote?.percent ?? position.change
+                let previous = positionMarkets[position.id]
+                var liveTrend: [Double]? = nil
+                if includeTrend, !symbol.isEmpty {
+                    liveTrend = try? await fetchMinuteTrend(symbol)
+                }
+
+                let resolvedTrend: [Double]
+                let isLive: Bool
+                if let liveTrend, !liveTrend.isEmpty {
+                    resolvedTrend = liveTrend
+                    isLive = quote != nil
+                } else if let previous, previous.isLive, !previous.trend.isEmpty {
+                    // 未到分时刷新周期时，复用上一次的真实走势，只更新报价数字。
+                    resolvedTrend = previous.trend
+                    isLive = quote != nil
+                } else {
+                    resolvedTrend = Self.fallbackTrend(seed: changePercent)
+                    isLive = false
+                }
+
                 snapshots[position.id] = PositionMarketSnapshot(
                     currentPrice: quote?.price,
                     changeAmount: quote?.change ?? 0,
                     changePercent: changePercent,
-                    trend: liveTrend?.isEmpty == false ? liveTrend! : Self.fallbackTrend(seed: changePercent),
-                    isLive: quote != nil && liveTrend?.isEmpty == false
+                    trend: resolvedTrend,
+                    isLive: isLive
                 )
             }
             positionMarkets = snapshots
@@ -315,6 +397,92 @@ final class PetStore: ObservableObject {
         }
     }
 
+    func searchStocks(_ query: String) async {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            clearStockSearch()
+            return
+        }
+
+        isSearchingStocks = true
+        stockSearchError = nil
+        defer { isSearchingStocks = false }
+
+        var components = URLComponents(string: "https://smartbox.gtimg.cn/s3/")
+        components?.queryItems = [
+            URLQueryItem(name: "q", value: trimmed),
+            URLQueryItem(name: "t", value: "all")
+        ]
+        guard let url = components?.url else {
+            stockSearchResults = []
+            stockSearchError = "搜索关键词无效"
+            return
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 8
+            request.setValue("StockPet/0.5", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  let text = String(data: data, encoding: .utf8),
+                  let firstQuote = text.firstIndex(of: "\""),
+                  let lastQuote = text.lastIndex(of: "\""),
+                  firstQuote < lastQuote else {
+                throw URLError(.badServerResponse)
+            }
+
+            let encodedPayload = String(text[text.index(after: firstQuote)..<lastQuote])
+            let jsonString = "\"\(encodedPayload)\""
+            let payload = (try? JSONDecoder().decode(String.self, from: Data(jsonString.utf8))) ?? encodedPayload
+            var seenSymbols = Set<String>()
+            stockSearchResults = payload
+                .split(separator: "^")
+                .compactMap { record -> StockSearchResult? in
+                    let fields = record.split(separator: "~", omittingEmptySubsequences: false).map(String.init)
+                    guard fields.count >= 5 else { return nil }
+                    let result = StockSearchResult(
+                        market: fields[0],
+                        code: fields[1],
+                        name: fields[2],
+                        category: fields[4]
+                    )
+                    guard ["sh", "sz", "hk", "us"].contains(result.market.lowercased()),
+                          result.isSupportedInstrument,
+                          !result.name.isEmpty,
+                          !seenSymbols.contains(result.symbol) else {
+                        return nil
+                    }
+                    seenSymbols.insert(result.symbol)
+                    return result
+                }
+                .prefix(8)
+                .map { $0 }
+
+            if stockSearchResults.isEmpty {
+                stockSearchError = "没有找到匹配的股票或 ETF"
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            stockSearchResults = []
+            stockSearchError = "搜索暂时不可用，请稍后重试"
+        }
+    }
+
+    func clearStockSearch() {
+        stockSearchResults = []
+        stockSearchError = nil
+        isSearchingStocks = false
+    }
+
+    func addStock(_ result: StockSearchResult) {
+        guard !positions.contains(where: { $0.symbol?.lowercased() == result.symbol.lowercased() }) else {
+            return
+        }
+        positions.append(Position(name: result.name, value: 0, change: 0, symbol: result.symbol))
+    }
+
     static func fallbackTrend(seed: Double, count: Int = 72) -> [Double] {
         let normalizedSeed = max(-10, min(10, seed))
         return (0..<count).map { index in
@@ -333,13 +501,22 @@ final class PetStore: ObservableObject {
         }
     }
 
+    /// 单个持仓的“今日涨跌幅”：优先用实时行情，取不到再退回手动录入的备用收益率。
+    func todayChange(for position: Position) -> Double {
+        positionMarkets[position.id]?.changePercent ?? position.change
+    }
+
+    /// 今日全部持仓的总收益率（只看今天，不含历史成本）。
+    /// 有市值时按市值加权；未填市值时退化为等权平均，保证仍反映今日涨跌而不是 0.00%。
     var totalReturn: Double {
-        let total = positions.reduce(0) { $0 + max(0, $1.value) }
-        guard total > 0 else { return 0 }
-        return positions.reduce(0) { result, position in
-            let change = positionMarkets[position.id]?.changePercent ?? position.change
-            return result + max(0, position.value) * change
-        } / total
+        guard !positions.isEmpty else { return 0 }
+        let totalValue = positions.reduce(0) { $0 + max(0, $1.value) }
+        if totalValue > 0 {
+            return positions.reduce(0) { result, position in
+                result + max(0, position.value) * todayChange(for: position)
+            } / totalValue
+        }
+        return positions.reduce(0) { $0 + todayChange(for: $1) } / Double(positions.count)
     }
 
     var topPositions: [Position] {
@@ -423,6 +600,10 @@ final class PetStore: ObservableObject {
             content.title = "\(item.stock) · 热门资讯"
             content.body = item.title
             content.sound = .default
+            // 记录对应新闻链接，点击通知时打开网页。
+            if let link = item.link?.absoluteString {
+                content.userInfo = ["link": link]
+            }
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: item.id, content: content, trigger: nil))
         }
     }
@@ -477,6 +658,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound])
+    }
+
+    // 点击通知：如果带有新闻链接就用默认浏览器打开对应网页。
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if let link = response.notification.request.content.userInfo["link"] as? String,
+           let url = URL(string: link) {
+            NSWorkspace.shared.open(url)
+        }
+        completionHandler()
     }
 }
 
@@ -555,52 +745,64 @@ private enum WindowResizeRegion: Equatable {
 
 private struct WindowResizeHandle: View {
     let region: WindowResizeRegion
+    let onResizeEnded: () -> Void
     @State private var initialWindowFrame: NSRect?
+    @State private var initialMouseLocation: NSPoint?
 
     var body: some View {
         Color.clear
             .contentShape(Rectangle())
             .onHover { hovering in
                 if hovering {
-                    ((region.resizesLeft || region.resizesRight) ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).set()
+                    resizeCursor.set()
                 } else {
                     NSCursor.arrow.set()
                 }
             }
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged(resizeWindow)
-                    .onEnded { _ in initialWindowFrame = nil }
+                    .onChanged { _ in resizeWindow() }
+                    .onEnded { _ in
+                        initialWindowFrame = nil
+                        initialMouseLocation = nil
+                        onResizeEnded()
+                    }
             )
     }
 
-    private func resizeWindow(_ value: DragGesture.Value) {
+    // 只用系统原生的缩放光标提示用户可拖拽改变大小，不再叠加图标。
+    private var resizeCursor: NSCursor {
+        switch region {
+        case .top: return .frameResize(position: .top, directions: .all)
+        case .bottom: return .frameResize(position: .bottom, directions: .all)
+        case .left: return .frameResize(position: .left, directions: .all)
+        case .right: return .frameResize(position: .right, directions: .all)
+        case .topLeft: return .frameResize(position: .topLeft, directions: .all)
+        case .topRight: return .frameResize(position: .topRight, directions: .all)
+        case .bottomLeft: return .frameResize(position: .bottomLeft, directions: .all)
+        case .bottomRight: return .frameResize(position: .bottomRight, directions: .all)
+        case .none: return .arrow
+        }
+    }
+
+    // 用屏幕绝对坐标算位移，避免窗口一边缩放一边反馈到手势本地坐标而抖动。
+    private func resizeWindow() {
         guard region != .none,
-              let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else { return }
+              let window = NSApplication.shared.windows.first(where: { $0.title == "持仓宠物" })
+                ?? NSApplication.shared.keyWindow
+                ?? NSApplication.shared.windows.first else { return }
 
         if initialWindowFrame == nil {
             initialWindowFrame = window.frame
+            initialMouseLocation = NSEvent.mouseLocation
         }
-        guard let initialFrame = initialWindowFrame else { return }
+        guard let initialFrame = initialWindowFrame,
+              let startMouse = initialMouseLocation else { return }
 
-        let deltaX = value.translation.width
-        let deltaY = value.translation.height
-        var frame = initialFrame
-
-        if region.resizesLeft {
-            frame.origin.x += deltaX
-            frame.size.width -= deltaX
-        }
-        if region.resizesRight {
-            frame.size.width += deltaX
-        }
-        if region.resizesTop {
-            frame.size.height -= deltaY
-        }
-        if region.resizesBottom {
-            frame.origin.y -= deltaY
-            frame.size.height += deltaY
-        }
+        // 屏幕坐标：x 向右为正，y 向上为正（与 AppKit 窗口 frame 一致）。
+        let mouse = NSEvent.mouseLocation
+        let dx = mouse.x - startMouse.x
+        let dy = mouse.y - startMouse.y
 
         let minimum = window.contentMinSize
         let maximum = window.contentMaxSize
@@ -609,17 +811,29 @@ private struct WindowResizeHandle: View {
         let maxWidth = maximum.width > 0 ? maximum.width : .greatestFiniteMagnitude
         let maxHeight = maximum.height > 0 ? maximum.height : .greatestFiniteMagnitude
 
-        let clampedWidth = min(max(frame.width, minWidth), maxWidth)
-        if region.resizesLeft {
-            frame.origin.x = initialFrame.maxX - clampedWidth
-        }
-        frame.size.width = clampedWidth
+        var frame = initialFrame
 
-        let clampedHeight = min(max(frame.height, minHeight), maxHeight)
-        if region.resizesBottom {
-            frame.origin.y = initialFrame.maxY - clampedHeight
+        // 水平：拖右边固定左缘，拖左边固定右缘。
+        if region.resizesRight {
+            let width = min(max(initialFrame.width + dx, minWidth), maxWidth)
+            frame.origin.x = initialFrame.minX
+            frame.size.width = width
+        } else if region.resizesLeft {
+            let width = min(max(initialFrame.width - dx, minWidth), maxWidth)
+            frame.size.width = width
+            frame.origin.x = initialFrame.maxX - width
         }
-        frame.size.height = clampedHeight
+
+        // 垂直：拖顶边固定底缘，拖底边固定顶缘。
+        if region.resizesTop {
+            let height = min(max(initialFrame.height + dy, minHeight), maxHeight)
+            frame.origin.y = initialFrame.minY
+            frame.size.height = height
+        } else if region.resizesBottom {
+            let height = min(max(initialFrame.height - dy, minHeight), maxHeight)
+            frame.size.height = height
+            frame.origin.y = initialFrame.maxY - height
+        }
 
         window.setFrame(frame, display: true)
         window.invalidateShadow()
@@ -627,35 +841,41 @@ private struct WindowResizeHandle: View {
 }
 
 private struct WindowResizeInteractionLayer: View {
-    private let edgeThickness: CGFloat = 8
-    private let cornerSize: CGFloat = 18
+    let onResizeEnded: () -> Void
+    private let edgeThickness: CGFloat = 10
+    private let cornerSize: CGFloat = 44
 
     var body: some View {
         ZStack {
             HStack(spacing: 0) {
-                WindowResizeHandle(region: .left).frame(width: edgeThickness)
+                WindowResizeHandle(region: .left, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .right).frame(width: edgeThickness)
+                WindowResizeHandle(region: .right, onResizeEnded: onResizeEnded).frame(width: edgeThickness)
             }
             VStack(spacing: 0) {
-                WindowResizeHandle(region: .top).frame(height: edgeThickness)
+                WindowResizeHandle(region: .top, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
                 Spacer(minLength: 0)
-                WindowResizeHandle(region: .bottom).frame(height: edgeThickness)
+                WindowResizeHandle(region: .bottom, onResizeEnded: onResizeEnded).frame(height: edgeThickness)
             }
-            WindowResizeHandle(region: .topLeft)
+            WindowResizeHandle(region: .topLeft, onResizeEnded: onResizeEnded)
                 .frame(width: cornerSize, height: cornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            WindowResizeHandle(region: .topRight)
+            WindowResizeHandle(region: .topRight, onResizeEnded: onResizeEnded)
                 .frame(width: cornerSize, height: cornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            WindowResizeHandle(region: .bottomLeft)
+            WindowResizeHandle(region: .bottomLeft, onResizeEnded: onResizeEnded)
                 .frame(width: cornerSize, height: cornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            WindowResizeHandle(region: .bottomRight)
+            WindowResizeHandle(region: .bottomRight, onResizeEnded: onResizeEnded)
                 .frame(width: cornerSize, height: cornerSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
+}
+
+/// 全局动画调速（帧动画皮肤播放速度倍率），由调试面板控制
+enum PetAnimTuning {
+    static var speedMultiplier: Double = 1.0
 }
 
 @MainActor
@@ -663,6 +883,29 @@ final class PetDebugState: ObservableObject {
     @Published var isMockingReturn = false
     @Published var mockReturnRate = 0.0
     @Published var actionToken = UUID()
+
+    @Published var speedMultiplier: Double {
+        didSet {
+            PetAnimTuning.speedMultiplier = speedMultiplier
+            UserDefaults.standard.set(speedMultiplier, forKey: "stockPet.animSpeed.v1")
+        }
+    }
+
+    /// 锁定的演示收益率：开启后覆盖真实收益率，关闭调试窗口和重启应用后仍然生效
+    @Published var overrideEnabled: Bool {
+        didSet { UserDefaults.standard.set(overrideEnabled, forKey: "stockPet.mockOverride.enabled.v1") }
+    }
+    @Published var overrideValue: Double {
+        didSet { UserDefaults.standard.set(overrideValue, forKey: "stockPet.mockOverride.value.v1") }
+    }
+
+    init() {
+        overrideEnabled = UserDefaults.standard.bool(forKey: "stockPet.mockOverride.enabled.v1")
+        overrideValue = UserDefaults.standard.double(forKey: "stockPet.mockOverride.value.v1")
+        let savedSpeed = UserDefaults.standard.double(forKey: "stockPet.animSpeed.v1")
+        speedMultiplier = savedSpeed > 0 ? savedSpeed : 1.0
+        PetAnimTuning.speedMultiplier = speedMultiplier
+    }
 }
 
 @main
@@ -681,7 +924,7 @@ struct StockPetApp: App {
         Window("宠物调试", id: "pet-debug") {
             ContentView(store: store, debugState: debugState, isDebugWindow: true)
         }
-        .defaultSize(width: 440, height: 680)
+        .defaultSize(width: 440, height: 780)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.automatic)
     }
@@ -706,19 +949,37 @@ struct PetSkinSpec {
 }
 
 enum PetAppearance: String, CaseIterable, Identifiable {
-    case market, robot, mech, polar, pbull, ox, minicow, bubu, jokebear, obear
+    case robot, mech, polar
+    case labubu, chiikawa, usagi, hachiware, capy, shuitunlulu, deskotter, nai, gugugaga, crybaby
+    case beretbear, woolbell, bubu, jokebear, obear
 
     var id: String { rawValue }
 
+    static var availableCases: [PetAppearance] {
+#if LOCAL_EXTENDED_SKINS
+        Array(allCases)
+#else
+        [.robot, .mech, .polar]
+#endif
+    }
+
     var name: String {
         switch self {
-        case .market: return "行情牛熊"
         case .robot: return "行情机器人"
         case .mech: return "涨跌机甲"
         case .polar: return "红绿北极熊"
-        case .pbull: return "横冲牛牛"
-        case .ox: return "原野公牛"
-        case .minicow: return "迷你奶牛"
+        case .labubu: return "拉布布"
+        case .chiikawa: return "吉伊"
+        case .usagi: return "疯兔"
+        case .hachiware: return "小八"
+        case .capy: return "卡皮巴拉"
+        case .shuitunlulu: return "水豚噜噜"
+        case .deskotter: return "上班水獭"
+        case .nai: return "奶龙"
+        case .gugugaga: return "咕咕嘎嘎"
+        case .crybaby: return "哭包娃娃"
+        case .beretbear: return "贝雷咖啡熊"
+        case .woolbell: return "铃铛绵羊"
         case .bubu: return "布布熊"
         case .jokebear: return "搞笑白熊"
         case .obear: return "围巾棕熊"
@@ -732,14 +993,12 @@ enum PetAppearance: String, CaseIterable, Identifiable {
             return PetSkinSpec(idleFrames: 10, happyFrames: 10, sadFrames: 10)
         case .polar:
             return PetSkinSpec(idleFrames: 12, happyFrames: 12, sadFrames: 10)
-        case .pbull:
-            return PetSkinSpec(idleFrames: 4, happyFrames: 4, sadFrames: 4)
-        case .ox:
-            return PetSkinSpec(idleFrames: 5, happyFrames: 3, sadFrames: 6)
-        case .minicow:
-            return PetSkinSpec(idleFrames: 6, happyFrames: 6, sadFrames: 6)
+        case .labubu, .chiikawa, .usagi, .hachiware, .capy, .shuitunlulu, .deskotter, .nai, .gugugaga, .crybaby:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
+        case .beretbear, .woolbell:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
         case .bubu, .jokebear, .obear:
-            return PetSkinSpec(idleFrames: 6, happyFrames: 4, sadFrames: 4)
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
         default:
             return nil
         }
@@ -747,9 +1006,8 @@ enum PetAppearance: String, CaseIterable, Identifiable {
 
     var previewName: String {
         switch self {
-        case .market: return "skin_rbull_idle_0"
         case .robot: return ""
-        case .mech, .polar, .pbull, .ox, .minicow, .bubu, .jokebear, .obear: return "skin_\(rawValue)_idle_0"
+        default: return "skin_\(rawValue)_idle_0"
         }
     }
 
@@ -759,13 +1017,21 @@ enum PetAppearance: String, CaseIterable, Identifiable {
 
     var tagline: String {
         switch self {
-        case .market: return "随涨跌切换牛熊形态"
-        case .robot: return "经典动态行情机器人"
+        case .robot: return "红涨绿跌随行情变身，元气担当"
         case .mech: return "七档收益动作：奔跑、跳跃、攻击、滑倒"
         case .polar: return "八档收益动作：欢跑、投掷、受击、眩晕"
-        case .pbull: return "横冲直撞小棕牛，涨了哞哞叫"
-        case .ox: return "原野公牛本色出演，困了就躺平"
-        case .minicow: return "口袋小奶牛，蹄子迈不停"
+        case .labubu: return "顶流拉布布，涨跌都拉风"
+        case .chiikawa: return "小小一只，替你扛住大盘"
+        case .usagi: return "乌拉！涨了跟你一起发疯"
+        case .hachiware: return "乐观小八，跌了也想得开"
+        case .capy: return "情绪稳定卡皮巴拉，头顶橘子稳如山"
+        case .shuitunlulu: return "橘帽水豚，慢悠悠陪你等反弹"
+        case .deskotter: return "工位同款水獭，替你摸鱼盯盘"
+        case .nai: return "黄黄一坨奶龙，亏了也理直气壮"
+        case .gugugaga: return "企鹅工装，办公室秘密盯盘搭子"
+        case .crybaby: return "赚了笑亏了哭，情绪全帮你表达"
+        case .beretbear: return "贝雷帽咖啡熊，边看盘边拉花"
+        case .woolbell: return "卷角铃铛羊，跌了咩咩安慰你"
         case .bubu: return "软乎乎布布，跌了也抱抱你"
         case .jokebear: return "淡定白熊，涨跌都好笑"
         case .obear: return "红围巾棕熊，暖暖守护仓位"
@@ -779,7 +1045,7 @@ struct ContentView: View {
     let isDebugWindow: Bool
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
-    @AppStorage("stockPet.appearance.v1") private var selectedAppearanceRaw = PetAppearance.market.rawValue
+    @AppStorage("stockPet.appearance.v1") private var selectedAppearanceRaw = PetAppearance.robot.rawValue
     @State private var isExpanded = false
     @State private var showingNews = false
     @State private var hoveringCompact = false
@@ -793,9 +1059,16 @@ struct ContentView: View {
     @State private var showingShareCard = false
     @State private var shareIncludePositions = false
     @State private var shareFeedback = ""
+    @State private var stockSearchQuery = ""
+    @State private var stockSearchTask: Task<Void, Never>?
+    @FocusState private var stockSearchFocused: Bool
     private let gainColor = Color(red: 1.0, green: 0.28, blue: 0.30)
     private let lossColor = Color(red: 0.20, green: 1.0, blue: 0.56)
     private let popoverBackground = Color(red: 0.035, green: 0.05, blue: 0.08)
+    private let expandedWindowWidthKey = "stockPet.expandedWindow.width.v1"
+    private let expandedWindowHeightKey = "stockPet.expandedWindow.height.v1"
+    private let expandedWindowMinimumSize = NSSize(width: 340, height: 260)
+    private let expandedWindowMaximumSize = NSSize(width: 1600, height: 1100)
 
     init(store: PetStore, debugState: PetDebugState, isDebugWindow: Bool = false) {
         self.store = store
@@ -804,11 +1077,21 @@ struct ContentView: View {
     }
 
     private var displayReturn: Double {
-        debugState.isMockingReturn ? debugState.mockReturnRate : store.totalReturn
+        if debugState.isMockingReturn { return debugState.mockReturnRate }
+        if debugState.overrideEnabled { return debugState.overrideValue }
+        return store.totalReturn
     }
 
     private var selectedAppearance: PetAppearance {
-        PetAppearance(rawValue: selectedAppearanceRaw) ?? .market
+        let selected = PetAppearance(rawValue: selectedAppearanceRaw) ?? .robot
+        return PetAppearance.availableCases.contains(selected) ? selected : .robot
+    }
+
+    private var speedMultiplierBinding: Binding<Double> {
+        Binding(
+            get: { debugState.speedMultiplier },
+            set: { debugState.speedMultiplier = $0 }
+        )
     }
 
     private var mockReturnBinding: Binding<Double> {
@@ -866,7 +1149,10 @@ struct ContentView: View {
                     )
             } else if isExpanded {
                 expandedView
-                    .frame(minWidth: 760, minHeight: 560)
+                    .frame(
+                        minWidth: expandedWindowMinimumSize.width,
+                        minHeight: expandedWindowMinimumSize.height
+                    )
                     .transition(.scale(scale: 0.82, anchor: .topLeading).combined(with: .opacity))
             } else {
                 compactPet
@@ -876,7 +1162,7 @@ struct ContentView: View {
         }
         .overlay {
             if !isDebugWindow && isExpanded {
-                WindowResizeInteractionLayer()
+                WindowResizeInteractionLayer(onResizeEnded: persistExpandedWindowSize)
                     .accessibilityHidden(true)
             }
         }
@@ -910,9 +1196,17 @@ struct ContentView: View {
         }
         .sheet(isPresented: $store.showingEditor) {
             editor
-                .padding(20)
-                .frame(width: 560)
-                .background(Color(red: 0.045, green: 0.05, blue: 0.075))
+                .frame(width: 680, height: 620)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.075, green: 0.08, blue: 0.12),
+                            Color(red: 0.035, green: 0.04, blue: 0.065)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .preferredColorScheme(.dark)
         }
         .sheet(isPresented: $showingShareCard) {
@@ -1140,15 +1434,16 @@ struct ContentView: View {
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.72))
             ForEach(store.topPositions) { item in
+                let change = store.todayChange(for: item)
                 HStack(spacing: 10) {
                     Text(item.name)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                     Spacer(minLength: 4)
-                    Text(percent(item.change))
+                    Text(percent(change))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(item.change >= 0 ? gainColor : lossColor)
+                        .foregroundStyle(change >= 0 ? gainColor : lossColor)
                 }
             }
         }
@@ -1189,19 +1484,21 @@ struct ContentView: View {
                 .padding(.horizontal, 18)
                 .frame(height: 44)
 
-                debugPetStage
-                appearancePicker
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 10)
-                debugPanel
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 14)
-                Spacer(minLength: 0)
+                ScrollView(showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        debugPetStage
+                        appearancePicker
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 10)
+                        debugPanel
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 14)
+                    }
+                }
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.09)))
-        .overlay(alignment: .bottomTrailing) { resizeGrip }
         .shadow(color: .black.opacity(0.42), radius: 28, y: 14)
     }
 
@@ -1230,79 +1527,92 @@ struct ContentView: View {
     }
 
     private var expandedView: some View {
-        ZStack {
-            LinearGradient(colors: [Color(red: 0.12, green: 0.13, blue: 0.17), Color(red: 0.045, green: 0.05, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        GeometryReader { proxy in
+            let usesPeekLayout = proxy.size.width < 660 || proxy.size.height < 500
+            ZStack {
+                LinearGradient(colors: [Color(red: 0.12, green: 0.13, blue: 0.17), Color(red: 0.045, green: 0.05, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing)
 
-            VStack(spacing: 0) {
-                topBar
-                marketDashboard
+                VStack(spacing: 0) {
+                    topBar(usesPeekLayout: usesPeekLayout)
+                    if usesPeekLayout {
+                        peekMarketDashboard
+                    } else {
+                        marketDashboard
+                    }
+                }
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.09)))
-        .overlay(alignment: .bottomTrailing) { resizeGrip }
         .shadow(color: .black.opacity(0.42), radius: 28, y: 14)
     }
 
-    private var resizeGrip: some View {
-        Image(systemName: "arrow.up.left.and.arrow.down.right")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.28))
-            .padding(9)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+    private func topBar(usesPeekLayout: Bool) -> some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(mood.color)
+                .frame(width: 8, height: 8)
+                .shadow(color: mood.color, radius: 6)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(usesPeekLayout ? "股票偷看" : "持仓行情")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                if !usesPeekLayout {
+                    Text("\(store.positions.count) 只持仓 · 每 2 秒刷新")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.34))
+                }
+            }
+            Spacer()
+            if usesPeekLayout {
+                toolbarIcon("plus", help: "添加股票", action: openPositionEditor)
+                toolbarIcon("arrow.clockwise", help: "刷新行情") {
+                    Task { await store.refreshMarketData() }
+                }
+            } else {
+                Button(action: openPositionEditor) {
+                    Label("添加股票", systemImage: "plus")
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 11)
+                        .frame(height: 28)
+                        .foregroundStyle(.white)
+                        .background(
+                            LinearGradient(
+                                colors: [gainColor, Color(red: 0.78, green: 0.08, blue: 0.13)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .shadow(color: gainColor.opacity(0.25), radius: 8, y: 3)
+                }
+                .buttonStyle(.plain)
+                toolbarIcon("square.and.arrow.up", help: "晒收益", action: openShareCard)
+                toolbarIcon("bag.fill", help: "宠物商城") { showingPetStore = true }
+                toolbarIcon("ladybug.fill", help: "调试", action: openDebugPanel)
+            }
+            toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
+            toolbarIcon("xmark", help: "退出", action: quitApplication)
+        }
+        .padding(.horizontal, usesPeekLayout ? 12 : 20)
+        .frame(height: usesPeekLayout ? 46 : 54)
+        .background(.black.opacity(0.08))
+        .overlay(alignment: .bottom) {
+            Divider().overlay(.white.opacity(0.055))
+        }
     }
 
-    private var topBar: some View {
-        HStack(spacing: 8) {
-            Circle().fill(mood.color).frame(width: 7, height: 7).shadow(color: mood.color, radius: 5)
-            Text("持仓行情").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.82))
-            Spacer()
-            Button {
-                store.showingEditor = true
-            } label: {
-                Image(systemName: "pencil.line").font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("编辑持仓")
-            Button {
-                openShareCard()
-            } label: {
-                Image(systemName: "square.and.arrow.up").font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("晒收益")
-            Button {
-                showingPetStore = true
-            } label: {
-                Image(systemName: "bag.fill").font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("宠物商城")
-            Button {
-                openDebugPanel()
-            } label: {
-                Image(systemName: "ladybug.fill").font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("调试")
-            Button {
-                toggleExpanded(false)
-            } label: {
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("收起")
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "xmark").font(.system(size: 9, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .help("退出")
+    private func toolbarIcon(_ systemName: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 28, height: 28)
+                .foregroundStyle(.white.opacity(0.68))
+                .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.055)))
         }
-        .padding(.horizontal, 18)
-        .frame(height: 44)
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private var displayedIndices: [MarketIndexSnapshot] {
@@ -1319,6 +1629,7 @@ struct ContentView: View {
     private var marketDashboard: some View {
         GeometryReader { proxy in
             let chartWidth = max(150, min(300, proxy.size.width * 0.28))
+            let tableWidth = max(760, proxy.size.width)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -1369,34 +1680,164 @@ struct ContentView: View {
                 }
                 .frame(height: 92)
 
-                HStack(spacing: 12) {
-                    Text("名称 / 代码").frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
-                    Text("最新价").frame(width: 84, alignment: .trailing)
-                    Text("当日分时").frame(width: chartWidth, alignment: .leading)
-                    Text("持仓市值").frame(width: 100, alignment: .trailing)
-                    Text("当日涨跌").frame(width: 88, alignment: .trailing)
-                }
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.38))
-                .padding(.horizontal, 20)
-                .frame(height: 36)
-                .background(.black.opacity(0.16))
-
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(store.positions) { position in
-                            positionMarketRow(position, chartWidth: chartWidth)
-                            Divider().overlay(.white.opacity(0.06)).padding(.horizontal, 20)
+                ScrollView(.horizontal, showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 12) {
+                            Text("名称 / 代码").frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
+                            Text("最新价").frame(width: 84, alignment: .trailing)
+                            Text("当日分时").frame(width: chartWidth, alignment: .leading)
+                            Text("持仓市值").frame(width: 100, alignment: .trailing)
+                            Text("当日涨跌").frame(width: 88, alignment: .trailing)
                         }
-                        if store.positions.isEmpty {
-                            ContentUnavailableView("暂无持仓", systemImage: "chart.line.uptrend.xyaxis", description: Text("点击右上角编辑按钮添加持仓和证券代码"))
-                                .frame(minHeight: 220)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.38))
+                        .padding(.horizontal, 20)
+                        .frame(height: 36)
+                        .background(.black.opacity(0.16))
+
+                        ScrollView(.vertical) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(store.positions) { position in
+                                    positionMarketRow(position, chartWidth: chartWidth)
+                                    Divider().overlay(.white.opacity(0.06)).padding(.horizontal, 20)
+                                }
+                                if store.positions.isEmpty {
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "chart.line.uptrend.xyaxis")
+                                            .font(.system(size: 30, weight: .light))
+                                            .foregroundStyle(gainColor.opacity(0.72))
+                                        VStack(spacing: 4) {
+                                            Text("还没有添加股票")
+                                                .font(.system(size: 14, weight: .semibold))
+                                    Text("搜索股票或 ETF 的名称、代码、拼音首字母")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.white.opacity(0.36))
+                                        }
+                                        Button(action: openPositionEditor) {
+                                            Label("搜索股票", systemImage: "magnifyingglass")
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .padding(.horizontal, 14)
+                                                .frame(height: 30)
+                                                .background(gainColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+                                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(gainColor.opacity(0.35)))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 240)
+                                }
+                            }
                         }
                     }
+                    .frame(width: tableWidth)
                 }
+                .frame(maxHeight: .infinity)
             }
         }
         .background(.black.opacity(0.12))
+    }
+
+    private var peekMarketDashboard: some View {
+        GeometryReader { proxy in
+            let tableWidth = max(560, proxy.size.width)
+            VStack(spacing: 0) {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("持仓市值")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.38))
+                        Text(currency(store.positions.reduce(0) { $0 + max(0, $1.value) }))
+                            .font(.system(size: 19, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    Spacer(minLength: 8)
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("今日收益")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.38))
+                        Text(percent(store.totalReturn))
+                            .font(.system(size: 19, weight: .bold, design: .rounded))
+                            .foregroundStyle(store.totalReturn >= 0 ? gainColor : lossColor)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 66)
+                .background(.black.opacity(0.08))
+
+                ScrollView(.horizontal, showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        HStack(spacing: 8) {
+                            Text("股票").frame(maxWidth: .infinity, alignment: .leading)
+                            Text("分时").frame(width: 120, alignment: .leading)
+                            Text("最新").frame(width: 68, alignment: .trailing)
+                            Text("涨跌").frame(width: 68, alignment: .trailing)
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .padding(.horizontal, 14)
+                        .frame(height: 28)
+                        .background(.black.opacity(0.14))
+
+                        ScrollView(.vertical) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(store.positions) { position in
+                                    peekPositionRow(position, showsTrend: true)
+                                    Divider().overlay(.white.opacity(0.055)).padding(.horizontal, 14)
+                                }
+                                if store.positions.isEmpty {
+                                    Button(action: openPositionEditor) {
+                                        Label("搜索并添加股票", systemImage: "magnifyingglass")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(gainColor)
+                                            .frame(maxWidth: .infinity, minHeight: 92)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                    .frame(width: tableWidth)
+                }
+                .frame(maxHeight: .infinity)
+            }
+        }
+        .background(.black.opacity(0.12))
+    }
+
+    private func peekPositionRow(_ position: Position, showsTrend: Bool) -> some View {
+        let snapshot = store.positionMarkets[position.id]
+        let change = snapshot?.changePercent ?? position.change
+        let color = change >= 0 ? gainColor : lossColor
+        let trend = snapshot?.trend ?? PetStore.fallbackTrend(seed: change)
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(position.name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                Text(position.symbol?.uppercased() ?? "未设置代码")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.3))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if showsTrend {
+                SparklineView(values: trend, color: color)
+                    .frame(width: 120, height: 30)
+            }
+
+            Text(snapshot?.currentPrice.map(price) ?? "--")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .frame(width: 68, alignment: .trailing)
+
+            Text(percent(change))
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+                .frame(width: 68, height: 26)
+                .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 56)
     }
 
     private func indexCard(_ index: MarketIndexSnapshot) -> some View {
@@ -1500,6 +1941,14 @@ struct ContentView: View {
                 Text(percent(displayReturn))
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(mood.color)
+                if debugState.overrideEnabled {
+                    Label("演示收益率锁定中", systemImage: "pin.fill")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(.orange.opacity(0.14), in: Capsule())
+                }
                 Button {
                     openShareCard()
                 } label: {
@@ -1539,6 +1988,7 @@ struct ContentView: View {
                 Text("按市值排序").font(.system(size: 9)).foregroundStyle(.white.opacity(0.35))
             }.padding(.bottom, 7)
             ForEach(Array(store.topPositions.enumerated()), id: \.element.id) { index, item in
+                let change = store.todayChange(for: item)
                 if index > 0 { Divider().overlay(.white.opacity(0.07)) }
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -1546,9 +1996,9 @@ struct ContentView: View {
                         Text("市值 ¥\(Int(item.value))").font(.system(size: 8)).foregroundStyle(.white.opacity(0.32))
                     }
                     Spacer()
-                    MiniBars(seed: item.change, color: item.change >= 0 ? gainColor : lossColor)
+                    MiniBars(seed: change, color: change >= 0 ? gainColor : lossColor)
                         .frame(width: 66, height: 22)
-                    Text(percent(item.change)).font(.system(size: 10, weight: .bold)).foregroundStyle(item.change >= 0 ? gainColor : lossColor).frame(width: 55, alignment: .trailing)
+                    Text(percent(change)).font(.system(size: 10, weight: .bold)).foregroundStyle(change >= 0 ? gainColor : lossColor).frame(width: 55, alignment: .trailing)
                 }.padding(.vertical, 6)
             }
         }
@@ -1617,7 +2067,7 @@ struct ContentView: View {
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 7) {
-                    ForEach(PetAppearance.allCases) { appearance in
+                    ForEach(PetAppearance.availableCases) { appearance in
                         Button {
                             selectAppearance(appearance)
                         } label: {
@@ -1668,7 +2118,7 @@ struct ContentView: View {
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(PetAppearance.allCases) { appearance in
+                    ForEach(PetAppearance.availableCases) { appearance in
                         VStack(spacing: 9) {
                             AnimatedStockPet(
                                 mood: mood,
@@ -1778,7 +2228,11 @@ struct ContentView: View {
             returnRate: displayReturn,
             mood: mood,
             appearance: selectedAppearance,
-            positions: shareIncludePositions ? store.topPositions : [],
+            positions: shareIncludePositions ? store.topPositions.map { position in
+                var updated = position
+                updated.change = store.todayChange(for: position)
+                return updated
+            } : [],
             date: Date()
         )
     }
@@ -1871,6 +2325,32 @@ struct ContentView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Text("动画播放速度")
+                        .font(.system(size: 10, weight: .medium))
+                    Spacer()
+                    Text("×\(String(format: "%.2f", debugState.speedMultiplier))")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(debugState.speedMultiplier == 1.0 ? .secondary : Color.orange)
+                }
+                Slider(value: speedMultiplierBinding, in: 0.25...3.0, step: 0.05)
+                    .tint(mood.color)
+                HStack(spacing: 5) {
+                    ForEach([0.5, 1.0, 1.5, 2.0], id: \.self) { multiplier in
+                        Button("×\(multiplier == 1.0 ? "1" : String(format: "%.1f", multiplier))") {
+                            debugState.speedMultiplier = multiplier
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    Spacer()
+                    Text("对所有卡通宠物生效，自动保存")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.white.opacity(0.38))
+                }
+            }
+
             Button {
                 debugState.isMockingReturn = true
                 store.testAlert(returnRate: debugState.mockReturnRate)
@@ -1885,7 +2365,26 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(mood.color)
 
-            Button("恢复真实收益率") {
+            Button {
+                debugState.overrideValue = debugState.mockReturnRate
+                debugState.overrideEnabled = true
+            } label: {
+                Label(
+                    debugState.overrideEnabled
+                        ? "已锁定 \(percent(debugState.overrideValue)) · 点击更新为当前值"
+                        : "锁定当前收益率（覆盖真实数据）",
+                    systemImage: debugState.overrideEnabled ? "pin.fill" : "pin"
+                )
+                .font(.system(size: 11, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.bordered)
+            .tint(debugState.overrideEnabled ? .orange : mood.color)
+            .help("锁定后关闭调试窗口、重启应用都会保持这个收益率，直到手动恢复")
+
+            Button(debugState.overrideEnabled ? "解除锁定，恢复真实收益率" : "恢复真实收益率") {
+                debugState.overrideEnabled = false
                 debugState.isMockingReturn = false
                 debugState.mockReturnRate = store.totalReturn
             }
@@ -1906,38 +2405,334 @@ struct ContentView: View {
     }
 
     private var editor: some View {
-        VStack(spacing: 7) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("持仓数据").font(.system(size: 10, weight: .semibold))
-                    Text("名称 / 证券代码 / 市值 / 备用收益率 %").font(.system(size: 8)).foregroundStyle(.white.opacity(0.3))
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(gainColor.opacity(0.16))
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(gainColor)
+                }
+                .frame(width: 38, height: 38)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("管理持仓")
+                        .font(.system(size: 16, weight: .bold))
+                    Text("搜索股票或 ETF 并补充持仓市值，名称和证券代码会自动填写")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.38))
                 }
                 Spacer()
-                Button("＋ 添加") { store.positions.append(Position(name: "新持仓", value: 0, change: 0, symbol: "")) }
-                    .buttonStyle(.plain).font(.system(size: 9)).foregroundStyle(.red.opacity(0.85))
-            }
-            ForEach($store.positions) { $item in
-                HStack(spacing: 5) {
-                    TextField("股票名称", text: $item.name).textFieldStyle(PetField()).frame(maxWidth: .infinity)
-                    TextField("如 sh600519", text: Binding(
-                        get: { item.symbol ?? "" },
-                        set: { item.symbol = $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
-                    )).textFieldStyle(PetField()).frame(width: 96)
-                    TextField("市值", value: $item.value, format: .number).textFieldStyle(PetField()).frame(width: 74)
-                    TextField("收益%", value: $item.change, format: .number.precision(.fractionLength(0...2))).textFieldStyle(PetField()).frame(width: 62)
-                    Button("×") { store.positions.removeAll { $0.id == item.id } }.buttonStyle(.plain).foregroundStyle(.white.opacity(0.3))
+                Button {
+                    store.showingEditor = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
             }
-            Button {
-                store.save()
-                store.showingEditor = false
-                Task { await store.refreshMarketData() }
-            } label: {
-                Text("保存并刷新行情").font(.system(size: 10, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 8).background(.red.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
-            }.buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .frame(height: 66)
+
+            Divider().overlay(.white.opacity(0.07))
+
+            VStack(spacing: 12) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 9) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(stockSearchFocused ? gainColor : .white.opacity(0.36))
+                        TextField("搜索股票或 ETF，例如：纳指 / 513100 / ndq", text: $stockSearchQuery)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12))
+                            .focused($stockSearchFocused)
+                            .onSubmit {
+                                stockSearchTask?.cancel()
+                                stockSearchTask = Task { await store.searchStocks(stockSearchQuery) }
+                            }
+                        if store.isSearchingStocks {
+                            ProgressView().controlSize(.small)
+                        } else if !stockSearchQuery.isEmpty {
+                            Button {
+                                stockSearchQuery = ""
+                                store.clearStockSearch()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.white.opacity(0.28))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 40)
+                    .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .stroke(stockSearchFocused ? gainColor.opacity(0.55) : .white.opacity(0.08))
+                    )
+
+                    if !stockSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        stockSearchResultsPanel
+                            .padding(.top, 8)
+                    }
+                }
+
+                HStack {
+                    Text("当前持仓")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("\(store.positions.count)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(gainColor)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(gainColor.opacity(0.13), in: Capsule())
+                    Spacer()
+                    Button {
+                        store.positions.append(Position(name: "未命名股票", value: 0, change: 0, symbol: ""))
+                    } label: {
+                        Label("手动添加", systemImage: "plus")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.46))
+                    }
+                    .buttonStyle(.plain)
+                    .help("搜索不到时手动填写")
+                }
+                .frame(height: 24)
+
+                HStack(spacing: 10) {
+                    Text("股票 / 证券代码").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("持仓市值").frame(width: 105, alignment: .leading)
+                    Text("备用收益率").frame(width: 90, alignment: .leading)
+                    Color.clear.frame(width: 28)
+                }
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.3))
+                .padding(.horizontal, 10)
+                .frame(height: 18)
+
+                GeometryReader { listGeometry in
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach($store.positions) { $item in
+                                HStack(spacing: 10) {
+                                    VStack(spacing: 5) {
+                                        TextField("股票名称", text: $item.name)
+                                            .textFieldStyle(PetField())
+                                        TextField("如 sh600519", text: Binding(
+                                            get: { item.symbol ?? "" },
+                                            set: { item.symbol = $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                        ))
+                                        .textFieldStyle(PetField())
+                                        .font(.system(size: 9, design: .monospaced))
+                                    }
+                                    .frame(maxWidth: .infinity)
+
+                                    TextField("市值", value: $item.value, format: .number)
+                                        .textFieldStyle(PetField())
+                                        .frame(width: 105)
+                                    TextField("收益%", value: $item.change, format: .number.precision(.fractionLength(0...2)))
+                                        .textFieldStyle(PetField())
+                                        .frame(width: 90)
+                                    Button {
+                                        withAnimation(.easeOut(duration: 0.18)) {
+                                            store.positions.removeAll { $0.id == item.id }
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.white.opacity(0.28))
+                                            .frame(width: 28, height: 28)
+                                            .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 7))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("删除持仓")
+                                }
+                                .padding(10)
+                                .background(.white.opacity(0.038), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.055)))
+                            }
+
+                            if store.positions.isEmpty {
+                                VStack(spacing: 6) {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(.white.opacity(0.2))
+                                    Text("从上方搜索并添加第一只股票")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.white.opacity(0.34))
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 120)
+                            }
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: listGeometry.size.height,
+                            alignment: .top
+                        )
+                        .padding(.vertical, 1)
+                    }
+                }
+                .frame(
+                    height: stockSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        ? 285
+                        : 158,
+                    alignment: .top
+                )
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            Divider().overlay(.white.opacity(0.07))
+
+            HStack {
+                Label("搜索结果来自公开行情服务，数据仅保存在本机", systemImage: "lock")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.white.opacity(0.28))
+                Spacer()
+                Button {
+                    store.save()
+                    store.showingEditor = false
+                    Task { await store.refreshMarketData() }
+                } label: {
+                    Label("保存并刷新", systemImage: "arrow.clockwise")
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 15)
+                        .frame(height: 32)
+                        .background(gainColor.opacity(0.88), in: RoundedRectangle(cornerRadius: 9))
+                        .shadow(color: gainColor.opacity(0.2), radius: 8, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 58)
         }
-        .padding(.top, 9)
-        .overlay(alignment: .top) { Divider().overlay(.white.opacity(0.07)) }
+        .onAppear {
+            stockSearchQuery = ""
+            store.clearStockSearch()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                stockSearchFocused = true
+            }
+        }
+        .onChange(of: stockSearchQuery) { _, newValue in
+            scheduleStockSearch(newValue)
+        }
+        .onDisappear {
+            stockSearchTask?.cancel()
+            stockSearchTask = nil
+            store.clearStockSearch()
+        }
+    }
+
+    private var stockSearchResultsPanel: some View {
+        VStack(spacing: 0) {
+            if let error = store.stockSearchError, store.stockSearchResults.isEmpty, !store.isSearchingStocks {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.circle")
+                    Text(error)
+                    Spacer()
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.orange.opacity(0.82))
+                .padding(12)
+            } else if store.isSearchingStocks && store.stockSearchResults.isEmpty {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("正在查找匹配股票…")
+                    Spacer()
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.42))
+                .padding(12)
+            } else if store.stockSearchResults.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                    Text("没有找到匹配的股票或 ETF，试试证券代码或拼音首字母")
+                    Spacer()
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.38))
+                .padding(12)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(store.stockSearchResults.enumerated()), id: \.element.id) { index, result in
+                            stockSearchResultRow(result)
+                            if index < store.stockSearchResults.count - 1 {
+                                Divider().overlay(.white.opacity(0.055)).padding(.horizontal, 10)
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 132)
+            }
+        }
+        .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 11).stroke(.white.opacity(0.07)))
+    }
+
+    private func stockSearchResultRow(_ result: StockSearchResult) -> some View {
+        let isAdded = store.positions.contains { $0.symbol?.lowercased() == result.symbol.lowercased() }
+        return Button {
+            guard !isAdded else { return }
+            store.addStock(result)
+            stockSearchQuery = ""
+            store.clearStockSearch()
+            stockSearchFocused = true
+        } label: {
+            HStack(spacing: 10) {
+                Text(result.instrumentName)
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(gainColor)
+                    .frame(width: 36, height: 22)
+                    .background(gainColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.name)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.86))
+                    Text("\(result.symbol.uppercased()) · \(result.marketName)")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.32))
+                }
+                Spacer()
+                Label(isAdded ? "已添加" : "加入持仓", systemImage: isAdded ? "checkmark" : "plus")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(isAdded ? .white.opacity(0.28) : gainColor)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 42)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isAdded)
+    }
+
+    private func openPositionEditor() {
+        stockSearchQuery = ""
+        store.clearStockSearch()
+        store.showingEditor = true
+    }
+
+    private func scheduleStockSearch(_ query: String) {
+        stockSearchTask?.cancel()
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            store.clearStockSearch()
+            return
+        }
+        stockSearchTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 280_000_000)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await store.searchStocks(trimmed)
+        }
     }
 
     private func actionButton(_ label: String, action: @escaping () -> Void) -> some View {
@@ -2019,13 +2814,18 @@ struct ContentView: View {
         }
 
         let oldFrame = window.frame
-        let newSize: NSSize
+        var newSize: NSSize
         if expanded {
-            newSize = NSSize(width: 980, height: 700)
+            newSize = savedExpandedWindowSize
         } else {
+            persistExpandedWindowSize()
             newSize = compactWindowSize
         }
         let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? oldFrame
+        if expanded {
+            newSize.width = min(newSize.width, visible.width)
+            newSize.height = min(newSize.height, visible.height)
+        }
         var origin = NSPoint(x: oldFrame.minX, y: oldFrame.maxY - newSize.height)
         origin.x = min(max(visible.minX, origin.x), visible.maxX - newSize.width)
         origin.y = min(max(visible.minY, origin.y), visible.maxY - newSize.height)
@@ -2035,8 +2835,8 @@ struct ContentView: View {
         window.hasShadow = expanded
         window.styleMask.remove(.resizable)
         if expanded {
-            window.contentMinSize = NSSize(width: 760, height: 560)
-            window.contentMaxSize = NSSize(width: 1600, height: 1100)
+            window.contentMinSize = expandedWindowMinimumSize
+            window.contentMaxSize = expandedWindowMaximumSize
         } else {
             window.contentMinSize = newSize
             window.contentMaxSize = newSize
@@ -2044,11 +2844,46 @@ struct ContentView: View {
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = expanded ? 22 : 0
         window.contentView?.layer?.masksToBounds = expanded
+        // 重新确认浮动层级（SwiftUI 有时会把它重置回普通层级），展开时主动置顶，
+        // 保证展开后的面板能盖在其它应用的窗口之上。
+        window.level = .floating
+        window.collectionBehavior.insert(.fullScreenAuxiliary)
+        if expanded {
+            window.orderFrontRegardless()
+            NSApp.activate()
+        }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.24
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             window.animator().setFrame(target, display: true)
         }
+    }
+
+    private var savedExpandedWindowSize: NSSize {
+        let defaults = UserDefaults.standard
+        let savedWidth = defaults.double(forKey: expandedWindowWidthKey)
+        let savedHeight = defaults.double(forKey: expandedWindowHeightKey)
+        let width = savedWidth > 0 ? savedWidth : 980
+        let height = savedHeight > 0 ? savedHeight : 700
+        return NSSize(
+            width: min(max(width, expandedWindowMinimumSize.width), expandedWindowMaximumSize.width),
+            height: min(max(height, expandedWindowMinimumSize.height), expandedWindowMaximumSize.height)
+        )
+    }
+
+    private func persistExpandedWindowSize() {
+        guard isExpanded, let window = mainPetWindow else { return }
+        let size = window.frame.size
+        guard size.width >= expandedWindowMinimumSize.width,
+              size.height >= expandedWindowMinimumSize.height else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(Double(size.width), forKey: expandedWindowWidthKey)
+        defaults.set(Double(size.height), forKey: expandedWindowHeightKey)
+    }
+
+    private func quitApplication() {
+        persistExpandedWindowSize()
+        NSApplication.shared.terminate(nil)
     }
 
     private var mainPetWindow: NSWindow? {
@@ -2148,7 +2983,7 @@ struct AnimatedStockPet: View {
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let time = timeline.date.timeIntervalSinceReferenceDate
                 let side = min(proxy.size.width, proxy.size.height)
                 let positiveReturn = max(0, returnRate)
@@ -2170,7 +3005,7 @@ struct AnimatedStockPet: View {
                     ? CGFloat(sin(alertProgress * .pi)) * side * CGFloat(0.10 + happinessStrength * 0.14)
                     : 0
 
-                let repeatInterval = max(2.35, 4.2 - happinessStrength * 1.8)
+                let repeatInterval = max(7.0, 12.6 - happinessStrength * 5.4)
                 let automaticElapsed = time.truncatingRemainder(dividingBy: repeatInterval)
                 let automaticDuration = 0.72
                 let automaticActive = mood == .bull && positiveReturn >= 2 && automaticElapsed < automaticDuration
@@ -2180,14 +3015,14 @@ struct AnimatedStockPet: View {
                     : 0
 
                 let jumpHeight = max(hoverHeight, alertHeight, automaticHeight)
-                let floatFrequency = 2.35 + happinessStrength * 1.15
+                let floatFrequency = 0.8 + happinessStrength * 0.4
                 let floatAmplitude = side * CGFloat(0.006 + happinessStrength * 0.024)
                 let idleLift = CGFloat(sin(time * floatFrequency)) * floatAmplitude
                 let bullActionActive = hoverActive || alertActive || automaticActive
 
                 let bearActionWindow = time.truncatingRemainder(dividingBy: 3.2) < 1.05
                 let bearActionActive = mood == .bear && (isAlerting || returnRate <= -3) && bearActionWindow
-                let shake = bearActionActive ? CGFloat(sin(time * 30)) * side * 0.024 : 0
+                let shake = bearActionActive ? CGFloat(sin(time * 10)) * side * 0.014 : 0
 
                 let breathAmount = mood == .bull
                     ? 0.008 + happinessStrength * 0.018
@@ -2243,7 +3078,8 @@ struct OpenPetsMascot: View {
     let actionActive: Bool
     let appearance: PetAppearance
 
-    private func frameIndex(count: Int, speed: Double, pingPong: Bool = false) -> Int {
+    private func frameIndex(count: Int, speed rawSpeed: Double, pingPong: Bool = false) -> Int {
+        let speed = rawSpeed * PetAnimTuning.speedMultiplier
         guard count > 1 else { return 0 }
         let tick = max(0, Int(time * speed))
         guard pingPong else { return tick % count }
@@ -2265,52 +3101,52 @@ struct OpenPetsMascot: View {
     private var mechFrameName: String {
         if actionActive {
             return mood == .bull
-                ? skinFrame("mech", state: "attack", count: 8, speed: 12, pingPong: true)
-                : skinFrame("mech", state: "crash", count: 10, speed: 10, pingPong: true)
+                ? skinFrame("mech", state: "attack", count: 8, speed: 4.0, pingPong: true)
+                : skinFrame("mech", state: "crash", count: 10, speed: 3.3, pingPong: true)
         }
         if returnRate >= 5 {
-            return skinFrame("mech", state: "shoot", count: 4, speed: 9, pingPong: true)
+            return skinFrame("mech", state: "shoot", count: 4, speed: 3.0, pingPong: true)
         }
         if returnRate >= 2 {
-            return skinFrame("mech", state: "happy", count: 10, speed: 10, pingPong: true)
+            return skinFrame("mech", state: "happy", count: 10, speed: 3.3, pingPong: true)
         }
         if returnRate >= 0.5 {
-            return skinFrame("mech", state: "run", count: 8, speed: 12)
+            return skinFrame("mech", state: "run", count: 8, speed: 4.0)
         }
         if returnRate >= -0.5 {
-            return skinFrame("mech", state: "idle", count: 10, speed: 7)
+            return skinFrame("mech", state: "idle", count: 10, speed: 2.3)
         }
         if returnRate >= -2 {
-            return skinFrame("mech", state: "sad", count: 10, speed: 9, pingPong: true)
+            return skinFrame("mech", state: "sad", count: 10, speed: 3.0, pingPong: true)
         }
-        return skinFrame("mech", state: "crash", count: 10, speed: 8, pingPong: true)
+        return skinFrame("mech", state: "crash", count: 10, speed: 2.7, pingPong: true)
     }
 
     private var polarFrameName: String {
         if actionActive {
             return mood == .bull
-                ? skinFrame("polar", state: "attack", count: 8, speed: 11, pingPong: true)
-                : skinFrame("polar", state: "hurt", count: 6, speed: 11, pingPong: true)
+                ? skinFrame("polar", state: "attack", count: 8, speed: 3.7, pingPong: true)
+                : skinFrame("polar", state: "hurt", count: 6, speed: 3.7, pingPong: true)
         }
         if returnRate >= 5 {
-            return skinFrame("polar", state: "jump", count: 10, speed: 10)
+            return skinFrame("polar", state: "jump", count: 10, speed: 3.3)
         }
         if returnRate >= 2 {
-            return skinFrame("polar", state: "run", count: 10, speed: 12)
+            return skinFrame("polar", state: "run", count: 10, speed: 4.0)
         }
         if returnRate >= 0.5 {
-            return skinFrame("polar", state: "happy", count: 12, speed: 10)
+            return skinFrame("polar", state: "happy", count: 12, speed: 3.3)
         }
         if returnRate >= -0.5 {
-            return skinFrame("polar", state: "idle", count: 12, speed: 7)
+            return skinFrame("polar", state: "idle", count: 12, speed: 2.3)
         }
         if returnRate >= -1.5 {
-            return skinFrame("polar", state: "hurt", count: 6, speed: 9, pingPong: true)
+            return skinFrame("polar", state: "hurt", count: 6, speed: 3.0, pingPong: true)
         }
         if returnRate >= -4 {
-            return skinFrame("polar", state: "sad", count: 10, speed: 9)
+            return skinFrame("polar", state: "sad", count: 10, speed: 3.0)
         }
-        return skinFrame("polar", state: "crash", count: 10, speed: 7, pingPong: true)
+        return skinFrame("polar", state: "crash", count: 10, speed: 2.3, pingPong: true)
     }
 
     private var frameName: String {
@@ -2318,23 +3154,8 @@ struct OpenPetsMascot: View {
         let isExpressive = isBull
             ? (actionActive || returnRate >= 1)
             : (actionActive || returnRate <= -0.5)
-        // 更高帧率，动画更流畅；睡觉时放慢
-        let speed = actionActive ? 10.0 : 7.0
-
-        if appearance == .market {
-            // 行情牛熊：红牛 / 绿熊，接近平盘时红牛打盹
-            if isBull {
-                if returnRate < 0.3 && !actionActive {
-                    return "skin_rbull_sleep_\(Int(time * 4.5) % 6)"
-                }
-                let state = isExpressive ? "happy" : "idle"
-                let count = state == "happy" ? 3 : 5
-                return "skin_rbull_\(state)_\(Int(time * speed) % count)"
-            }
-            let state = isExpressive ? "sad" : "idle"
-            let count = state == "sad" ? 4 : 6
-            return "skin_gbear_\(state)_\(Int(time * speed) % count)"
-        }
+        // 舒缓节奏：整体放慢 3 倍；可在调试面板全局调速
+        let speed = (actionActive ? 3.4 : 2.4) * PetAnimTuning.speedMultiplier
 
         if appearance == .mech { return mechFrameName }
         if appearance == .polar { return polarFrameName }
@@ -2359,9 +3180,56 @@ struct OpenPetsMascot: View {
         return "bear_\(isExpressive ? "sad" : "idle")_\(frame)"
     }
 
+    /// 皮肤当前帧：情绪表情与自然(idle)表情交替，逐帧硬切。
+    /// 涨时 happy→idle→happy… 、跌时 sad→idle→sad… 循环；每个情绪片段只播一遍。
+    /// 不做交叉淡入——卡通逐帧素材本来就该硬切，混合会拖影显得不自然。
+    private var currentSkinFrame: String? {
+        guard appearance != .mech, appearance != .polar, let spec = appearance.skinSpec else { return nil }
+        let isBull = mood == .bull
+        let isExpressive = isBull
+            ? (actionActive || returnRate >= 1)
+            : (actionActive || returnRate <= -0.5)
+        // 贴近作者调好的节奏：约 4fps，异动时略快
+        let fps = (actionActive ? 5.5 : 4.0) * PetAnimTuning.speedMultiplier
+
+        let sequence: [String]
+        if !isExpressive {
+            sequence = ["idle"]
+        } else if isBull {
+            sequence = ["happy", "idle"]
+        } else {
+            sequence = ["sad", "idle"]
+        }
+
+        func frames(_ state: String) -> Int {
+            switch state {
+            case "happy": return spec.happyFrames
+            case "sad": return spec.sadFrames
+            default: return spec.idleFrames
+            }
+        }
+        let counts = sequence.map(frames)
+        let total = counts.reduce(0, +)
+        guard total > 0 else { return nil }
+
+        let tick = Int(time * fps) % total
+        var acc = 0, seg = 0, local = tick
+        for (i, c) in counts.enumerated() {
+            if tick < acc + c { seg = i; local = tick - acc; break }
+            acc += c
+        }
+        return "skin_\(appearance.rawValue)_\(sequence[seg])_\(local)"
+    }
+
     var body: some View {
         Group {
-            if let assetName = appearance.assetName,
+            if let frame = currentSkinFrame,
+               let image = NSImage(named: NSImage.Name(frame)) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else if let assetName = appearance.assetName,
                let image = NSImage(named: NSImage.Name(assetName)) {
                 Image(nsImage: image)
                     .resizable()
@@ -2637,9 +3505,6 @@ struct ShareCardView: View {
     }
 
     private var petFrameName: String {
-        if appearance == .market || appearance == .robot {
-            return mood == .bull ? "skin_rbull_happy_0" : "skin_gbear_sad_0"
-        }
         if appearance.skinSpec != nil {
             return "skin_\(appearance.rawValue)_\(mood == .bull ? "happy" : "sad")_0"
         }
