@@ -3462,7 +3462,7 @@ struct ContentView: View {
             AnimatedMarketValue(
                 text: snapshot?.currentPrice.map(price) ?? "--",
                 value: snapshot?.currentPrice,
-                baseColor: .white.opacity(snapshot == nil ? 0.35 : 0.84),
+                baseColor: snapshot == nil ? .white.opacity(0.35) : color,
                 positiveColor: gainColor,
                 negativeColor: lossColor,
                 font: .system(size: 11, weight: .medium, design: .rounded),
@@ -3545,7 +3545,7 @@ struct ContentView: View {
             AnimatedMarketValue(
                 text: snapshot?.currentPrice.map(price) ?? "--",
                 value: snapshot?.currentPrice,
-                baseColor: .white.opacity(snapshot == nil ? 0.35 : 0.84),
+                baseColor: snapshot == nil ? .white.opacity(0.35) : color,
                 positiveColor: gainColor,
                 negativeColor: lossColor,
                 font: .system(size: 13, weight: .medium, design: .rounded),
@@ -5168,6 +5168,8 @@ private struct AnimatedMarketValue: View {
 
     var body: some View {
         let activeColor = pulse ? pulseColor : baseColor
+        let extraPulseOpacity = backgroundOpacity > 0 ? 0.12 : 0.13
+        let fillOpacity = backgroundOpacity + (pulse ? extraPulseOpacity : 0)
         Text(text)
             .font(font)
             .foregroundStyle(activeColor)
@@ -5177,20 +5179,13 @@ private struct AnimatedMarketValue: View {
             .padding(.horizontal, horizontalPadding)
             .frame(width: width, height: height, alignment: alignment)
             .background {
-                if backgroundOpacity > 0 || pulse {
+                if fillOpacity > 0 {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(activeColor.opacity(backgroundOpacity + (pulse ? 0.1 : 0)))
+                        .fill(activeColor.opacity(fillOpacity))
                 }
             }
-            .overlay {
-                if pulse {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(pulseColor.opacity(0.34), lineWidth: 1)
-                }
-            }
-            .scaleEffect(pulse ? 1.045 : 1, anchor: .leading)
-            .offset(y: pulse ? -1 : 0)
-            .animation(.spring(response: 0.22, dampingFraction: 0.62), value: pulse)
+            .animation(.easeOut(duration: 0.18), value: text)
+            .animation(.easeOut(duration: 0.24), value: pulse)
             .onAppear {
                 previousValue = value
                 pulseColor = baseColor
@@ -5213,14 +5208,14 @@ private struct AnimatedMarketValue: View {
             ? (newValue >= baseline ? positiveColor : negativeColor)
             : (newValue >= 0 ? positiveColor : negativeColor)
         pulseTask?.cancel()
-        withAnimation(.spring(response: 0.2, dampingFraction: 0.58)) {
+        withAnimation(.easeOut(duration: 0.12)) {
             pulse = true
         }
         pulseTask = Task {
-            try? await Task.sleep(nanoseconds: 280_000_000)
+            try? await Task.sleep(nanoseconds: 420_000_000)
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                withAnimation(.easeOut(duration: 0.24)) {
+                withAnimation(.easeOut(duration: 0.35)) {
                     pulse = false
                 }
             }
