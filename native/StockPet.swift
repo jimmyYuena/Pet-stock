@@ -4,6 +4,8 @@ import AppKit
 import AVFoundation
 import UserNotifications
 import Security
+import Vision
+import UniformTypeIdentifiers
 
 private enum StockPetKeychain {
     private static let service = "com.stockpet.market-data"
@@ -57,6 +59,141 @@ struct Position: Identifiable, Codable, Equatable {
     var value: Double
     var change: Double
     var symbol: String? = nil
+}
+
+private enum PositionScreenshotOCR {
+    private struct Fragment {
+        let text: String
+        let box: CGRect
+
+        var centerY: CGFloat { box.midY }
+    }
+
+    private struct VisualLine {
+        var fragments: [Fragment]
+        var centerY: CGFloat
+
+        var text: String {
+            fragments
+                .sorted { $0.box.minX < $1.box.minX }
+                .map(\.text)
+                .joined(separator: " ")
+        }
+    }
+
+    static func recognizePositions(in image: NSImage) throws -> [Position] {
+        var proposedRect = CGRect(origin: .zero, size: image.size)
+        guard let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) else {
+            return []
+        }
+
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["zh-Hans", "en-US"]
+        request.usesLanguageCorrection = true
+        request.minimumTextHeight = 0.008
+        try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+
+        let fragments = (request.results ?? []).compactMap { observation -> Fragment? in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
+            let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            return Fragment(text: text, box: observation.boundingBox)
+        }
+        return parsePositions(from: makeLines(fragments))
+    }
+
+    private static func makeLines(_ fragments: [Fragment]) -> [VisualLine] {
+        var lines: [VisualLine] = []
+        for fragment in fragments.sorted(by: { $0.centerY > $1.centerY }) {
+            if let index = lines.indices.last,
+               abs(lines[index].centerY - fragment.centerY) < 0.014 {
+                lines[index].fragments.append(fragment)
+                let count = CGFloat(lines[index].fragments.count)
+                lines[index].centerY = ((lines[index].centerY * (count - 1)) + fragment.centerY) / count
+            } else {
+                lines.append(VisualLine(fragments: [fragment], centerY: fragment.centerY))
+            }
+        }
+        return lines
+    }
+
+    private static func parsePositions(from lines: [VisualLine]) -> [Position] {
+        let candidates = lines.indices.compactMap { index -> (Int, String)? in
+            let leftText = lines[index].fragments
+                .filter { $0.box.minX < 0.42 }
+                .sorted { $0.box.minX < $1.box.minX }
+                .map(\.text)
+                .joined(separator: " ")
+            let name = cleanSecurityName(leftText)
+            return isSecurityName(name) ? (index, name) : nil
+        }
+
+        var parsed: [Position] = []
+        for (offset, candidate) in candidates.enumerated() {
+            let nextIndex = offset + 1 < candidates.count ? candidates[offset + 1].0 : lines.count
+            var value: Double?
+            var change: Double?
+            for line in lines[candidate.0..<nextIndex] {
+                guard let percentMatch = firstMatch(in: line.text, pattern: #"[+\-−—–]?\d+(?:\.\d+)?\s*%"#) else {
+                    continue
+                }
+                change = marketNumber(percentMatch.value.replacingOccurrences(of: "%", with: ""))
+                let prefix = String(line.text[..<percentMatch.range.lowerBound])
+                let numbers = allMatches(in: prefix, pattern: #"[+\-−—–]?\d[\d,]*(?:\.\d+)?"#)
+                    .compactMap(marketNumber)
+                value = numbers.first
+                if value != nil, change != nil { break }
+            }
+            guard let value, let change else { continue }
+            parsed.append(Position(name: candidate.1, value: value, change: change, symbol: nil))
+        }
+
+        var seenNames = Set<String>()
+        return parsed.filter { seenNames.insert($0.name).inserted }
+    }
+
+    private static func cleanSecurityName(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: #"\s+[+\-−—–]?\d[\d,.]*(?:\s.*)?$"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: "…", with: "")
+            .replacingOccurrences(of: "...", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+    }
+
+    private static func isSecurityName(_ value: String) -> Bool {
+        guard value.count >= 2,
+              value.range(of: #"[\p{Han}A-Za-z]"#, options: .regularExpression) != nil else { return false }
+        let excluded = [
+            "同花顺", "证券", "人民币账户", "总资产", "总盈亏", "当日参考盈亏", "总市值", "可用", "可取",
+            "持仓股", "市值", "盈亏", "持仓/可用", "成本/现价", "查看已清仓", "持仓管理", "批量买入", "批量卖出",
+            "止盈止损", "持仓资讯", "资产分析", "买入", "卖出", "撤单", "持仓", "查询", "首页", "行情", "自选", "交易", "资讯", "理财"
+        ]
+        return !excluded.contains { value.contains($0) }
+    }
+
+    private static func marketNumber(_ value: String) -> Double? {
+        Double(value
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: "−", with: "-")
+            .replacingOccurrences(of: "—", with: "-")
+            .replacingOccurrences(of: "–", with: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private static func firstMatch(in text: String, pattern: String) -> (value: String, range: Range<String.Index>)? {
+        guard let range = text.range(of: pattern, options: .regularExpression) else { return nil }
+        return (String(text[range]), range)
+    }
+
+    private static func allMatches(in text: String, pattern: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.matches(in: text, range: range).compactMap { match in
+            guard let swiftRange = Range(match.range, in: text) else { return nil }
+            return String(text[swiftRange])
+        }
+    }
 }
 
 struct StockSearchResult: Identifiable, Equatable {
@@ -580,6 +717,10 @@ final class PetStore: ObservableObject {
         }
     }
     @Published var screenshot: NSImage?
+    @Published var importedPositions: [Position] = []
+    @Published var isRecognizingScreenshot = false
+    @Published var isResolvingImportedSymbols = false
+    @Published var screenshotImportMessage: String?
     @Published var showingEditor = false
     @Published var newsItems: [StockNews] = []
     @Published var hiddenNewsIDs: Set<String> = []
@@ -680,6 +821,178 @@ final class PetStore: ObservableObject {
         alpacaAPIKey = ""
         alpacaAPISecret = ""
         alpacaStatus = "已停用 Alpaca 夜盘行情"
+    }
+
+    func importPositionScreenshot(_ image: NSImage) {
+        screenshot = image
+        importedPositions = []
+        isRecognizingScreenshot = true
+        screenshotImportMessage = "正在本机识别持仓截图…"
+        defer { isRecognizingScreenshot = false }
+
+        do {
+            let recognized = try PositionScreenshotOCR.recognizePositions(in: image)
+            importedPositions = recognized
+            screenshotImportMessage = recognized.isEmpty
+                ? "没有识别到完整仓位，请换一张同时包含名称、市值和涨跌幅的截图"
+                : "已识别 \(recognized.count) 条仓位，请核对后更新；原有美股会保留"
+        } catch {
+            screenshotImportMessage = "图片识别失败，请换一张更清晰的原图"
+        }
+    }
+
+    func loadPositionImportExample() {
+        screenshot = nil
+        importedPositions = [
+            Position(name: "纳指科技ETF景顺", value: 76_297.20, change: 2.278, symbol: "sz159509"),
+            Position(name: "纳指ETF广发", value: 140_132.10, change: 1.341, symbol: "sz159941"),
+            Position(name: "中概互联网ETF", value: 9_846.20, change: -1.547, symbol: "sh513050")
+        ]
+        screenshotImportMessage = "这是虚构示例数据；可以体验更新流程，不会要求登录"
+    }
+
+    func resolveImportedPositionSymbols() async {
+        guard !importedPositions.isEmpty else { return }
+        isResolvingImportedSymbols = true
+        defer { isResolvingImportedSymbols = false }
+        var unresolvedNames: [String] = []
+        let unresolvedIDs = importedPositions
+            .filter { $0.symbol?.isEmpty != false }
+            .map(\.id)
+        for id in unresolvedIDs {
+            guard let candidate = importedPositions.first(where: { $0.id == id }) else { continue }
+            var candidates: [StockSearchResult] = []
+            var seenSymbols = Set<String>()
+            for query in Self.importedPositionSearchQueries(for: candidate.name) {
+                await searchStocks(query)
+                for result in stockSearchResults where seenSymbols.insert(result.symbol).inserted {
+                    candidates.append(result)
+                }
+            }
+            let bestMatch = Self.bestImportedPositionMatch(for: candidate.name, in: candidates)
+            if let bestMatch,
+               let index = importedPositions.firstIndex(where: { $0.id == id }) {
+                importedPositions[index].name = bestMatch.name
+                importedPositions[index].symbol = bestMatch.symbol
+            } else {
+                unresolvedNames.append(candidate.name)
+            }
+        }
+        clearStockSearch()
+        screenshotImportMessage = unresolvedNames.isEmpty
+            ? "证券代码已自动匹配，请核对后更新仓位"
+            : "未能确认「\(unresolvedNames.joined(separator: "、"))」的证券代码，请手动输入后再更新"
+    }
+
+    func applyImportedPositionsPreservingUS() {
+        guard !importedPositions.isEmpty else { return }
+        let unresolvedNames = importedPositions.compactMap { position -> String? in
+            let symbol = position.symbol?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return symbol.isEmpty ? position.name : nil
+        }
+        guard unresolvedNames.isEmpty else {
+            screenshotImportMessage = "请先为「\(unresolvedNames.joined(separator: "、"))」手动输入证券代码"
+            return
+        }
+        let imported = importedPositions
+        let preservedUSPositions = positions.filter(Self.isUSPosition)
+        var updatedPositions = preservedUSPositions
+        for candidate in imported {
+            if Self.isUSPosition(candidate),
+               let symbol = candidate.symbol?.lowercased(),
+               updatedPositions.contains(where: { $0.symbol?.lowercased() == symbol }) {
+                continue
+            }
+            updatedPositions.append(candidate)
+        }
+        positions = updatedPositions
+        importedPositions = []
+        screenshotImportMessage = preservedUSPositions.isEmpty
+            ? "已清空旧仓位并写入截图仓位"
+            : "已写入截图仓位，并保留 \(preservedUSPositions.count) 条美股仓位"
+        save()
+        Task { await refreshMarketData() }
+    }
+
+    private static func importedPositionSearchQueries(for name: String) -> [String] {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let compact = trimmed.replacingOccurrences(of: #"[\s·•・_—–-]+"#, with: "", options: .regularExpression)
+        var queries = [trimmed, compact]
+        if let fundTypeRange = compact.range(of: #"(?i)ETF|LOF|基金"#, options: .regularExpression) {
+            let core = String(compact[..<fundTypeRange.lowerBound])
+            if core.count >= 2 { queries.append(core) }
+        }
+        var seen = Set<String>()
+        return queries.filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    private static func bestImportedPositionMatch(
+        for importedName: String,
+        in results: [StockSearchResult]
+    ) -> StockSearchResult? {
+        var scored: [(result: StockSearchResult, score: Int)] = []
+        for result in results {
+            let score = importedPositionMatchScore(importedName, result.name)
+            if score >= 75 {
+                scored.append((result: result, score: score))
+            }
+        }
+        scored.sort { lhs, rhs in
+            if lhs.score == rhs.score {
+                return lhs.result.name.count < rhs.result.name.count
+            }
+            return lhs.score > rhs.score
+        }
+        guard let best = scored.first else { return nil }
+        if scored.count > 1, scored[1].score == best.score { return nil }
+        return best.result
+    }
+
+    private static func importedPositionMatchScore(_ importedName: String, _ resultName: String) -> Int {
+        let imported = normalizedSecurityName(importedName)
+        let result = normalizedSecurityName(resultName)
+        guard !imported.isEmpty, !result.isEmpty else { return 0 }
+        if imported == result { return 140 }
+
+        let shorterCount = min(imported.count, result.count)
+        if shorterCount >= 4, imported.contains(result) || result.contains(imported) {
+            return 110 + shorterCount
+        }
+
+        let commonPrefixCount = zip(imported, result).prefix { pair in pair.0 == pair.1 }.count
+        var score = commonPrefixCount >= 4 ? 60 + commonPrefixCount : 0
+        let importedCore = securityNameCore(imported)
+        let resultCore = securityNameCore(result)
+        if importedCore.count >= 3, importedCore == resultCore {
+            score = max(score, 70)
+        }
+        return score
+    }
+
+    private static func normalizedSecurityName(_ value: String) -> String {
+        value
+            .lowercased()
+            .replacingOccurrences(of: #"[\s·•・_—–\-（）()]"#, with: "", options: .regularExpression)
+    }
+
+    private static func securityNameCore(_ value: String) -> String {
+        guard let range = value.range(of: #"(?i)ETF|LOF|基金"#, options: .regularExpression) else {
+            return value
+        }
+        return String(value[..<range.lowerBound])
+    }
+
+    private static func isUSPosition(_ position: Position) -> Bool {
+        guard let rawSymbol = position.symbol?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawSymbol.isEmpty else { return false }
+        if rawSymbol.lowercased().hasPrefix("us") { return true }
+        return rawSymbol.range(of: #"^[A-Za-z]{1,6}(?:[.\-][A-Za-z]{1,2})?$"#, options: .regularExpression) != nil
+    }
+
+    func discardImportedPositions() {
+        importedPositions = []
+        screenshot = nil
+        screenshotImportMessage = nil
     }
 
     private static func loadSavedPositions(forKey key: String) -> [Position]? {
@@ -2238,7 +2551,7 @@ struct ContentView: View {
     @State private var compactWindowFrameBeforeExpansion: NSRect?
     @GestureState private var draggingCompactWindow = false
     @State private var hoveringPet = false
-    @State private var importingScreenshot = false
+    @State private var isScreenshotDropTargeted = false
     @State private var alertPulse = false
     @State private var motionToken = UUID()
     @State private var showingPetStore = false
@@ -2358,13 +2671,6 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .animation(.spring(response: 0.3, dampingFraction: 0.82), value: isExpanded)
         .animation(.spring(response: 0.34, dampingFraction: 0.8), value: petScale)
-        .fileImporter(isPresented: $importingScreenshot, allowedContentTypes: [.image]) { result in
-            guard case let .success(url) = result else { return }
-            let access = url.startAccessingSecurityScopedResource()
-            defer { if access { url.stopAccessingSecurityScopedResource() } }
-            store.screenshot = NSImage(contentsOf: url)
-            store.showingEditor = true
-        }
         .onChange(of: displayReturn) { _, _ in
             triggerPetMotion()
             if !isDebugWindow && !isExpanded {
@@ -2868,8 +3174,10 @@ struct ContentView: View {
 
     private var marketDashboard: some View {
         GeometryReader { proxy in
-            let chartWidth = max(150, min(300, proxy.size.width * 0.28))
-            let tableWidth = max(760, proxy.size.width)
+            let nameWidth = max(180, min(240, proxy.size.width * 0.21))
+            let chartWidth = max(180, min(280, proxy.size.width * 0.25))
+            let totalPositionValue = store.positions.reduce(0) { $0 + max(0, $1.value) }
+            let tableWidth = max(920, proxy.size.width)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -2923,10 +3231,11 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: true) {
                     VStack(spacing: 0) {
                         HStack(spacing: 12) {
-                            Text("名称 / 代码").frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
-                            Text("最新价").frame(width: 84, alignment: .trailing)
+                            Text("名称 / 代码").frame(width: nameWidth, alignment: .leading)
                             Text("当日分时").frame(width: chartWidth, alignment: .leading)
-                            Text("持仓市值").frame(width: 100, alignment: .trailing)
+                            Text("持仓金额").frame(width: 100, alignment: .trailing)
+                            Text("仓位占比").frame(width: 72, alignment: .trailing)
+                            Text("最新价").frame(width: 84, alignment: .trailing)
                             Text("当日涨跌").frame(width: 88, alignment: .trailing)
                         }
                         .font(.system(size: 10, weight: .medium))
@@ -2938,7 +3247,12 @@ struct ContentView: View {
                         ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
                                 ForEach(store.positions) { position in
-                                    positionMarketRow(position, chartWidth: chartWidth)
+                                    positionMarketRow(
+                                        position,
+                                        nameWidth: nameWidth,
+                                        chartWidth: chartWidth,
+                                        totalPositionValue: totalPositionValue
+                                    )
                                     Divider().overlay(.white.opacity(0.06)).padding(.horizontal, 20)
                                 }
                                 if store.positions.isEmpty {
@@ -2983,7 +3297,12 @@ struct ContentView: View {
             let horizontalPadding: CGFloat = availableWidth < 430 ? 10 : 14
             let priceWidth: CGFloat = availableWidth < 430 ? 58 : 68
             let changeWidth: CGFloat = availableWidth < 430 ? 64 : 68
-            let chartWidth: CGFloat = max(82, min(120, availableWidth * 0.22))
+            let showsPositionColumns = availableWidth >= 600
+            let nameWidth: CGFloat = showsPositionColumns ? max(130, min(170, availableWidth * 0.26)) : 0
+            let positionValueWidth: CGFloat = 72
+            let allocationWidth: CGFloat = 48
+            let chartWidth: CGFloat = max(82, min(120, availableWidth * 0.19))
+            let totalPositionValue = store.positions.reduce(0) { $0 + max(0, $1.value) }
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
@@ -3011,9 +3330,17 @@ struct ContentView: View {
 
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
-                        Text("股票").frame(maxWidth: .infinity, alignment: .leading)
+                        Text("股票").frame(
+                            width: showsPositionColumns ? nameWidth : nil,
+                            alignment: .leading
+                        )
+                        .frame(maxWidth: showsPositionColumns ? nil : .infinity, alignment: .leading)
                         if showsTrend {
                             Text("分时").frame(width: chartWidth, alignment: .leading)
+                        }
+                        if showsPositionColumns {
+                            Text("仓位资金").frame(width: positionValueWidth, alignment: .trailing)
+                            Text("占比").frame(width: allocationWidth, alignment: .trailing)
                         }
                         Text("最新").frame(width: priceWidth, alignment: .trailing)
                         Text("涨跌").frame(width: changeWidth, alignment: .trailing)
@@ -3030,10 +3357,15 @@ struct ContentView: View {
                                 peekPositionRow(
                                     position,
                                     showsTrend: showsTrend,
+                                    showsPositionColumns: showsPositionColumns,
+                                    nameWidth: nameWidth,
                                     chartWidth: chartWidth,
+                                    positionValueWidth: positionValueWidth,
+                                    allocationWidth: allocationWidth,
                                     priceWidth: priceWidth,
                                     changeWidth: changeWidth,
-                                    horizontalPadding: horizontalPadding
+                                    horizontalPadding: horizontalPadding,
+                                    totalPositionValue: totalPositionValue
                                 )
                                 Divider().overlay(.white.opacity(0.055)).padding(.horizontal, horizontalPadding)
                             }
@@ -3058,15 +3390,22 @@ struct ContentView: View {
     private func peekPositionRow(
         _ position: Position,
         showsTrend: Bool,
+        showsPositionColumns: Bool,
+        nameWidth: CGFloat,
         chartWidth: CGFloat,
+        positionValueWidth: CGFloat,
+        allocationWidth: CGFloat,
         priceWidth: CGFloat,
         changeWidth: CGFloat,
-        horizontalPadding: CGFloat
+        horizontalPadding: CGFloat,
+        totalPositionValue: Double
     ) -> some View {
         let snapshot = store.positionMarkets[position.id]
-        let change = snapshot?.changePercent ?? position.change
-        let color = change >= 0 ? gainColor : lossColor
-        let trend = snapshot?.trend ?? PetStore.fallbackTrend(seed: change)
+        let change = snapshot?.changePercent ?? 0
+        let color = snapshot == nil ? .white.opacity(0.35) : (change >= 0 ? gainColor : lossColor)
+        let trend = snapshot?.trend ?? [0, 0]
+        let changeText = snapshot == nil ? "--" : percent(change)
+        let allocation = positionAllocation(position.value, total: totalPositionValue)
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(position.name)
@@ -3078,13 +3417,33 @@ struct ContentView: View {
                         .foregroundStyle(.white.opacity(0.3))
                         .lineLimit(1)
                     marketSessionTag(for: position, compact: true)
+                    if !showsPositionColumns {
+                        Text("\(currency(position.value)) · \(allocation)")
+                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.42))
+                            .lineLimit(1)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: showsPositionColumns ? nameWidth : nil, alignment: .leading)
+            .frame(maxWidth: showsPositionColumns ? nil : .infinity, alignment: .leading)
 
             if showsTrend {
                 SparklineView(values: trend, color: color)
                     .frame(width: chartWidth, height: 30)
+            }
+
+            if showsPositionColumns {
+                Text(currency(position.value))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .frame(width: positionValueWidth, alignment: .trailing)
+
+                Text(allocation)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .frame(width: allocationWidth, alignment: .trailing)
             }
 
             Text(snapshot?.currentPrice.map(price) ?? "--")
@@ -3093,7 +3452,7 @@ struct ContentView: View {
                 .minimumScaleFactor(0.74)
                 .frame(width: priceWidth, alignment: .trailing)
 
-            Text(percent(change))
+            Text(changeText)
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
                 .lineLimit(1)
@@ -3120,11 +3479,18 @@ struct ContentView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.2)))
     }
 
-    private func positionMarketRow(_ position: Position, chartWidth: CGFloat) -> some View {
+    private func positionMarketRow(
+        _ position: Position,
+        nameWidth: CGFloat,
+        chartWidth: CGFloat,
+        totalPositionValue: Double
+    ) -> some View {
         let snapshot = store.positionMarkets[position.id]
-        let change = snapshot?.changePercent ?? position.change
-        let color = change >= 0 ? gainColor : lossColor
-        let trend = snapshot?.trend ?? PetStore.fallbackTrend(seed: change)
+        let change = snapshot?.changePercent ?? 0
+        let color = snapshot == nil ? .white.opacity(0.35) : (change >= 0 ? gainColor : lossColor)
+        let trend = snapshot?.trend ?? [0, 0]
+        let changeText = snapshot == nil ? "--" : percent(change)
+        let allocation = positionAllocation(position.value, total: totalPositionValue)
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(position.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
@@ -3135,11 +3501,7 @@ struct ContentView: View {
                     marketSessionTag(for: position)
                 }
             }
-            .frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
-
-            Text(snapshot?.currentPrice.map(price) ?? "--")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .frame(width: 84, alignment: .trailing)
+            .frame(width: nameWidth, alignment: .leading)
 
             SparklineView(values: trend, color: color)
                 .frame(width: chartWidth, height: 54)
@@ -3148,7 +3510,16 @@ struct ContentView: View {
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .frame(width: 100, alignment: .trailing)
 
-            Text(percent(change))
+            Text(allocation)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(width: 72, alignment: .trailing)
+
+            Text(snapshot?.currentPrice.map(price) ?? "--")
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .frame(width: 84, alignment: .trailing)
+
+            Text(changeText)
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
                 .padding(.horizontal, 9)
@@ -3199,6 +3570,11 @@ struct ContentView: View {
         if value >= 100_000_000 { return String(format: "¥%.2f亿", value / 100_000_000) }
         if value >= 10_000 { return String(format: "¥%.2f万", value / 10_000) }
         return String(format: "¥%.0f", value)
+    }
+
+    private func positionAllocation(_ value: Double, total: Double) -> String {
+        guard total > 0 else { return "0.0%" }
+        return String(format: "%.1f%%", max(0, value) / total * 100)
     }
 
     private var petStage: some View {
@@ -3296,7 +3672,7 @@ struct ContentView: View {
             appearancePicker
 
             HStack(spacing: 9) {
-                actionButton("▣  上传持仓截图") { importingScreenshot = true }
+                actionButton("▣  上传持仓截图") { choosePositionScreenshot() }
                 actionButton("☷  编辑持仓") { store.showingEditor.toggle() }
             }
 
@@ -3824,6 +4200,12 @@ struct ContentView: View {
             Divider().overlay(.white.opacity(0.07))
 
             VStack(spacing: 12) {
+                positionScreenshotInput
+
+                if !store.importedPositions.isEmpty {
+                    importedPositionsPreview
+                }
+
                 VStack(spacing: 0) {
                     HStack(spacing: 9) {
                         Image(systemName: "magnifyingglass")
@@ -3961,8 +4343,8 @@ struct ContentView: View {
                 }
                 .frame(
                     height: stockSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        ? 285
-                        : 158,
+                        ? (store.importedPositions.isEmpty ? 214 : 94)
+                        : (store.importedPositions.isEmpty ? 112 : 72),
                     alignment: .top
                 )
 
@@ -4011,6 +4393,167 @@ struct ContentView: View {
             store.clearStockSearch()
             store.save()
         }
+    }
+
+    private var positionScreenshotInput: some View {
+        HStack(spacing: 10) {
+            Button {
+                choosePositionScreenshot()
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(gainColor.opacity(isScreenshotDropTargeted ? 0.24 : 0.12))
+                        Image(systemName: "photo.badge.plus")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(gainColor)
+                    }
+                    .frame(width: 32, height: 32)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(isScreenshotDropTargeted ? "松开即可识别" : "上传持仓截图")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.86))
+                        Text("点击选择或拖入图片 · 仅在本机识别")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.34))
+                    }
+                    Spacer()
+                    if store.isRecognizingScreenshot || store.isResolvingImportedSymbols {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.24))
+                    }
+                }
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button("免登录示例") {
+                store.loadPositionImportExample()
+            }
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(gainColor)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(gainColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .help("载入虚构数据体验截图导入流程")
+        }
+        .padding(5)
+        .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(
+                    isScreenshotDropTargeted ? gainColor.opacity(0.8) : .white.opacity(0.08),
+                    style: StrokeStyle(lineWidth: isScreenshotDropTargeted ? 1.5 : 1, dash: [5, 4])
+                )
+        )
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let url = urls.first else { return false }
+            importPositionScreenshot(from: url)
+            return true
+        } isTargeted: { targeted in
+            isScreenshotDropTargeted = targeted
+        }
+        .overlay(alignment: .bottomLeading) {
+            if let message = store.screenshotImportMessage, store.importedPositions.isEmpty {
+                Text(message)
+                    .font(.system(size: 8))
+                    .foregroundStyle(.white.opacity(0.42))
+                    .lineLimit(1)
+                    .padding(.leading, 11)
+                    .offset(y: 12)
+            }
+        }
+    }
+
+    private var importedPositionsPreview: some View {
+        let unresolvedCount = store.importedPositions.filter {
+            ($0.symbol?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
+        }.count
+        return VStack(spacing: 7) {
+            HStack(spacing: 8) {
+                Label("识别预览", systemImage: "text.viewfinder")
+                    .font(.system(size: 10, weight: .semibold))
+                Text("\(store.importedPositions.count) 条")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundStyle(gainColor)
+                if let message = store.screenshotImportMessage {
+                    Text(message)
+                        .font(.system(size: 8))
+                        .foregroundStyle(unresolvedCount > 0 ? .orange.opacity(0.9) : .white.opacity(0.34))
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button {
+                    store.discardImportedPositions()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.white.opacity(0.28))
+                }
+                .buttonStyle(.plain)
+                .help("取消本次导入")
+            }
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach($store.importedPositions) { $item in
+                        VStack(alignment: .leading, spacing: 5) {
+                            TextField("股票名称", text: $item.name)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 10, weight: .semibold))
+                            HStack(spacing: 5) {
+                                TextField("市值", value: $item.value, format: .number)
+                                    .textFieldStyle(PetField())
+                                    .frame(width: 82)
+                                TextField("涨跌%", value: $item.change, format: .number.precision(.fractionLength(0...3)))
+                                    .textFieldStyle(PetField())
+                                    .frame(width: 68)
+                            }
+                            TextField("证券代码（必填，如 sh513000）", text: Binding(
+                                get: { item.symbol ?? "" },
+                                set: { item.symbol = $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                            ))
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundStyle(
+                                (item.symbol?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
+                                    ? .orange.opacity(0.9)
+                                    : .white.opacity(0.5)
+                            )
+                        }
+                        .padding(8)
+                        .frame(width: 174, height: 78, alignment: .topLeading)
+                        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    }
+                }
+            }
+            .scrollIndicators(.visible)
+            .frame(height: 82)
+
+            HStack(spacing: 8) {
+                if unresolvedCount > 0 {
+                    Label("还有 \(unresolvedCount) 条需要手动输入证券代码", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange.opacity(0.9))
+                }
+                Spacer()
+                Button(store.isResolvingImportedSymbols ? "正在匹配证券代码…" : "更新仓位（保留美股）") {
+                    store.applyImportedPositionsPreservingUS()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(gainColor)
+                .disabled(store.isResolvingImportedSymbols)
+            }
+            .font(.system(size: 9, weight: .semibold))
+        }
+        .padding(9)
+        .background(gainColor.opacity(0.055), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 11).stroke(gainColor.opacity(0.18)))
     }
 
     private var stockSearchResultsPanel: some View {
@@ -4100,6 +4643,38 @@ struct ContentView: View {
         stockSearchQuery = ""
         store.clearStockSearch()
         store.showingEditor = true
+    }
+
+    private func choosePositionScreenshot() {
+        let panel = NSOpenPanel()
+        panel.title = "选择持仓截图"
+        panel.message = "选择券商持仓页面截图，图片只会在本机识别"
+        panel.prompt = "选择图片"
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                importPositionScreenshot(from: url)
+            }
+        }
+    }
+
+    private func importPositionScreenshot(from url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        defer {
+            if access { url.stopAccessingSecurityScopedResource() }
+        }
+        guard let image = NSImage(contentsOf: url) else {
+            store.screenshotImportMessage = "无法读取这张图片，请选择 PNG、JPG 或系统支持的图片格式"
+            return
+        }
+        store.importPositionScreenshot(image)
+        store.showingEditor = true
+        guard !store.importedPositions.isEmpty else { return }
+        Task { await store.resolveImportedPositionSymbols() }
     }
 
     private func scheduleStockSearch(_ query: String) {
