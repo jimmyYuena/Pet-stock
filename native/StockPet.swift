@@ -3176,6 +3176,15 @@ struct ContentView: View {
         GeometryReader { proxy in
             let nameWidth = max(180, min(240, proxy.size.width * 0.21))
             let chartWidth = max(180, min(280, proxy.size.width * 0.25))
+            let chartToValueGap: CGFloat = 28
+            let indexCardWidth: CGFloat = 150
+            let indexCardSpacing: CGFloat = 10
+            let indexHorizontalPadding: CGFloat = 20
+            let indexToTableGap: CGFloat = 14
+            let indexStripContentWidth = CGFloat(displayedIndices.count) * indexCardWidth
+                + CGFloat(max(0, displayedIndices.count - 1)) * indexCardSpacing
+                + indexHorizontalPadding * 2
+            let indexStripWidth = max(proxy.size.width, indexStripContentWidth)
             let totalPositionValue = store.positions.reduce(0) { $0 + max(0, $1.value) }
             let tableWidth = max(920, proxy.size.width)
             VStack(alignment: .leading, spacing: 0) {
@@ -3219,24 +3228,27 @@ struct ContentView: View {
                 .padding(.vertical, 14)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: indexCardSpacing) {
                         ForEach(displayedIndices) { index in
                             indexCard(index)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, indexHorizontalPadding)
+                    .frame(width: indexStripWidth, alignment: .center)
                 }
                 .frame(height: 92)
+                .padding(.bottom, indexToTableGap)
 
                 ScrollView(.horizontal, showsIndicators: true) {
                     VStack(spacing: 0) {
                         HStack(spacing: 12) {
                             Text("名称 / 代码").frame(width: nameWidth, alignment: .leading)
                             Text("当日分时").frame(width: chartWidth, alignment: .leading)
-                            Text("持仓金额").frame(width: 100, alignment: .trailing)
-                            Text("仓位占比").frame(width: 72, alignment: .trailing)
-                            Text("最新价").frame(width: 84, alignment: .trailing)
-                            Text("当日涨跌").frame(width: 88, alignment: .trailing)
+                            Text("持仓金额").frame(width: 100, alignment: .leading)
+                                .padding(.leading, chartToValueGap)
+                            Text("仓位占比").frame(width: 72, alignment: .leading)
+                            Text("最新价").frame(width: 84, alignment: .leading)
+                            Text("当日涨跌").frame(width: 88, alignment: .leading)
                         }
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.38))
@@ -3251,6 +3263,7 @@ struct ContentView: View {
                                         position,
                                         nameWidth: nameWidth,
                                         chartWidth: chartWidth,
+                                        chartToValueGap: chartToValueGap,
                                         totalPositionValue: totalPositionValue
                                     )
                                     Divider().overlay(.white.opacity(0.06)).padding(.horizontal, 20)
@@ -3339,11 +3352,11 @@ struct ContentView: View {
                             Text("分时").frame(width: chartWidth, alignment: .leading)
                         }
                         if showsPositionColumns {
-                            Text("仓位资金").frame(width: positionValueWidth, alignment: .trailing)
-                            Text("占比").frame(width: allocationWidth, alignment: .trailing)
+                            Text("仓位资金").frame(width: positionValueWidth, alignment: .leading)
+                            Text("占比").frame(width: allocationWidth, alignment: .leading)
                         }
-                        Text("最新").frame(width: priceWidth, alignment: .trailing)
-                        Text("涨跌").frame(width: changeWidth, alignment: .trailing)
+                        Text("最新").frame(width: priceWidth, alignment: .leading)
+                        Text("涨跌").frame(width: changeWidth, alignment: .leading)
                     }
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.white.opacity(0.3))
@@ -3438,27 +3451,39 @@ struct ContentView: View {
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                    .frame(width: positionValueWidth, alignment: .trailing)
+                    .frame(width: positionValueWidth, alignment: .leading)
 
                 Text(allocation)
                     .font(.system(size: 9, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.58))
-                    .frame(width: allocationWidth, alignment: .trailing)
+                    .frame(width: allocationWidth, alignment: .leading)
             }
 
-            Text(snapshot?.currentPrice.map(price) ?? "--")
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.74)
-                .frame(width: priceWidth, alignment: .trailing)
+            AnimatedMarketValue(
+                text: snapshot?.currentPrice.map(price) ?? "--",
+                value: snapshot?.currentPrice,
+                baseColor: .white.opacity(snapshot == nil ? 0.35 : 0.84),
+                positiveColor: gainColor,
+                negativeColor: lossColor,
+                font: .system(size: 11, weight: .medium, design: .rounded),
+                width: priceWidth,
+                alignment: .leading
+            )
 
-            Text(changeText)
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.74)
-                .frame(width: changeWidth, height: 26)
-                .background(color.opacity(0.13), in: RoundedRectangle(cornerRadius: 7))
+            AnimatedMarketValue(
+                text: changeText,
+                value: snapshot?.changePercent,
+                baseColor: color,
+                positiveColor: gainColor,
+                negativeColor: lossColor,
+                font: .system(size: 10, weight: .bold, design: .rounded),
+                width: changeWidth,
+                height: 26,
+                alignment: .leading,
+                backgroundOpacity: 0.13,
+                cornerRadius: 7,
+                pulsesByDeltaDirection: false
+            )
         }
         .padding(.horizontal, horizontalPadding)
         .frame(height: 56)
@@ -3483,6 +3508,7 @@ struct ContentView: View {
         _ position: Position,
         nameWidth: CGFloat,
         chartWidth: CGFloat,
+        chartToValueGap: CGFloat,
         totalPositionValue: Double
     ) -> some View {
         let snapshot = store.positionMarkets[position.id]
@@ -3508,23 +3534,40 @@ struct ContentView: View {
 
             Text(currency(position.value))
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 100, alignment: .leading)
+                .padding(.leading, chartToValueGap)
 
             Text(allocation)
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: 72, alignment: .leading)
 
-            Text(snapshot?.currentPrice.map(price) ?? "--")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .frame(width: 84, alignment: .trailing)
+            AnimatedMarketValue(
+                text: snapshot?.currentPrice.map(price) ?? "--",
+                value: snapshot?.currentPrice,
+                baseColor: .white.opacity(snapshot == nil ? 0.35 : 0.84),
+                positiveColor: gainColor,
+                negativeColor: lossColor,
+                font: .system(size: 13, weight: .medium, design: .rounded),
+                width: 84,
+                alignment: .leading
+            )
 
-            Text(changeText)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-                .padding(.horizontal, 9)
-                .frame(width: 88, height: 30)
-                .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 7))
+            AnimatedMarketValue(
+                text: changeText,
+                value: snapshot?.changePercent,
+                baseColor: color,
+                positiveColor: gainColor,
+                negativeColor: lossColor,
+                font: .system(size: 12, weight: .bold, design: .rounded),
+                width: 88,
+                height: 30,
+                alignment: .leading,
+                horizontalPadding: 9,
+                backgroundOpacity: 0.16,
+                cornerRadius: 7,
+                pulsesByDeltaDirection: false
+            )
         }
         .padding(.horizontal, 20)
         .frame(height: 82)
@@ -5103,9 +5146,93 @@ struct IndexSettingsView: View {
     }
 }
 
+private struct AnimatedMarketValue: View {
+    let text: String
+    let value: Double?
+    let baseColor: Color
+    let positiveColor: Color
+    let negativeColor: Color
+    let font: Font
+    let width: CGFloat
+    var height: CGFloat? = nil
+    var alignment: Alignment = .leading
+    var horizontalPadding: CGFloat = 0
+    var backgroundOpacity: Double = 0
+    var cornerRadius: CGFloat = 7
+    var pulsesByDeltaDirection = true
+
+    @State private var previousValue: Double?
+    @State private var pulse = false
+    @State private var pulseColor = Color.white
+    @State private var pulseTask: Task<Void, Never>?
+
+    var body: some View {
+        let activeColor = pulse ? pulseColor : baseColor
+        Text(text)
+            .font(font)
+            .foregroundStyle(activeColor)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.74)
+            .padding(.horizontal, horizontalPadding)
+            .frame(width: width, height: height, alignment: alignment)
+            .background {
+                if backgroundOpacity > 0 || pulse {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(activeColor.opacity(backgroundOpacity + (pulse ? 0.1 : 0)))
+                }
+            }
+            .overlay {
+                if pulse {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(pulseColor.opacity(0.34), lineWidth: 1)
+                }
+            }
+            .scaleEffect(pulse ? 1.045 : 1, anchor: .leading)
+            .offset(y: pulse ? -1 : 0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.62), value: pulse)
+            .onAppear {
+                previousValue = value
+                pulseColor = baseColor
+            }
+            .onChange(of: value) { oldValue, newValue in
+                updatePulse(from: oldValue, to: newValue)
+            }
+    }
+
+    private func updatePulse(from oldValue: Double?, to newValue: Double?) {
+        guard let newValue else {
+            previousValue = nil
+            return
+        }
+        let baseline = oldValue ?? previousValue
+        previousValue = newValue
+        guard let baseline, abs(newValue - baseline) > 0.0001 else { return }
+
+        pulseColor = pulsesByDeltaDirection
+            ? (newValue >= baseline ? positiveColor : negativeColor)
+            : (newValue >= 0 ? positiveColor : negativeColor)
+        pulseTask?.cancel()
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.58)) {
+            pulse = true
+        }
+        pulseTask = Task {
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.24)) {
+                    pulse = false
+                }
+            }
+        }
+    }
+}
+
 struct SparklineView: View {
     let values: [Double]
     let color: Color
+    @State private var updatePulse = false
+    @State private var pulseTask: Task<Void, Never>?
 
     var body: some View {
         GeometryReader { proxy in
@@ -5123,13 +5250,25 @@ struct SparklineView: View {
                     for point in points.dropFirst() { path.addLine(to: point) }
                 }
                 .stroke(color, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
+                .shadow(color: color.opacity(updatePulse ? 0.55 : 0), radius: updatePulse ? 5 : 0)
 
                 if let last = points.last {
-                    Circle().fill(color).frame(width: 5, height: 5).position(last)
+                    Circle()
+                        .fill(color)
+                        .frame(width: 5, height: 5)
+                        .scaleEffect(updatePulse ? 1.65 : 1)
+                        .shadow(color: color.opacity(updatePulse ? 0.6 : 0), radius: updatePulse ? 5 : 0)
+                        .position(last)
                 }
             }
+            .animation(.easeInOut(duration: 0.34), value: values)
+            .animation(.spring(response: 0.24, dampingFraction: 0.62), value: updatePulse)
         }
         .padding(.vertical, 5)
+        .onChange(of: values) { oldValues, newValues in
+            guard oldValues != newValues else { return }
+            triggerUpdatePulse()
+        }
     }
 
     private func normalizedPoints(in size: CGSize) -> [CGPoint] {
@@ -5140,6 +5279,18 @@ struct SparklineView: View {
             let x = CGFloat(index) / CGFloat(values.count - 1) * size.width
             let y = size.height - CGFloat((value - minimum) / span) * size.height
             return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func triggerUpdatePulse() {
+        pulseTask?.cancel()
+        updatePulse = true
+        pulseTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                updatePulse = false
+            }
         }
     }
 }
