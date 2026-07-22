@@ -1,0 +1,38 @@
+{
+  "version": 3,
+  "generatedAt": "2026-07-11T13:10:59.974Z",
+  "total": 1273,
+  "pageSize": 100,
+  "search": "https://openpets.dev/pets/catalog.v3/search.json",
+  "filters": {
+    "categories": [
+      {
+        "id": "western",
+        "label": "Western",
+        "count": 376
+      },
+      {
+        "id": "asian",
+        "label": "Asian",
+        "count": 634
+      }
+    ],
+    "originalsCount": 47,
+    "featuredCount": 263
+  },
+  "pages": [
+    "https://openpets.dev/pets/catalog.v3/page-000.json",
+    "https://openpets.dev/pets/catalog.v3/page-001.json",
+    "https://openpets.dev/pets/catalog.v3/page-002.json",
+    "https://openpets.dev/pets/catalog.v3/page-003.json",
+    "https://openpets.dev/pets/catalog.v3/page-004.json",
+    "https://openpets.dev/pets/catalog.v3/page-005.json",
+    "https://openpets.dev/pets/catalog.v3/page-006.json",
+    "https://openpets.dev/pets/catalog.v3/page-007.json",
+    "https://openpets.dev/pets/catalog.v3/page-008.json",
+    "https://openpets.dev/pets/catalog.v3/page-009.json",
+    "https://openpets.dev/pets/catalog.v3/page-010.json",
+    "https://openpets.dev/pets/catalog.v3/page-011.json",
+    "https://openpets.dev/pets/catalog.v3/page-012.json"
+  ]
+}

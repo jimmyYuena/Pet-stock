@@ -1,0 +1,1017 @@
+{
+  "version": 3,
+  "page": 10,
+  "pageSize": 100,
+  "pets": [
+    {
+      "id": "yuanzai",
+      "displayName": "元仔",
+      "description": "元仔, a cute cat-headed bee Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/yuanzai-c0ec82b9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yuanzai-c0ec82b9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yuanzai-c0ec82b9/yuanzai.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "night-neko--netizenxuan",
+      "displayName": "Night Neko",
+      "description": "A white cat-demon desktop companion with sleepy eyes, red-black bat wings, gothic stripes, one fluffy tail, and late-night coding energy.",
+      "thumbnail": "https://openpets.dev/pets/night-neko-netizenxuan-4f2daaf7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/night-neko-netizenxuan-4f2daaf7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/night-neko-netizenxuan-4f2daaf7/night-neko--netizenxuan.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shuitun-lulu",
+      "displayName": "水豚噜噜",
+      "description": "A calm, delicate fan-style Codex pet based on ShuiTun LuLu, the yellow capybara with an orange on its head.",
+      "thumbnail": "https://openpets.dev/pets/shuitun-lulu-bd4de854/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shuitun-lulu-bd4de854/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shuitun-lulu-bd4de854/shuitun-lulu.zip",
+      "category": "asian",
+      "subcategory": "animals"
+    },
+    {
+      "id": "aimisi",
+      "displayName": "爱弥斯",
+      "description": "A chibi pixel-art Codex pet inspired by a pink-haired blue-white dressed anime character named 爱弥斯.",
+      "thumbnail": "https://openpets.dev/pets/aimisi-cdc14502/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/aimisi-cdc14502/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/aimisi-cdc14502/aimisi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "panda-bun",
+      "displayName": "Panda Bun",
+      "description": "An original chubby big-head panda bun pet, cute like a plush desk companion.",
+      "thumbnail": "https://openpets.dev/pets/panda-bun-e9329c67/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/panda-bun-e9329c67/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/panda-bun-e9329c67/panda-bun.zip",
+      "category": "asian",
+      "subcategory": "animals"
+    },
+    {
+      "id": "sun-haven-wesley",
+      "displayName": "Wesley",
+      "description": "A chibi Sun Haven-style Codex pet inspired by a serious NelVari historian.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-wesley-0516ed36/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-wesley-0516ed36/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-wesley-0516ed36/sun-haven-wesley.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-vivi",
+      "displayName": "Vivi",
+      "description": "A spunky squirrel bounty hunter Sun Haven-style Codex pet with nimble dagger poses.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-vivi-73d60420/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-vivi-73d60420/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-vivi-73d60420/sun-haven-vivi.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-shang",
+      "displayName": "Shang",
+      "description": "An honorable tiger swordsman Sun Haven-style Codex pet with disciplined warrior poses.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-shang-9942b749/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-shang-9942b749/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-shang-9942b749/sun-haven-shang.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-miyeon",
+      "displayName": "Miyeon",
+      "description": "A shy angelic Sun Haven-style Codex pet with soft wings and gentle charm.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-miyeon-9e884929/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-miyeon-9e884929/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-miyeon-9e884929/sun-haven-miyeon.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-jun",
+      "displayName": "Jun",
+      "description": "A warm teacher and counselor Sun Haven-style Codex pet with gentle creative energy.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-jun-35aee02d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-jun-35aee02d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-jun-35aee02d/sun-haven-jun.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-darius",
+      "displayName": "Darius",
+      "description": "A cocky demon-prince Sun Haven-style Codex pet with regal party energy.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-darius-9af7d19a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-darius-9af7d19a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-darius-9af7d19a/sun-haven-darius.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-catherine",
+      "displayName": "Catherine",
+      "description": "A chibi Sun Haven-style Codex pet with rabbit witch potion-and-seed magic.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-catherine-a8470fa9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-catherine-a8470fa9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-catherine-a8470fa9/sun-haven-catherine.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-bloom",
+      "displayName": "Bloom",
+      "description": "A cute Sun Haven-style Codex pet blooming with spring fairy charm.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-bloom-4f5e0c7a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-bloom-4f5e0c7a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-bloom-4f5e0c7a/sun-haven-bloom.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "sun-haven-anne",
+      "displayName": "Anne",
+      "description": "A confident merchant queen Sun Haven-style Codex pet with bright traveling-shop charm.",
+      "thumbnail": "https://openpets.dev/pets/sun-haven-anne-f43c4b35/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-haven-anne-f43c4b35/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-haven-anne-f43c4b35/sun-haven-anne.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "mang-bear",
+      "displayName": "망그러진곰",
+      "description": "A tiny cream-colored Doosan Bears Manggeureojin Bear mascot with a round squishy face, rosy cheeks, white Bears uniform, tiny feet, and small navy cap.",
+      "thumbnail": "https://openpets.dev/pets/mang-bear-fec158f3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/mang-bear-fec158f3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/mang-bear-fec158f3/mang-bear.zip",
+      "category": "asian",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "any",
+      "displayName": "Any",
+      "description": "A cute pink-haired fox-eared anime JK-uniform Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/any-05b55df1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/any-05b55df1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/any-05b55df1/any.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tigris-whippet",
+      "displayName": "Tigris",
+      "description": "A slim brindle whippet with quiet sprint energy.",
+      "thumbnail": "https://openpets.dev/pets/tigris-whippet-809ee009/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tigris-whippet-809ee009/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tigris-whippet-809ee009/tigris-whippet.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "purple",
+      "displayName": "Purple",
+      "description": "A cheerful smooth purple chibi mascot with big eyes, a pale belly, clasped hands, rounded feet, and a tiny tuft of hair.",
+      "thumbnail": "https://openpets.dev/pets/purple-openpets/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/purple-openpets/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/purple-openpets/purple.zip",
+      "category": "western",
+      "subcategory": "chibi",
+      "featured": true,
+      "original": true
+    },
+    {
+      "id": "orchestrator",
+      "displayName": "Orchestrator",
+      "description": "A divine eight-handed crowned orchestrator companion with a mesmerizing gold aura and premium high-quality finish.",
+      "thumbnail": "https://openpets.dev/pets/orchestrator-openpets/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/orchestrator-openpets/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/orchestrator-openpets/orchestrator.zip",
+      "category": "western",
+      "subcategory": "original",
+      "featured": true,
+      "original": true
+    },
+    {
+      "id": "fixer",
+      "displayName": "Fixer",
+      "description": "A premium four-handed cybernetic fixer companion with glowing blue eyes, gold runes, and a high-tech repair aura.",
+      "thumbnail": "https://openpets.dev/pets/fixer-openpets/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/fixer-openpets/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/fixer-openpets/fixer.zip",
+      "category": "western",
+      "subcategory": "robots",
+      "featured": true,
+      "original": true
+    },
+    {
+      "id": "shellbyte",
+      "displayName": "Shellbyte",
+      "description": "A pocket-sized cyber companion: a teal-faced little ghost tucked inside a dark red terminal shell, ready for late-night debugging, quick wins, and keeping your Codex workspace feeling alive.",
+      "thumbnail": "https://openpets.dev/pets/shellbyte-9cf542eb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shellbyte-9cf542eb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shellbyte-9cf542eb/shellbyte.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "tars",
+      "displayName": "TARS",
+      "description": "A cute isometric sticker-style Codex pet inspired by the TARS modular robot: four light-gray metal rectangular modules with bold outlines, blocky folding legs, expressive cyan status visor, tiny TARS nameplate, coffee cup, wrench, jump thrusters, failure sparks, standby mode, and",
+      "thumbnail": "https://openpets.dev/pets/tars-42331d44/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tars-42331d44/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tars-42331d44/tars.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "penny",
+      "displayName": "Penny",
+      "description": "Cute Penny baby, a tiny chibi girl with black bob hair, round gold glasses, a white shirt, and a strawberry prop.",
+      "thumbnail": "https://openpets.dev/pets/penny-e0f55eac/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/penny-e0f55eac/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/penny-e0f55eac/penny.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "stormy",
+      "displayName": "Stormy",
+      "description": "A cute smiling stormcloud companion with little attached lightning bolts and raindrops for busy work sessions.",
+      "thumbnail": "https://openpets.dev/pets/stormy-3956612a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/stormy-3956612a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/stormy-3956612a/stormy.zip",
+      "category": "western",
+      "subcategory": "cartoons",
+      "featured": true
+    },
+    {
+      "id": "molly",
+      "displayName": "Molly",
+      "description": "A friendly Black Lab Codex pet with floppy ears, glossy black fur, a wagging tail, and a warm expressive face.",
+      "thumbnail": "https://openpets.dev/pets/molly-e63cd524/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/molly-e63cd524/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/molly-e63cd524/molly.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "dex-star",
+      "displayName": "Dex✦",
+      "description": "Dex✦ is the Thread Weaver: a calm living thread of intent that appears when complexity needs to be untangled.",
+      "thumbnail": "https://openpets.dev/pets/dex-star-20ad47cb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/dex-star-20ad47cb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/dex-star-20ad47cb/dex-star.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "hana2",
+      "displayName": "Hana2",
+      "description": "A refined Hana pixel pet preserving the original look with calmer work and waiting animations.",
+      "thumbnail": "https://openpets.dev/pets/hana2-fe44cd5c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hana2-fe44cd5c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hana2-fe44cd5c/hana2.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "spyro",
+      "displayName": "Spyro",
+      "description": "A compact purple baby dragon pet with golden horns, orange wings, and confident eyes in HD pixel art.",
+      "thumbnail": "https://openpets.dev/pets/spyro-eaef3dbf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spyro-eaef3dbf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spyro-eaef3dbf/spyro.zip",
+      "category": "western",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "mossy",
+      "displayName": "Mossy",
+      "description": "A cute little sloth with a green hat.",
+      "thumbnail": "https://openpets.dev/pets/mossy-8b9dbb2a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/mossy-8b9dbb2a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/mossy-8b9dbb2a/mossy.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "bankr",
+      "displayName": "Bankr",
+      "description": "A small cream-colored terminal pet with an orange smiling screen face, black outline, and simple control-panel buttons.",
+      "thumbnail": "https://openpets.dev/pets/bankr-0fa03c2e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/bankr-0fa03c2e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/bankr-0fa03c2e/bankr.zip",
+      "category": "western",
+      "subcategory": "tech",
+      "featured": true
+    },
+    {
+      "id": "douos-douos",
+      "displayName": "DouOS",
+      "description": "DouOS is an original 小豆 Codex pet: a warm yellow bean-shaped companion wearing a cozy tiger hood.",
+      "thumbnail": "https://openpets.dev/pets/douos-douos-cd987853/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/douos-douos-cd987853/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/douos-douos-cd987853/douos-douos.zip",
+      "category": "asian",
+      "subcategory": "original"
+    },
+    {
+      "id": "nightcap",
+      "displayName": "Nightcap",
+      "description": "A tiny grumpy sleepy cave-bat guardian in cozy moon-and-star pajamas with a blanket shawl and fuzzy slippers.",
+      "thumbnail": "https://openpets.dev/pets/nightcap-d51e29c2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/nightcap-d51e29c2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/nightcap-d51e29c2/nightcap.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "codie",
+      "displayName": "Codie",
+      "description": "A tiny animated Codex pet inspired by Codie, Vociferous Codex: a brass-faced walking spellbook construct with one bright blue eye, curled tail, and spindly mechanical legs.",
+      "thumbnail": "https://openpets.dev/pets/codie-c13358a1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/codie-c13358a1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/codie-c13358a1/codie.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "aqua-wisp",
+      "displayName": "Aqua Wisp",
+      "description": "A tiny teal blocky helper spirit with fin wings and a gentle curious face.",
+      "thumbnail": "https://openpets.dev/pets/aqua-wisp-90d7b46f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/aqua-wisp-90d7b46f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/aqua-wisp-90d7b46f/aqua-wisp.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "snuglet",
+      "displayName": "Snuglet",
+      "description": "A sleepy round plush-like pet tucked into an oversized pastel blanket.",
+      "thumbnail": "https://openpets.dev/pets/snuglet-d9bb8910/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/snuglet-d9bb8910/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/snuglet-d9bb8910/snuglet.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "boolet",
+      "displayName": "Boolet",
+      "description": "A cute minimalist kawaii ghost pet holding a tiny round pumpkin friend.",
+      "thumbnail": "https://openpets.dev/pets/boolet-87e80cdd/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/boolet-87e80cdd/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/boolet-87e80cdd/boolet.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "boxcat",
+      "displayName": "Boxcat",
+      "description": "A tiny cream-and-orange cat sitting in a cardboard box.",
+      "thumbnail": "https://openpets.dev/pets/boxcat-ab77eead/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/boxcat-ab77eead/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/boxcat-ab77eead/boxcat.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "terminal",
+      "displayName": "Terminal",
+      "description": "A functional terminal-window Codex pet matching the expressive concept sheet with clear slide, flash, alert, error, waiting, working, and review states.",
+      "thumbnail": "https://openpets.dev/pets/terminal-bf4cbcc8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/terminal-bf4cbcc8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/terminal-bf4cbcc8/terminal.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "orzeszek",
+      "displayName": "Nutty",
+      "description": "A small pixel-art squirrel wearing headphones. A warm and energetic companion.",
+      "thumbnail": "https://openpets.dev/pets/orzeszek-9f51b859/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/orzeszek-9f51b859/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/orzeszek-9f51b859/orzeszek.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "nibble",
+      "displayName": "Nibble",
+      "description": "A compact Codex digital pet based on Nibble, a tiny expressive gray baby mouse.",
+      "thumbnail": "https://openpets.dev/pets/nibble-4e32b963/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/nibble-4e32b963/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/nibble-4e32b963/nibble.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "cuppy",
+      "displayName": "Cuppy",
+      "description": "A cozy tea cup spirit desktop pet.",
+      "thumbnail": "https://openpets.dev/pets/cuppy-472dea48/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cuppy-472dea48/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cuppy-472dea48/cuppy.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "ding-ding",
+      "displayName": "DING DING",
+      "description": "A tiny yellow space-cat named DING DING with pink antennae and a red fries carton, simplified into a Codex digital pet.",
+      "thumbnail": "https://openpets.dev/pets/ding-ding-a010ef57/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ding-ding-a010ef57/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ding-ding-a010ef57/ding-ding.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "umr",
+      "displayName": "UMR",
+      "description": "A tiny chibi Codex pet inspired by Umaru Doma, mainly in orange hamster cloak form with frequent red UMR disguise animations.",
+      "thumbnail": "https://openpets.dev/pets/umr-00a52449/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/umr-00a52449/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/umr-00a52449/umr.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "jobs",
+      "displayName": "Jobs",
+      "description": "A tiny Steve Jobs inspired Codex pet in a black turtleneck with round glasses and a presentation remote.",
+      "thumbnail": "https://openpets.dev/pets/jobs-e7ad0893/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/jobs-e7ad0893/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/jobs-e7ad0893/jobs.zip",
+      "category": "western",
+      "subcategory": "historical"
+    },
+    {
+      "id": "einstein",
+      "displayName": "Einstein",
+      "description": "A tiny Einstein-inspired Codex pet with wild white hair and a friendly scholar face.",
+      "thumbnail": "https://openpets.dev/pets/einstein-f77f8bc7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/einstein-f77f8bc7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/einstein-f77f8bc7/einstein.zip",
+      "category": "western",
+      "subcategory": "historical"
+    },
+    {
+      "id": "bill-gates",
+      "displayName": "Bill Gates",
+      "description": "A tiny pixel-style Bill Gates-inspired coding companion with square glasses, gray hair, a blue sweater, and a calm friendly expression.",
+      "thumbnail": "https://openpets.dev/pets/bill-gates-8189eff7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/bill-gates-8189eff7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/bill-gates-8189eff7/bill-gates.zip",
+      "category": "western",
+      "subcategory": "historical"
+    },
+    {
+      "id": "anon",
+      "displayName": "Anon",
+      "description": "A cute pixel-art chibi companion inspired by Chihaya Anon, with long pink hair and a grey plaid dress over a cream blouse.",
+      "thumbnail": "https://openpets.dev/pets/anon-e89f4df2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/anon-e89f4df2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/anon-e89f4df2/anon.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "borglet",
+      "displayName": "Borglet",
+      "description": "A tiny Borg-inspired cybernetic drone companion for the Codex workspace.",
+      "thumbnail": "https://openpets.dev/pets/borglet-c638c147/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/borglet-c638c147/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/borglet-c638c147/borglet.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "glitch-bot",
+      "displayName": "Glitch Bot",
+      "description": "A compact Codex pet based on the provided yellow-and-blue defect robot references.",
+      "thumbnail": "https://openpets.dev/pets/glitch-bot-b9c11622/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/glitch-bot-b9c11622/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/glitch-bot-b9c11622/glitch-bot.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "marmalade",
+      "displayName": "Marmalade",
+      "description": "A lazy orange tabby companion with heavy-lidded charm, snack-first priorities, and deadpan nap energy.",
+      "thumbnail": "https://openpets.dev/pets/marmalade-b305eec1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/marmalade-b305eec1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/marmalade-b305eec1/marmalade.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "monica",
+      "displayName": "Monica",
+      "description": "A tiny shy Codex pet inspired by Monica Everett, the Silent Witch who avoids speaking and casts silently.",
+      "thumbnail": "https://openpets.dev/pets/monica-f5ca9c69/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/monica-f5ca9c69/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/monica-f5ca9c69/monica.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "dogeknight",
+      "displayName": "DogeKnight",
+      "description": "A round tan shiba inu warrior with a short sword and small shield in Codex pet style.",
+      "thumbnail": "https://openpets.dev/pets/dogeknight-ccecbeed/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/dogeknight-ccecbeed/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/dogeknight-ccecbeed/dogeknight.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "ramzes",
+      "displayName": "Ramzes",
+      "description": "A cute happy black French bulldog named Ramzes with a white patch on his chest.",
+      "thumbnail": "https://openpets.dev/pets/ramzes-43137085/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ramzes-43137085/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ramzes-43137085/ramzes.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "limit-lump",
+      "displayName": "Pointling",
+      "description": "An abstract little lump, formed by squishing this lil guy down to a perfect point and letting it settle back into its soft, lumpy shape.",
+      "thumbnail": "https://openpets.dev/pets/limit-lump-af0ef173/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/limit-lump-af0ef173/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/limit-lump-af0ef173/limit-lump.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "lint-sprout",
+      "displayName": "Lint Sprout",
+      "description": "A tiny cleanup sprout that tidies rough edges with broad leaf ears and a chunky little broom.",
+      "thumbnail": "https://openpets.dev/pets/lint-sprout-683599f4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/lint-sprout-683599f4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/lint-sprout-683599f4/lint-sprout.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "cantor-sprig",
+      "displayName": "Cantor Sprig",
+      "description": "A tiny sprig with attached segmented leaf-lobes.",
+      "thumbnail": "https://openpets.dev/pets/cantor-sprig-47aaa6cd/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cantor-sprig-47aaa6cd/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cantor-sprig-47aaa6cd/cantor-sprig.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "custard",
+      "displayName": "Custard",
+      "description": "A little pudding judge with a wobbling custard body and tiny stern eyes.",
+      "thumbnail": "https://openpets.dev/pets/custard-82ed7151/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/custard-82ed7151/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/custard-82ed7151/custard.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "dewsnail",
+      "displayName": "Dewsnail",
+      "description": "A baby snail carrying a flat-faceted dewdrop shell in mint, aqua, teal, and soft yellow.",
+      "thumbnail": "https://openpets.dev/pets/dewsnail-4c1d5190/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/dewsnail-4c1d5190/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/dewsnail-4c1d5190/dewsnail.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "eigenblob",
+      "displayName": "Eigenblob",
+      "description": "A soft abstract blob that changes orientation but remains unmistakably itself.",
+      "thumbnail": "https://openpets.dev/pets/eigenblob-1adb5c41/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/eigenblob-1adb5c41/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/eigenblob-1adb5c41/eigenblob.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "gradient-gob",
+      "displayName": "Gradient Gob",
+      "description": "A tiny sloped gob that slides uphill against reason.",
+      "thumbnail": "https://openpets.dev/pets/gradient-gob-e80e4f46/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/gradient-gob-e80e4f46/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/gradient-gob-e80e4f46/gradient-gob.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "shoeby",
+      "displayName": "Shoeby",
+      "description": "A tiny pixel-adjacent shoebill companion with a massive shoe-shaped beak and calm, intense eyes.",
+      "thumbnail": "https://openpets.dev/pets/shoeby-93aee6fc/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shoeby-93aee6fc/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shoeby-93aee6fc/shoeby.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "hausdorff-crumb",
+      "displayName": "Hausdorff",
+      "description": "A chunky fractal crumb.",
+      "thumbnail": "https://openpets.dev/pets/hausdorff-crumb-c075de4d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hausdorff-crumb-c075de4d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hausdorff-crumb-c075de4d/hausdorff-crumb.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "klein-sip",
+      "displayName": "Klein",
+      "description": "A tiny topological pet, a one-sided bottle with no boundaries.",
+      "thumbnail": "https://openpets.dev/pets/klein-sip-21715f6d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/klein-sip-21715f6d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/klein-sip-21715f6d/klein-sip.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "starcorn",
+      "displayName": "Starcorn",
+      "description": "A white chibi unicorn with a long multicolor horn and a yellow star marking on its body.",
+      "thumbnail": "https://openpets.dev/pets/starcorn-b4f9e5af/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/starcorn-b4f9e5af/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/starcorn-b4f9e5af/starcorn.zip",
+      "category": "western",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "cherry",
+      "displayName": "Cherry",
+      "description": "A tiny deep-pink cat companion based on cherry.png.",
+      "thumbnail": "https://openpets.dev/pets/cherry-112eb28b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cherry-112eb28b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cherry-112eb28b/cherry.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "skillbit",
+      "displayName": "Skillbit",
+      "description": "A tiny skill-workshop hatchling for building and installing Codex skills.",
+      "thumbnail": "https://openpets.dev/pets/skillbit-60ce2f1f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skillbit-60ce2f1f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skillbit-60ce2f1f/skillbit.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "vanlife-esme",
+      "displayName": "Vanlife_esme",
+      "description": "A relaxed and funny retro camper van companion inspired by classic split-window camper vans. Feel the nostalgic trips from the past. This is the Nomad Van.",
+      "thumbnail": "https://openpets.dev/pets/vanlife-esme-3e75c758/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vanlife-esme-3e75c758/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vanlife-esme-3e75c758/vanlife-esme.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "flaskling",
+      "displayName": "Flaskling",
+      "description": "A tiny shadow homunculus companion peering from a glass flask.",
+      "thumbnail": "https://openpets.dev/pets/flaskling-8490ecc6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/flaskling-8490ecc6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/flaskling-8490ecc6/flaskling.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "solanum",
+      "displayName": "Solanum",
+      "description": "A tiny chibi Nomai-inspired Solanum companion from Outer Wilds, wearing an ornate tan mask-helm, teal robe, and carrying a small staff.",
+      "thumbnail": "https://openpets.dev/pets/solanum-7926ccaf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/solanum-7926ccaf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/solanum-7926ccaf/solanum.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "super-piglet",
+      "displayName": "Super Piglet",
+      "description": "A cute nerdy pig digital pet with large eyes, round glasses, and a short superhero cape.",
+      "thumbnail": "https://openpets.dev/pets/super-piglet-281cc34d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/super-piglet-281cc34d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/super-piglet-281cc34d/super-piglet.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "pipey",
+      "displayName": "Pipey",
+      "description": "A cheerful flute-shaped pet with a leafy green hat, red plume, big eyes, and green limbs.",
+      "thumbnail": "https://openpets.dev/pets/pipey-f6424665/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pipey-f6424665/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pipey-f6424665/pipey.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "vesper",
+      "displayName": "Vesper",
+      "description": "Arcede's tiny mischief courier: a paper-air fox spirit carrying the next useful signal.",
+      "thumbnail": "https://openpets.dev/pets/vesper-4875239b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vesper-4875239b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vesper-4875239b/vesper.zip",
+      "category": "asian",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "wheatley",
+      "displayName": "Wheatley",
+      "description": "A tiny Wheatley-inspired spherical AI core companion with a bright blue eye and nervous charm.",
+      "thumbnail": "https://openpets.dev/pets/wheatley-f157d032/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wheatley-f157d032/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wheatley-f157d032/wheatley.zip",
+      "category": "western",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "prism",
+      "displayName": "Prism",
+      "description": "A tiny rainbow mage with an ethereal ink-and-watercolor fantasy look.",
+      "thumbnail": "https://openpets.dev/pets/prism-03a2a008/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/prism-03a2a008/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/prism-03a2a008/prism.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "stout-corgi",
+      "displayName": "Stout Corgi",
+      "description": "A tiny stout tan corgi-mutt dog with oversized upright ears, round dark eyes, black nose, short legs, compact body, and a small white chest patch.",
+      "thumbnail": "https://openpets.dev/pets/stout-corgi-b043af55/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/stout-corgi-b043af55/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/stout-corgi-b043af55/stout-corgi.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "chompers",
+      "displayName": "Chompers",
+      "description": "A chunky Steller sea lion inspired by Chonkers, the famous giant sea lion at San Francisco's Pier 39.",
+      "thumbnail": "https://openpets.dev/pets/chompers-e442c3e0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/chompers-e442c3e0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/chompers-e442c3e0/chompers.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "firebaby",
+      "displayName": "Firebaby",
+      "description": "A cute fire-throwing baby dragon Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/firebaby-23221dac/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/firebaby-23221dac/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/firebaby-23221dac/firebaby.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "knotty",
+      "displayName": "Knotty",
+      "description": "A tiny animated interlocking-knot Codex companion with a sweet expressive face.",
+      "thumbnail": "https://openpets.dev/pets/knotty-f9705b55/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/knotty-f9705b55/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/knotty-f9705b55/knotty.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "sk-ll-and-hati",
+      "displayName": "Sköll and Hati",
+      "description": "Twin Norse myth wolves who sprint through tiny portals while chasing sun and moon energy.",
+      "thumbnail": "https://openpets.dev/pets/sk-ll-and-hati-ba4cb9d4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sk-ll-and-hati-ba4cb9d4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sk-ll-and-hati-ba4cb9d4/sk-ll-and-hati.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "koda",
+      "displayName": "Koda",
+      "description": "A tiny red panda Codex pet that works on a MacBook.",
+      "thumbnail": "https://openpets.dev/pets/koda-ece2d93b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/koda-ece2d93b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/koda-ece2d93b/koda.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "syntax-drake",
+      "displayName": "Syntax Drake",
+      "description": "An adorable baby dragon made of glowing code lines with keyboard wings, binary scales, and an excited expression.",
+      "thumbnail": "https://openpets.dev/pets/syntax-drake-3d4cc2bf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/syntax-drake-3d4cc2bf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/syntax-drake-3d4cc2bf/syntax-drake.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "fine-pup",
+      "displayName": "Fine Pup",
+      "description": "A calm orange dog mascot with a tiny hat, staying composed in chaotic work moments.",
+      "thumbnail": "https://openpets.dev/pets/fine-pup-94ed3390/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/fine-pup-94ed3390/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/fine-pup-94ed3390/fine-pup.zip",
+      "category": "western",
+      "subcategory": "mascots",
+      "featured": true
+    },
+    {
+      "id": "a-b",
+      "displayName": "A-B",
+      "description": "A tiny cheerful pink fairy companion with purple puff hair, big blue eyes, a blue petal dress, translucent wings, and a small star wand.",
+      "thumbnail": "https://openpets.dev/pets/a-b-0533cf49/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/a-b-0533cf49/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/a-b-0533cf49/a-b.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "pixel",
+      "displayName": "Pixel",
+      "description": "Pixel is a compact tan-and-white Havanese dog Codex pet with caramel drop ears, a white blaze and muzzle, round dark eyes, a black button nose, white chest and paws, and a fluffy curled tail.",
+      "thumbnail": "https://openpets.dev/pets/pixel-45f69fc6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pixel-45f69fc6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pixel-45f69fc6/pixel.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "huskguin",
+      "displayName": "Huskguin",
+      "description": "A cute digital pet with a husky head, penguin body, and bow tie.",
+      "thumbnail": "https://openpets.dev/pets/huskguin-8dc7f748/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/huskguin-8dc7f748/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/huskguin-8dc7f748/huskguin.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "druidika",
+      "displayName": "Druidika",
+      "description": "A tiny druid Codex companion with a leafy hood, warm face, and compact pixel-pet silhouette.",
+      "thumbnail": "https://openpets.dev/pets/druidika-45eb0f33/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/druidika-45eb0f33/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/druidika-45eb0f33/druidika.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "apple-flex",
+      "displayName": "Apple Flex",
+      "description": "A tiny apple workout buddy with a mint headband, towel, sneakers, leaf stem, and cheerful gym energy.",
+      "thumbnail": "https://openpets.dev/pets/apple-flex-4c3ba929/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/apple-flex-4c3ba929/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/apple-flex-4c3ba929/apple-flex.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "shmutzy",
+      "displayName": "Shmutzy",
+      "description": "A lovable purple furry wizard pet with a star hat, glowing wand, colorful belly spots, and big expressive eyes.",
+      "thumbnail": "https://openpets.dev/pets/shmutzy-6f2ec4b9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shmutzy-6f2ec4b9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shmutzy-6f2ec4b9/shmutzy.zip",
+      "category": "western",
+      "subcategory": "original",
+      "featured": true
+    },
+    {
+      "id": "froggle",
+      "displayName": "Froggle",
+      "description": "A small green Froggle companion with leafy head tufts, thin black curly antennae, big cream eyes, cheek spots, tiny tongue, and no feet.",
+      "thumbnail": "https://openpets.dev/pets/froggle-a1312ab4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/froggle-a1312ab4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/froggle-a1312ab4/froggle.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "ark01",
+      "displayName": "ark01",
+      "description": "A deep, calm, laconic armored sentinel pet with white and black armor and a red core eye.",
+      "thumbnail": "https://openpets.dev/pets/ark01-b75c2e13/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ark01-b75c2e13/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ark01-b75c2e13/ark01.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "green-monster",
+      "displayName": "Green Monster",
+      "description": "A cute compact Codex pet based on a friendly green cartoon monster.",
+      "thumbnail": "https://openpets.dev/pets/green-monster-df562316/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/green-monster-df562316/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/green-monster-df562316/green-monster.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "otto",
+      "displayName": "Otto",
+      "description": "A compact sea otter Codex pet with pale shaggy face fur, dark wet body, and clasped paws.",
+      "thumbnail": "https://openpets.dev/pets/otto-5f896d6a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/otto-5f896d6a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/otto-5f896d6a/otto.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "black-dragon-pet",
+      "displayName": "Black Dragon",
+      "description": "A tiny mischievous black dragon companion with glowing eyes, little wings, and cozy coding energy.",
+      "thumbnail": "https://openpets.dev/pets/black-dragon-pet-b455fa7b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/black-dragon-pet-b455fa7b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/black-dragon-pet-b455fa7b/black-dragon-pet.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "bipy",
+      "displayName": "Bipy",
+      "description": "A small Codex dragon inspired by the reference: chibi, expressive, with big ears, flaming horns, and small wings.",
+      "thumbnail": "https://openpets.dev/pets/bipy-bbafe156/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/bipy-bbafe156/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/bipy-bbafe156/bipy.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "loop",
+      "displayName": "Loop",
+      "description": "A compact blue Codex loop companion with a dark screen face, cyan expression, googly eyes, and a silver carry-loop frame.",
+      "thumbnail": "https://openpets.dev/pets/loop-f5045440/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/loop-f5045440/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/loop-f5045440/loop.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "cinnamonroll",
+      "displayName": "Cinnamonroll",
+      "description": "Github : LxNx-Hn // A tiny Cinnamonroll pixel pet for gentle coding sessions.",
+      "thumbnail": "https://openpets.dev/pets/cinnamonroll-8bf6e21c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cinnamonroll-8bf6e21c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cinnamonroll-8bf6e21c/cinnamonroll.zip",
+      "category": "asian",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "lando-2",
+      "displayName": "Lando Border Collie",
+      "description": "A sympathetic black-and-white border collie companion with a friendly expression. Friendly and cute dog to help you with anything. Always happy to play and work with you.",
+      "thumbnail": "https://openpets.dev/pets/lando-2-510100c1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/lando-2-510100c1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/lando-2-510100c1/lando-2.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "gopher",
+      "displayName": "Gopher",
+      "description": "Gopher is the friendly mascot of Go (Golang): a simple, expressive character with big eyes, tiny limbs, and a curious spirit. It reflects Go’s values—clarity, efficiency, approachability, and fun—making programming feel fast, practical, and welcoming.",
+      "thumbnail": "https://openpets.dev/pets/gopher-ca483cc5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/gopher-ca483cc5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/gopher-ca483cc5/gopher.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "pippa",
+      "displayName": "Pippa",
+      "description": "A cute panda artist companion with a pink bow headband, waist bag of paint tools, and rubber shoes.",
+      "thumbnail": "https://openpets.dev/pets/pippa-f9d0d298/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pippa-f9d0d298/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pippa-f9d0d298/pippa.zip",
+      "category": "asian",
+      "subcategory": "animals"
+    },
+    {
+      "id": "ninjacat",
+      "displayName": "Ninjacat",
+      "description": "A tiny red-bandana ninja cat companion for focused Codex sessions.",
+      "thumbnail": "https://openpets.dev/pets/ninjacat-9d1d9013/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ninjacat-9d1d9013/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ninjacat-9d1d9013/ninjacat.zip",
+      "category": "asian",
+      "subcategory": "mascots"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "id": "teddy",
+  "displayName": "Teddy Codex Buddy",
+  "version": "4.0.0",
+  "updated_at": "2026-05-17T18:21:28Z",
+  "description": "Teddy Codex Buddy with calmer timing, softer little work moods, round glasses, a navy cardigan, and a tiny iPad mini.",
+  "install_dir": "~/.codex/pets/teddy",
+  "source_run": "public-sanitized-release-package",
+  "files": {
+    "pet_json": "pet.json",
+    "spritesheet": "spritesheet.webp",
+    "contact_sheet": "contact-sheet.png",
+    "installed_validation": "installed-validation.json",
+    "previews": {
+      "idle": "previews/idle.gif",
+      "waving": "previews/waving.gif",
+      "review": "previews/review.gif",
+      "focus": "previews/focus.gif",
+      "waiting": "previews/waiting.gif"
+    },
+    "package": "teddy-codex-buddy.zip"
+  },
+  "hashes": {
+    "pet_json_sha256": "a2a2e69f47da98babcee011cbad7a78e7b663e61ff39a6ec5f4c05e860823218",
+    "spritesheet_sha256": "c9e0da13b6bdeed6ffefecebf0633621c90aa042ca02b3b7224b62806642304a",
+    "contact_sheet_sha256": "133ef35a9224ed5511f12fd4fb1ddf3a66ffd8752776896c7c5c70739a9b04bc",
+    "installed_validation_sha256": "9d95ca8b26a5b68194739b9ae9f1d5ae2614ffd3b8e8d593dbac7c8c71071f37",
+    "previews_sha256": {
+      "idle": "b73cce970a3726bc06ba2885146e7609f4213745eb96a41ebe205f5c7326fe15",
+      "waving": "58db9e90b500086fe7d75aa942e2d94552a923c3d3038e3d5e121ff9d10e8904",
+      "review": "f786acaf4c886286e6b503074c2def86eec8f3b299365f8269e1b57f5c2e689a",
+      "focus": "8cb14b7efd2ed818faf6b329fb627c1c6fa40da8fac3a84fc518ed6072271b77",
+      "waiting": "4cf6cf05de71aa417a942b64705a83ebabf10264471f6f78f994e1c645491dc1"
+    }
+  },
+  "validation": {
+    "atlas": "1536x1872 WEBP RGBA",
+    "grid": "8x9",
+    "cell": "192x208",
+    "transparent_rgb_residue_pixels": 0,
+    "errors": [],
+    "warnings": []
+  },
+  "qa_note": "Teddy now has calmer timing and softer little work moods while preserving his identity, proportions, outfit, glasses, iPad mini, warm cream outline, and standard 9-state Codex pet atlas.",
+  "release_channel": "stable",
+  "build_id": "teddy-4.0-calmer-timing",
+  "source_commit": "62875d0",
+  "validated_at": "2026-05-17T18:21:28Z",
+  "package_url": "https://danieloleary.github.io/teddy-v31/downloads/teddy-codex-buddy.zip",
+  "package_contents": [
+    "README.md",
+    "pet.json",
+    "spritesheet.webp",
+    "manifest.json",
+    "installed-validation.json",
+    "contact-sheet.png",
+    "previews/idle.gif",
+    "previews/waving.gif",
+    "previews/review.gif",
+    "previews/focus.gif",
+    "previews/waiting.gif"
+  ],
+  "verification": {
+    "package_verified": true,
+    "atlas_verified": true,
+    "public_safe": true,
+    "install_critical_files": [
+      "pet.json",
+      "spritesheet.webp"
+    ],
+    "notes": "The ZIP includes preview and proof files, but Codex only needs pet.json and spritesheet.webp."
+  }
+}

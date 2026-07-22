@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>React Diff 算法详解</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2233;
+    --panel2: #212b42;
+    --text: #e6ebf5;
+    --muted: #9aa7bf;
+    --accent: #61dafb;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --purple: #a78bfa;
+    --border: #2d3a55;
+    --code-bg: #131a2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+  header { text-align: center; padding: 48px 0 32px; }
+  header h1 { font-size: 2.4rem; color: var(--accent); margin-bottom: 12px; }
+  header p { color: var(--muted); font-size: 1.05rem; }
+  .toc {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 28px; margin-bottom: 40px;
+  }
+  .toc h3 { color: var(--accent); margin-bottom: 8px; font-size: 1rem; }
+  .toc a { color: var(--text); text-decoration: none; display: inline-block; margin: 4px 16px 4px 0; font-size: 0.95rem; }
+  .toc a:hover { color: var(--accent); }
+  .toc a::before { content: "→ "; color: var(--muted); }
+  section { margin-bottom: 56px; }
+  h2 {
+    font-size: 1.6rem; color: var(--accent); margin-bottom: 20px;
+    padding-bottom: 10px; border-bottom: 2px solid var(--border);
+  }
+  h3 { font-size: 1.15rem; color: var(--purple); margin: 24px 0 12px; }
+  p { margin-bottom: 14px; color: var(--text); }
+  strong { color: var(--yellow); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin: 16px 0;
+  }
+  .card.tip { border-left: 4px solid var(--green); }
+  .card.warn { border-left: 4px solid var(--red); }
+  code {
+    background: var(--code-bg); padding: 2px 8px; border-radius: 5px;
+    font-family: "SF Mono", Consolas, Monaco, monospace; font-size: 0.88em; color: var(--accent);
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; overflow-x: auto; margin: 14px 0; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #d4dcec; font-size: 0.88rem; }
+  .kw { color: #c792ea; } .str { color: #c3e88d; } .cm { color: #5c6b8a; } .fn { color: #82aaff; } .num { color: #f78c6c; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.95rem; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--panel2); color: var(--accent); }
+  td { background: var(--panel); }
+  /* 树对比图 */
+  .tree-compare { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin: 20px 0; }
+  .tree-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 24px; text-align: center; }
+  .tree-box .label { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+  .tree-box pre { text-align: left; display: inline-block; border: none; background: none; padding: 0; }
+  /* 交互演示 */
+  .demo {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 20px 0;
+  }
+  .demo h4 { color: var(--accent); margin-bottom: 16px; }
+  .list-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  .list-row .row-label { width: 80px; color: var(--muted); font-size: 0.85rem; flex-shrink: 0; }
+  .node {
+    width: 52px; height: 52px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 1.1rem; color: #0f1420;
+    background: var(--accent); transition: all 0.4s ease;
+    position: relative;
+  }
+  .node.moved { background: var(--yellow); }
+  .node.created { background: var(--green); }
+  .node.deleted { background: var(--red); opacity: 0.5; text-decoration: line-through; }
+  .node.checking { outline: 3px solid #fff; transform: scale(1.12); }
+  .node .badge {
+    position: absolute; top: -10px; right: -10px; font-size: 0.65rem;
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1px 6px; font-weight: normal;
+  }
+  .controls { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button {
+    background: var(--accent); color: #0f1420; border: none; border-radius: 8px;
+    padding: 8px 18px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  }
+  button:hover { opacity: 0.85; }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .log {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; margin-top: 14px; font-family: monospace; font-size: 0.82rem;
+    min-height: 48px; max-height: 220px; overflow-y: auto; color: var(--muted);
+  }
+  .log .op-move { color: var(--yellow); }
+  .log .op-create { color: var(--green); }
+  .log .op-delete { color: var(--red); }
+  .log .op-keep { color: var(--accent); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
+  .legend span::before { content: "●"; margin-right: 5px; }
+  .legend .l-keep::before { color: var(--accent); }
+  .legend .l-move::before { color: var(--yellow); }
+  .legend .l-create::before { color: var(--green); }
+  .legend .l-delete::before { color: var(--red); }
+  footer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 40px; }
+  /* 两轮遍历演示 */
+  .node.mismatch { outline: 3px solid var(--red); transform: scale(1.12); }
+  .node.dim { opacity: .35; }
+  .mapbox {
+    background: var(--code-bg); border: 1px dashed var(--border); border-radius: 8px;
+    padding: 10px 14px; margin-top: 12px; min-height: 44px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  .mapbox .mlabel { color: var(--muted); font-size: .8rem; }
+  .chip {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 3px 10px; font-family: monospace; font-size: .8rem; transition: all .3s;
+  }
+  .chip.hit { background: var(--accent); color: #0f1420; }
+  .chip.dead { background: var(--red); color: #0f1420; text-decoration: line-through; }
+  #d3-scen button.active { outline: 2px solid var(--accent); }
+  /* beginWork 树动画 */
+  .tnode circle { fill: var(--panel2); stroke: var(--border); stroke-width: 2; transition: all .35s; }
+  .tnode text { fill: var(--text); font-size: 13px; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+  .tnode.begin circle { fill: var(--yellow); stroke: var(--yellow); }
+  .tnode.begin text { fill: #0f1420; font-weight: bold; }
+  .tnode.done circle { fill: var(--green); stroke: var(--green); }
+  .tnode.done text { fill: #0f1420; }
+  .tnode.flash circle { stroke: #fff; stroke-width: 3.5; }
+  .phase-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: .78rem;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted); margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>⚛️ React Diff 算法详解</h1>
+  <p>从 O(n³) 到 O(n)：React 如何高效地比较两棵虚拟 DOM 树</p>
+</header>
+
+<div class="toc">
+  <h3>目录</h3>
+  <a href="#why">为什么需要 Diff</a>
+  <a href="#strategy">三大策略</a>
+  <a href="#tree">Tree Diff</a>
+  <a href="#component">Component Diff</a>
+  <a href="#element">Element Diff 与 key</a>
+  <a href="#demo">交互演示</a>
+  <a href="#fiber">Fiber 时代的 Diff</a>
+  <a href="#tworounds">两轮遍历详解</a>
+  <a href="#practice">最佳实践</a>
+</div>
+
+<section id="why">
+  <h2>一、为什么需要 Diff 算法</h2>
+  <p>React 的核心思想是 <strong>UI = f(state)</strong>：状态变化时重新生成一棵虚拟 DOM 树（React Element 树）。如果每次都把整个真实 DOM 推倒重建，代价极其昂贵。因此 React 需要比较<strong>新旧两棵树</strong>，找出最小的变更集合，只把这些差异应用到真实 DOM 上——这个比较过程就是 Diff（协调 / Reconciliation）。</p>
+  <div class="card warn">
+    <p><strong>问题：</strong>传统的树编辑距离算法（Tree Edit Distance）复杂度是 <code>O(n³)</code>。1000 个节点就要进行约 10 亿次比较，完全不可用。</p>
+  </div>
+  <div class="card tip">
+    <p><strong>React 的答案：</strong>基于两个符合实际的假设做启发式优化，将复杂度降到 <code>O(n)</code>：</p>
+    <p>① 两个不同类型的元素会产生不同的树；<br>② 开发者可以通过 <code>key</code> 提示哪些子元素在多次渲染中保持稳定。</p>
+  </div>
+</section>
+
+<section id="strategy">
+  <h2>二、三大 Diff 策略</h2>
+  <table>
+    <tr><th>策略</th><th>内容</th><th>效果</th></tr>
+    <tr><td><strong>Tree Diff</strong></td><td>只比较同一层级的节点，不跨层级比较</td><td>避免了 O(n³) 的全树对比</td></tr>
+    <tr><td><strong>Component Diff</strong></td><td>类型不同的组件直接替换整棵子树</td><td>省去对不同类型组件的深入比较</td></tr>
+    <tr><td><strong>Element Diff</strong></td><td>同层级的一组子节点用 key 区分，支持复用与移动</td><td>把"删除+新建"优化为"移动"</td></tr>
+  </table>
+</section>
+
+<section id="tree">
+  <h2>三、Tree Diff：只做同层比较</h2>
+  <p>React 对两棵树进行<strong>分层遍历</strong>，只比较同一层级、同一位置的节点。如果一个节点在新树中跨层级移动了（比如从父节点 A 下移到父节点 B 下），React <strong>不会识别为"移动"</strong>，而是：在旧位置删除整棵子树，在新位置重新创建整棵子树。</p>
+  <div class="tree-compare">
+    <div class="tree-box">
+      <div class="label">旧树</div>
+      <pre style="margin:0"><code>    A
+   / \
+  B   C
+  |
+  D</code></pre>
+    </div>
+    <div class="tree-box">
+      <div class="label">新树（D 移到 C 下）</div>
+      <pre style="margin:0"><code>    A
+   / \
+  B   C
+      |
+      D</code></pre>
+    </div>
+    <div class="tree-box">
+      <div class="label">React 实际执行</div>
+      <pre style="margin:0"><code>删除 B 下的 D
+在 C 下新建 D
+（而非移动）</code></pre>
+    </div>
+  </div>
+  <div class="card warn">
+    <p><strong>启示：</strong>不要做跨层级的 DOM 移动操作。保持 DOM 结构稳定，用 CSS 显隐（或条件渲染同层节点）代替节点搬家。</p>
+  </div>
+</section>
+
+<section id="component">
+  <h2>四、Component Diff：类型不同，整树替换</h2>
+  <p>比较两个节点时，React 首先看 <code>type</code>：</p>
+  <p><strong>类型相同</strong>（如都是 <code>&lt;div&gt;</code>，或都是同一个组件 <code>&lt;Counter /&gt;</code>）：保留底层 DOM 节点 / 组件实例，只更新变化的属性（props、style、className 等），然后递归比较子节点。组件的 state 得以保留。</p>
+  <p><strong>类型不同</strong>（如 <code>&lt;div&gt;</code> 变成 <code>&lt;p&gt;</code>，或 <code>&lt;Counter /&gt;</code> 变成 <code>&lt;Timer /&gt;</code>）：直接卸载旧树（触发 unmount、state 销毁），完整地重建新树。即使两棵子树内容几乎一样，React 也不会去比较。</p>
+  <pre><code><span class="cm">// 类型从 div 变为 p：Counter 会被卸载重建，state 丢失</span>
+<span class="kw">&lt;div&gt;</span><span class="fn">&lt;Counter /&gt;</span><span class="kw">&lt;/div&gt;</span>   <span class="cm">// 旧</span>
+<span class="kw">&lt;p&gt;</span><span class="fn">&lt;Counter /&gt;</span><span class="kw">&lt;/p&gt;</span>       <span class="cm">// 新</span>
+
+<span class="cm">// 类型相同：只更新 className，Counter 的 state 保留</span>
+<span class="kw">&lt;div</span> className=<span class="str">"before"</span><span class="kw">&gt;</span><span class="fn">&lt;Counter /&gt;</span><span class="kw">&lt;/div&gt;</span>
+<span class="kw">&lt;div</span> className=<span class="str">"after"</span><span class="kw">&gt;</span><span class="fn">&lt;Counter /&gt;</span><span class="kw">&lt;/div&gt;</span></code></pre>
+</section>
+
+<section id="element">
+  <h2>五、Element Diff：同层子节点与 key</h2>
+  <p>当一个节点有多个子节点时（典型场景：列表渲染），React 需要判断哪些子节点可以复用。<strong>没有 key</strong> 时，React 只能按<strong>索引位置</strong>逐一对比：</p>
+  <pre><code><span class="cm">// 在头部插入一项，没有 key：</span>
+旧: [A, B, C]
+新: [X, A, B, C]
+
+<span class="cm">// 按位置对比：0号 A→X（更新），1号 B→A（更新），</span>
+<span class="cm">// 2号 C→B（更新），3号新建 C —— 全部节点都被改动！</span></code></pre>
+  <p>有了 <strong>key</strong>，React 就能用 key 匹配新旧节点，识别出"这些节点只是换了位置"，从而复用 DOM，只做必要的移动：</p>
+  <pre><code>旧: [A(key=a), B(key=b), C(key=c)]
+新: [X(key=x), A(key=a), B(key=b), C(key=c)]
+
+<span class="cm">// 通过 key 匹配：A、B、C 原样复用，只新建 X 插入头部 ✓</span></code></pre>
+
+  <h3>移动判定：lastPlacedIndex（旧版称 lastIndex）</h3>
+  <p>匹配到可复用节点后，React 用一个游标记录<strong>"已处理的可复用节点在旧列表中的最大位置"</strong>。遍历新列表时：</p>
+  <p>若当前节点在旧列表中的位置 <code>oldIndex ≥ lastPlacedIndex</code>，说明相对顺序没变，<strong>原地保留</strong>，并更新 <code>lastPlacedIndex = oldIndex</code>；若 <code>oldIndex &lt; lastPlacedIndex</code>，说明它被排到了更靠后的位置，需要<strong>移动</strong>。</p>
+  <div class="card warn">
+    <p><strong>推论：</strong>把最后一个节点移到最前面（如 <code>ABCD → DABC</code>），会导致 A、B、C 全部被标记移动（D 的 oldIndex=3 把 lastPlacedIndex 抬高了）。尽量避免"把尾部节点前移"的操作。</p>
+  </div>
+</section>
+
+<section id="demo">
+  <h2>六、交互演示</h2>
+
+  <div class="demo">
+    <h4>演示 1：头部插入 —— 有 key vs 无 key</h4>
+    <div class="list-row"><span class="row-label">旧列表</span><div id="d1-old"></div></div>
+    <div class="list-row"><span class="row-label">新列表</span><div id="d1-new"></div></div>
+    <div class="controls">
+      <button onclick="runDemo1(false)">无 key（按索引对比）</button>
+      <button onclick="runDemo1(true)">有 key（按 key 匹配）</button>
+      <button class="secondary" onclick="resetDemo1()">重置</button>
+    </div>
+    <div class="legend">
+      <span class="l-keep">复用不动</span><span class="l-move">移动/属性更新</span>
+      <span class="l-create">新建</span><span class="l-delete">删除</span>
+    </div>
+    <div class="log" id="d1-log">点击按钮运行 diff…</div>
+  </div>
+
+  <div class="demo">
+    <h4>演示 2：lastPlacedIndex 移动判定（ABCD → DABC）</h4>
+    <p style="color:var(--muted);font-size:0.9rem">逐步观察 React 如何决定哪些节点需要移动。节点上的小标签为其在<strong>旧列表</strong>中的下标。</p>
+    <div class="list-row"><span class="row-label">旧列表</span><div id="d2-old"></div></div>
+    <div class="list-row"><span class="row-label">新列表</span><div id="d2-new"></div></div>
+    <div class="controls">
+      <button onclick="stepDemo2()" id="d2-btn">下一步 ▶</button>
+      <button class="secondary" onclick="resetDemo2()">重置</button>
+      <span style="color:var(--muted);font-size:0.85rem">lastPlacedIndex = <strong id="d2-lpi" style="color:var(--yellow)">0</strong></span>
+    </div>
+    <div class="log" id="d2-log">点击"下一步"开始…</div>
+  </div>
+</section>
+
+<section id="fiber">
+  <h2>七、Fiber 时代的 Diff（React 16+）</h2>
+  <p>React 16 用 <strong>Fiber 架构</strong>重写了协调器，但 Diff 的三大策略不变。区别在于实现方式：</p>
+  <p>每个节点对应一个 <strong>Fiber 节点</strong>，通过 <code>child</code>（第一个子节点）、<code>sibling</code>（下一个兄弟）、<code>return</code>（父节点）三个指针连成链表，使渲染工作可以<strong>被打断和恢复</strong>（可中断的并发渲染）。同时维护 current（当前屏幕上的树）与 workInProgress（构建中的树）<strong>双缓存</strong>，diff 就发生在"新的 JSX 结果 vs current Fiber 树"之间。</p>
+  <h3>子节点列表的两轮遍历（reconcileChildrenArray）</h3>
+  <p><strong>第一轮：</strong>新旧列表从头同时遍历，逐个比较 key。key 相同则复用（type 相同）或新建（type 不同），key 不同立即跳出第一轮。这一轮高效处理最常见的"列表基本没变，只更新了内容"的场景。</p>
+  <p><strong>第二轮：</strong>把剩余的旧节点放进一个 <code>Map</code>（key → fiber），再遍历剩余的新节点去 Map 中找可复用的节点，配合 lastPlacedIndex 判断是否移动。遍历结束后，Map 中剩下的旧节点统一删除。</p>
+  <pre><code><span class="cm">// 简化的第二轮逻辑</span>
+<span class="kw">const</span> existingChildren = <span class="fn">mapRemainingChildren</span>(oldFiber);  <span class="cm">// key → fiber</span>
+<span class="kw">for</span> (; newIdx &lt; newChildren.length; newIdx++) {
+  <span class="kw">const</span> matched = existingChildren.<span class="fn">get</span>(key ?? newIdx);
+  <span class="kw">if</span> (matched) {
+    <span class="kw">if</span> (matched.index &lt; lastPlacedIndex) <span class="fn">markMove</span>();   <span class="cm">// 移动</span>
+    <span class="kw">else</span> lastPlacedIndex = matched.index;              <span class="cm">// 原地</span>
+  } <span class="kw">else</span> {
+    <span class="fn">createFiber</span>();                                      <span class="cm">// 新建</span>
+  }
+}
+existingChildren.<span class="fn">forEach</span>(<span class="fn">deleteChild</span>);                   <span class="cm">// 删除剩余</span></code></pre>
+</section>
+
+<section id="tworounds">
+  <h2>八、两轮遍历详解：跳出之后发生什么</h2>
+
+  <h3>1. 第一轮为什么"key 不同立即跳出"</h3>
+  <p>第一轮的假设是：<strong>列表的头部顺序没变</strong>（最常见的场景是只改了内容、或只在尾部增删）。所以它用两个游标同步走新旧列表，每个位置调 <code>updateSlot</code> 比较 key：</p>
+  <p>key 相同且 type 相同 → 复用旧 fiber；key 相同但 type 不同 → 删旧建新，还能继续往下走；<strong>key 不同</strong> → <code>updateSlot</code> 返回 <code>null</code>，说明"按位置一一对应"的假设被打破了（发生了插入 / 删除 / 换序），继续按位置比下去只会全错，于是立刻 <code>break</code>，把剩下的活交给后续处理。</p>
+
+  <h3>2. 跳出之后的三种情况</h3>
+  <p>break 之后先看是不是两种"免费"情况，能提前结束就不进第二轮：</p>
+  <p><strong>情况 A · 新列表走完了</strong>（<code>newIdx === newChildren.length</code>）→ 旧列表剩下的全是多余的，统一删除，结束。对应"尾部删除"。</p>
+  <p><strong>情况 B · 旧列表走完了</strong>（<code>oldFiber === null</code>）→ 新列表剩下的全是新增的，逐个创建追加，结束。对应"尾部新增"。</p>
+  <p><strong>情况 C · 两边都有剩余</strong> → 才进第二轮：剩余旧 fiber 建成 <code>Map(key → fiber)</code>，把"按位置找"升级为"按 key 找"，配合 lastPlacedIndex 判断移动，最后 Map 里没被认领的旧节点全删。</p>
+
+  <div class="demo">
+    <h4>演示 3：两轮遍历完整过程（可切换三种情况）</h4>
+    <div id="d3-scen" class="controls" style="margin:0 0 14px">
+      <button class="secondary active" data-k="mid" onclick="selectD3('mid')">中间换序 → 进第二轮</button>
+      <button class="secondary" data-k="del" onclick="selectD3('del')">新列表先走完 → 删尾部</button>
+      <button class="secondary" data-k="add" onclick="selectD3('add')">旧列表先走完 → 建尾部</button>
+    </div>
+    <div class="list-row"><span class="row-label">旧列表</span><div id="d3-old"></div></div>
+    <div class="list-row"><span class="row-label">新列表</span><div id="d3-new"></div></div>
+    <div id="d3-mapwrap" style="display:none">
+      <div class="mapbox"><span class="mlabel">Map(key → oldIndex)：</span><span id="d3-map" style="display:flex;gap:8px;flex-wrap:wrap"></span></div>
+    </div>
+    <div class="controls">
+      <button onclick="runDemo3()">▶ 播放</button>
+      <button class="secondary" onclick="resetDemo3()">重置</button>
+      <span style="color:var(--muted);font-size:0.85rem">lastPlacedIndex = <strong id="d3-lpi" style="color:var(--yellow)">0</strong></span>
+    </div>
+    <div class="legend">
+      <span class="l-keep">复用不动</span><span class="l-move">移动</span>
+      <span class="l-create">新建</span><span class="l-delete">删除</span>
+    </div>
+    <div class="log" id="d3-log">选择场景后点击「播放」…</div>
+  </div>
+
+  <h3>3. 和 beginWork 的关系：不是并列，是包含</h3>
+  <p>这是<strong>层级关系</strong>，不是两种算法。beginWork 是 Fiber 工作循环里"处理单个节点"的阶段：它先尝试 bailout（props / state 没变就跳过整棵子树），然后执行组件得到新的子元素 JSX，最后调用 <code>reconcileChildren</code> 做 diff——子元素是数组时，走的就是上面的 <code>reconcileChildrenArray</code> 两轮遍历。</p>
+  <pre><code>workLoop（可中断的循环）
+ └─ <span class="fn">performUnitOfWork</span>(fiber)
+     └─ <span class="fn">beginWork</span>(current, workInProgress)   <span class="cm">← 处理"一个节点"</span>
+         ├─ 尝试 bailout（没变化就跳过整棵子树）
+         ├─ 执行组件，得到新的子元素 JSX
+         └─ <span class="fn">reconcileChildren</span>(...)            <span class="cm">← diff 发生在这里</span>
+             └─ 子元素是数组 → <span class="fn">reconcileChildrenArray</span>（两轮遍历）</code></pre>
+  <div class="card tip">
+    <p><strong>两个关键推论：</strong>① diff 不是"先把两棵树整体比完再更新"，而是<strong>逐节点、逐层</strong>进行——每个 fiber 的 beginWork 只 diff 自己直接子节点那一层，然后深度优先走到子节点继续；② 正因为 diff 被拆进了每个 fiber 的 beginWork 里，工作循环才能在任意 fiber 之间<strong>暂停 / 恢复</strong>（并发渲染），而不是一个不可打断的大递归。</p>
+  </div>
+
+  <div class="demo">
+    <h4>演示 4：beginWork / completeWork 深度优先遍历 <span class="phase-tag" id="d4-phase">待开始</span></h4>
+    <p style="color:var(--muted);font-size:0.9rem">黄色 = 正在 beginWork（对子层做 diff），白圈闪烁 = 正在被 reconcile 的子层，绿色 = completeWork 完成。注意 List 节点：数组子层的两轮遍历就发生在它的 beginWork 里。</p>
+    <div style="text-align:center">
+      <svg viewBox="0 0 560 300" style="width:100%;max-width:560px" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="var(--border)" stroke-width="2">
+          <line x1="280" y1="62" x2="280" y2="88"/>
+          <line x1="280" y1="132" x2="180" y2="158"/>
+          <line x1="280" y1="132" x2="380" y2="158"/>
+          <line x1="180" y1="202" x2="120" y2="228"/>
+          <line x1="180" y1="202" x2="240" y2="228"/>
+        </g>
+        <g id="tn-App" class="tnode"><circle cx="280" cy="40" r="24"/><text x="280" y="41">App</text></g>
+        <g id="tn-div" class="tnode"><circle cx="280" cy="110" r="24"/><text x="280" y="111">div</text></g>
+        <g id="tn-List" class="tnode"><circle cx="180" cy="180" r="24"/><text x="180" y="181">List</text></g>
+        <g id="tn-Footer" class="tnode"><circle cx="380" cy="180" r="26"/><text x="380" y="181" font-size="11">Footer</text></g>
+        <g id="tn-ItemA" class="tnode"><circle cx="120" cy="250" r="24"/><text x="120" y="251" font-size="11">li A</text></g>
+        <g id="tn-ItemB" class="tnode"><circle cx="240" cy="250" r="24"/><text x="240" y="251" font-size="11">li B</text></g>
+      </svg>
+    </div>
+    <div class="controls">
+      <button onclick="runDemo4()">▶ 播放</button>
+      <button class="secondary" onclick="resetDemo4()">重置</button>
+    </div>
+    <div class="log" id="d4-log">点击「播放」观察工作循环…</div>
+  </div>
+</section>
+
+<section id="practice">
+  <h2>九、最佳实践总结</h2>
+  <div class="card tip">
+    <p>✅ 列表渲染始终提供<strong>稳定且唯一</strong>的 key（如数据库 id），不要用随机数。</p>
+    <p>✅ 保持组件类型和 DOM 结构稳定，条件渲染尽量不改变节点类型。</p>
+    <p>✅ 避免跨层级移动节点；避免把尾部节点移到头部的大规模重排。</p>
+  </div>
+  <div class="card warn">
+    <p>❌ <strong>不要用数组索引当 key</strong>（列表会增删/排序时）：插入或删除会导致 key 与数据错位，引发大量无效更新，甚至输入框内容、组件 state 串位的 bug。列表纯静态且永不重排时，索引 key 才可接受。</p>
+  </div>
+</section>
+
+<footer>React Diff 算法讲解 · 交互演示基于简化模型，展示核心思想</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function makeNodes(container, items, withIdx = false) {
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.gap = '10px';
+  items.forEach((it, i) => {
+    const d = document.createElement('div');
+    d.className = 'node';
+    d.textContent = it;
+    d.dataset.k = it;
+    if (withIdx) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = i;
+      d.appendChild(b);
+    }
+    container.appendChild(d);
+  });
+}
+
+function logLine(el, html) {
+  const p = document.createElement('div');
+  p.innerHTML = html;
+  el.appendChild(p);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ---------- 演示 1 ---------- */
+const OLD1 = ['A','B','C'], NEW1 = ['X','A','B','C'];
+let d1running = false;
+
+function resetDemo1() {
+  makeNodes($('d1-old'), OLD1);
+  makeNodes($('d1-new'), NEW1);
+  $('d1-new').childNodes.forEach(n => n.style.background = 'var(--panel2)');
+  $('d1-new').childNodes.forEach(n => n.style.color = 'var(--muted)');
+  $('d1-log').innerHTML = '点击按钮运行 diff…';
+  d1running = false;
+}
+
+async function runDemo1(withKey) {
+  if (d1running) return;
+  d1running = true;
+  resetDemo1(); d1running = true;
+  const log = $('d1-log'); log.innerHTML = '';
+  const newNodes = $('d1-new').childNodes;
+  logLine(log, withKey ? '—— 有 key：按 key 匹配 ——' : '—— 无 key：按索引位置对比 ——');
+  for (let i = 0; i < NEW1.length; i++) {
+    const n = newNodes[i];
+    n.classList.add('checking');
+    await sleep(650);
+    n.classList.remove('checking');
+    n.style.color = '#0f1420';
+    if (withKey) {
+      if (OLD1.includes(NEW1[i])) {
+        n.style.background = 'var(--accent)';
+        logLine(log, `<span class="op-keep">复用</span> ${NEW1[i]}（key 命中，DOM 原样保留，仅插入前面的新节点后顺移）`);
+      } else {
+        n.style.background = 'var(--green)';
+        logLine(log, `<span class="op-create">新建</span> ${NEW1[i]}（key 未命中旧节点）`);
+      }
+    } else {
+      if (i < OLD1.length) {
+        n.style.background = 'var(--yellow)';
+        logLine(log, `<span class="op-move">更新</span> 位置 ${i}：${OLD1[i]} → ${NEW1[i]}（内容不同，DOM 被改写）`);
+      } else {
+        n.style.background = 'var(--green)';
+        logLine(log, `<span class="op-create">新建</span> 位置 ${i}：${NEW1[i]}`);
+      }
+    }
+  }
+  logLine(log, withKey
+    ? '<b style="color:var(--green)">结果：1 次创建，0 次改写 ✓</b>'
+    : '<b style="color:var(--red)">结果：3 次改写 + 1 次创建，全部节点被动了 ✗</b>');
+  d1running = false;
+}
+
+/* ---------- 演示 2 ---------- */
+const OLD2 = ['A','B','C','D'], NEW2 = ['D','A','B','C'];
+let d2step = 0, d2lpi = 0;
+
+function resetDemo2() {
+  makeNodes($('d2-old'), OLD2, true);
+  makeNodes($('d2-new'), NEW2);
+  $('d2-new').childNodes.forEach(n => { n.style.background = 'var(--panel2)'; n.style.color = 'var(--muted)'; });
+  $('d2-log').innerHTML = '点击"下一步"开始…';
+  $('d2-lpi').textContent = '0';
+  d2step = 0; d2lpi = 0;
+  $('d2-btn').disabled = false;
+}
+
+async function stepDemo2() {
+  if (d2step >= NEW2.length) return;
+  const i = d2step;
+  const item = NEW2[i];
+  const oldIndex = OLD2.indexOf(item);
+  const n = $('d2-new').childNodes[i];
+  const log = $('d2-log');
+  if (i === 0 && log.textContent.startsWith('点击')) log.innerHTML = '';
+  n.classList.add('checking');
+  n.style.color = '#0f1420';
+  await sleep(500);
+  n.classList.remove('checking');
+  if (oldIndex >= d2lpi) {
+    n.style.background = 'var(--accent)';
+    logLine(log, `<span class="op-keep">保留</span> ${item}：oldIndex=${oldIndex} ≥ lastPlacedIndex=${d2lpi} → 原地不动，lastPlacedIndex 更新为 ${oldIndex}`);
+    d2lpi = oldIndex;
+  } else {
+    n.style.background = 'var(--yellow)';
+    logLine(log, `<span class="op-move">移动</span> ${item}：oldIndex=${oldIndex} &lt; lastPlacedIndex=${d2lpi} → 相对顺序变了，需要移动 DOM`);
+  }
+  $('d2-lpi').textContent = d2lpi;
+  d2step++;
+  if (d2step >= NEW2.length) {
+    logLine(log, '<b style="color:var(--yellow)">结论：D 原地保留（把 lastPlacedIndex 抬到 3），A、B、C 反而全被标记移动。"尾部前移"是最坏情况。</b>');
+    $('d2-btn').disabled = true;
+  }
+}
+
+/* ---------- 演示 3：两轮遍历 ---------- */
+const D3_SCEN = {
+  mid: { o: ['A','B','C','D','E'], n: ['A','B','E','C','D'] },
+  del: { o: ['A','B','C','D'],     n: ['A','B'] },
+  add: { o: ['A','B'],             n: ['A','B','C','D'] },
+};
+let d3cur = 'mid', d3busy = false;
+
+function selectD3(k) {
+  if (d3busy) return;
+  d3cur = k;
+  document.querySelectorAll('#d3-scen button').forEach(b => b.classList.toggle('active', b.dataset.k === k));
+  resetDemo3();
+}
+
+function resetDemo3() {
+  if (d3busy) return;
+  const s = D3_SCEN[d3cur];
+  makeNodes($('d3-old'), s.o, true);
+  makeNodes($('d3-new'), s.n);
+  $('d3-new').childNodes.forEach(n => { n.style.background = 'var(--panel2)'; n.style.color = 'var(--muted)'; });
+  $('d3-map').innerHTML = '';
+  $('d3-mapwrap').style.display = 'none';
+  $('d3-log').innerHTML = '选择场景后点击「播放」…';
+  $('d3-lpi').textContent = '0';
+}
+
+async function runDemo3() {
+  if (d3busy) return;
+  resetDemo3();
+  d3busy = true;
+  const s = D3_SCEN[d3cur], o = s.o, n = s.n;
+  const oldN = $('d3-old').childNodes, newN = $('d3-new').childNodes, log = $('d3-log');
+  log.innerHTML = '';
+  let lpi = 0, i = 0;
+  logLine(log, '<b>—— 第一轮：双游标从头同步比较 key ——</b>');
+  for (; i < n.length && i < o.length; i++) {
+    oldN[i].classList.add('checking'); newN[i].classList.add('checking');
+    await sleep(700);
+    oldN[i].classList.remove('checking'); newN[i].classList.remove('checking');
+    if (o[i] === n[i]) {
+      newN[i].style.background = 'var(--accent)'; newN[i].style.color = '#0f1420';
+      oldN[i].classList.add('dim');
+      lpi = i; $('d3-lpi').textContent = lpi;
+      logLine(log, `<span class="op-keep">复用</span> ${n[i]}：key 相同 → 复用旧 fiber，lastPlacedIndex=${lpi}`);
+    } else {
+      oldN[i].classList.add('mismatch'); newN[i].classList.add('mismatch');
+      logLine(log, `<span class="op-delete">✗ key 不同</span>（旧 ${o[i]} vs 新 ${n[i]}）→ "按位置对应"的假设被打破，<b>立即跳出第一轮</b>`);
+      await sleep(1000);
+      oldN[i].classList.remove('mismatch'); newN[i].classList.remove('mismatch');
+      break;
+    }
+  }
+  if (i === n.length) {
+    logLine(log, '<b>—— 新列表走完了（情况 A）：旧列表剩余的全部删除 ——</b>');
+    for (let j = i; j < o.length; j++) {
+      oldN[j].classList.add('checking'); await sleep(500);
+      oldN[j].classList.remove('checking'); oldN[j].classList.add('deleted');
+      logLine(log, `<span class="op-delete">删除</span> 旧节点 ${o[j]}（新列表已不需要）`);
+    }
+    logLine(log, '<b style="color:var(--green)">完成：根本不用进第二轮 ✓</b>');
+  } else if (i === o.length) {
+    logLine(log, '<b>—— 旧列表走完了（情况 B）：新列表剩余的全部新建 ——</b>');
+    for (let j = i; j < n.length; j++) {
+      const nd = newN[j];
+      nd.classList.add('checking'); await sleep(500);
+      nd.classList.remove('checking'); nd.style.background = 'var(--green)'; nd.style.color = '#0f1420';
+      logLine(log, `<span class="op-create">新建</span> ${n[j]}，追加到尾部`);
+    }
+    logLine(log, '<b style="color:var(--green)">完成：根本不用进第二轮 ✓</b>');
+  } else {
+    logLine(log, '<b>—— 两边都有剩余（情况 C）→ 进入第二轮 ——</b>');
+    $('d3-mapwrap').style.display = 'block';
+    const map = new Map();
+    for (let j = i; j < o.length; j++) {
+      oldN[j].classList.add('checking'); await sleep(400);
+      oldN[j].classList.remove('checking'); oldN[j].classList.add('dim');
+      const chip = document.createElement('span');
+      chip.className = 'chip'; chip.id = 'chip-' + o[j];
+      chip.textContent = `${o[j]} → ${j}`;
+      $('d3-map').appendChild(chip);
+      map.set(o[j], j);
+    }
+    logLine(log, `剩余旧 fiber 放入 Map：{ ${[...map].map(([k, v]) => k + ':' + v).join(', ')} }，从"按位置找"升级为"按 key 找"`);
+    await sleep(700);
+    for (let j = i; j < n.length; j++) {
+      const nd = newN[j];
+      nd.classList.add('checking'); await sleep(650);
+      nd.classList.remove('checking'); nd.style.color = '#0f1420';
+      if (map.has(n[j])) {
+        const oi = map.get(n[j]);
+        const chip = $('chip-' + n[j]);
+        chip.classList.add('hit');
+        await sleep(450);
+        chip.remove(); map.delete(n[j]);
+        if (oi < lpi) {
+          nd.style.background = 'var(--yellow)';
+          logLine(log, `<span class="op-move">移动</span> ${n[j]}：oldIndex=${oi} &lt; lastPlacedIndex=${lpi} → 相对顺序变了，标记移动`);
+        } else {
+          nd.style.background = 'var(--accent)';
+          lpi = oi; $('d3-lpi').textContent = lpi;
+          logLine(log, `<span class="op-keep">原地复用</span> ${n[j]}：oldIndex=${oi} ≥ lastPlacedIndex → lastPlacedIndex 更新为 ${oi}`);
+        }
+      } else {
+        nd.style.background = 'var(--green)';
+        logLine(log, `<span class="op-create">新建</span> ${n[j]}（Map 未命中）`);
+      }
+    }
+    if (map.size) {
+      for (const [k] of map) {
+        $('chip-' + k).classList.add('dead');
+        oldN[o.indexOf(k)].classList.add('deleted');
+        logLine(log, `<span class="op-delete">删除</span> Map 中未被认领的旧节点 ${k}`);
+      }
+    } else {
+      logLine(log, 'Map 已空 → 没有需要删除的旧节点');
+    }
+    logLine(log, '<b style="color:var(--green)">第二轮完成 ✓</b>');
+  }
+  d3busy = false;
+}
+
+/* ---------- 演示 4：beginWork 深度优先遍历 ---------- */
+const D4_SEQ = [
+  { t: 'b', id: 'App',    kids: ['div'] },
+  { t: 'b', id: 'div',    kids: ['List', 'Footer'] },
+  { t: 'b', id: 'List',   kids: ['ItemA', 'ItemB'], arr: true },
+  { t: 'b', id: 'ItemA',  kids: [] },
+  { t: 'c', id: 'ItemA' },
+  { t: 'b', id: 'ItemB',  kids: [] },
+  { t: 'c', id: 'ItemB' },
+  { t: 'c', id: 'List' },
+  { t: 'b', id: 'Footer', kids: [] },
+  { t: 'c', id: 'Footer' },
+  { t: 'c', id: 'div' },
+  { t: 'c', id: 'App' },
+];
+let d4busy = false;
+
+function resetDemo4() {
+  if (d4busy) return;
+  document.querySelectorAll('.tnode').forEach(n => n.classList.remove('begin', 'done', 'flash'));
+  $('d4-log').innerHTML = '点击「播放」观察工作循环…';
+  $('d4-phase').textContent = '待开始';
+}
+
+async function runDemo4() {
+  if (d4busy) return;
+  resetDemo4();
+  d4busy = true;
+  const log = $('d4-log');
+  log.innerHTML = '';
+  for (const step of D4_SEQ) {
+    const node = $('tn-' + step.id);
+    if (step.t === 'b') {
+      $('d4-phase').textContent = 'beginWork（递）';
+      node.classList.add('begin');
+      if (step.kids.length) {
+        logLine(log, `<span class="op-move">beginWork</span>(${step.id})：执行组件得到子元素 → <b>reconcileChildren 对子层 [${step.kids.join(', ')}] 做 diff</b>${step.arr ? '<br>　└ <span class="op-keep">子层是数组 → reconcileChildrenArray 的两轮遍历就发生在这里！</span>' : ''}`);
+        await sleep(500);
+        step.kids.forEach(k => $('tn-' + k).classList.add('flash'));
+        await sleep(800);
+        step.kids.forEach(k => $('tn-' + k).classList.remove('flash'));
+      } else {
+        logLine(log, `<span class="op-move">beginWork</span>(${step.id})：叶子节点，没有子层可 diff`);
+        await sleep(600);
+      }
+    } else {
+      $('d4-phase').textContent = 'completeWork（归）';
+      node.classList.remove('begin');
+      node.classList.add('done');
+      logLine(log, `<span class="op-create">completeWork</span>(${step.id})：收集副作用（flags），回溯`);
+      await sleep(550);
+    }
+  }
+  $('d4-phase').textContent = '完成 ✓';
+  logLine(log, '<b style="color:var(--green)">整棵树处理完毕。diff 是逐节点、逐层进行的，任意两个 fiber 之间都可以暂停 / 恢复——这就是可中断渲染的基础。</b>');
+  d4busy = false;
+}
+
+resetDemo1();
+resetDemo2();
+resetDemo3();
+resetDemo4();
+</script>
+</body>
+</html>

@@ -2,3 +2,11 @@
 .codegraph/
 build/
 .dev/
+dev-build/
+
+# 签名证书 / 钥匙串（含私钥，勿提交）
+packaging/macos/certificates/
+*.keychain-db
+
+# 本地签名/公证脚本包含发布凭据，不进入公开仓库
+release-macos.sh

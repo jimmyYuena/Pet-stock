@@ -1,0 +1,1007 @@
+{
+  "version": 3,
+  "page": 3,
+  "pageSize": 100,
+  "pets": [
+    {
+      "id": "stantler",
+      "displayName": "Stantler",
+      "description": "Staring at its antlers creates an odd sensation as if one were being drawn into their centers.",
+      "thumbnail": "https://openpets.dev/pets/stantler-ac1ea3c6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/stantler-ac1ea3c6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/stantler-ac1ea3c6/stantler.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spoink",
+      "displayName": "Spoink",
+      "description": "It bounces constantly, using its tail like a spring. The shock of bouncing keeps its heart beating.",
+      "thumbnail": "https://openpets.dev/pets/spoink-5f0da47c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spoink-5f0da47c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spoink-5f0da47c/spoink.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spiritomb",
+      "displayName": "Spiritomb",
+      "description": "Its constant mischief and misdeeds resulted in it being bound to an Odd Keystone by a mysterious spell.",
+      "thumbnail": "https://openpets.dev/pets/spiritomb-a4e4e2c2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spiritomb-a4e4e2c2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spiritomb-a4e4e2c2/spiritomb.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spinda",
+      "displayName": "Spinda",
+      "description": "No two Spinda have the same pattern of spots. Its tottering step fouls the aim of foes.",
+      "thumbnail": "https://openpets.dev/pets/spinda-0314a80f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spinda-0314a80f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spinda-0314a80f/spinda.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spinarak",
+      "displayName": "Spinarak",
+      "description": "It sets a trap by spinning a web with thin but strong silk. It waits motionlessly for prey to arrive.",
+      "thumbnail": "https://openpets.dev/pets/spinarak-7a13735f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spinarak-7a13735f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spinarak-7a13735f/spinarak.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spheal",
+      "displayName": "Spheal",
+      "description": "It rolls across ice floes to reach shore because its body is poorly shaped for swimming.",
+      "thumbnail": "https://openpets.dev/pets/spheal-1312daa2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spheal-1312daa2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spheal-1312daa2/spheal.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "spearow",
+      "displayName": "Spearow",
+      "description": "It flaps its small wings busily to fly. Using its beak, it searches in grass for prey.",
+      "thumbnail": "https://openpets.dev/pets/spearow-630bfebf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spearow-630bfebf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spearow-630bfebf/spearow.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "solrock",
+      "displayName": "Solrock",
+      "description": "Solar energy is the source of its power, so it is strong during the daytime. When it spins, its body shines.",
+      "thumbnail": "https://openpets.dev/pets/solrock-36573779/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/solrock-36573779/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/solrock-36573779/solrock.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "solosis",
+      "displayName": "Solosis",
+      "description": "They drive away attackers by unleashing psychic power. They can use telepathy to talk with others.",
+      "thumbnail": "https://openpets.dev/pets/solosis-348649d8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/solosis-348649d8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/solosis-348649d8/solosis.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "snubbull",
+      "displayName": "Snubbull",
+      "description": "Small Pokémon flee from its scary face. It is, however, considered by women to be cute.",
+      "thumbnail": "https://openpets.dev/pets/snubbull-13ae824f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/snubbull-13ae824f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/snubbull-13ae824f/snubbull.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "snover",
+      "displayName": "Snover",
+      "description": "Seemingly curious about people, they gather around footsteps they find on snowy mountains.",
+      "thumbnail": "https://openpets.dev/pets/snover-30c7cf83/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/snover-30c7cf83/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/snover-30c7cf83/snover.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "snorunt",
+      "displayName": "Snorunt",
+      "description": "It is said that several Snorunt gather under giant leaves and live together in harmony.",
+      "thumbnail": "https://openpets.dev/pets/snorunt-9ce3215b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/snorunt-9ce3215b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/snorunt-9ce3215b/snorunt.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "snivy",
+      "displayName": "Snivy",
+      "description": "It is very intelligent and calm. Being exposed to lots of sunlight makes its movements swifter.",
+      "thumbnail": "https://openpets.dev/pets/snivy-4d249da5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/snivy-4d249da5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/snivy-4d249da5/snivy.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sneasel",
+      "displayName": "Sneasel",
+      "description": "A smart and sneaky Pokémon. A pair may work together to steal eggs by having one lure the parents away.",
+      "thumbnail": "https://openpets.dev/pets/sneasel-bb31d3c7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sneasel-bb31d3c7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sneasel-bb31d3c7/sneasel.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "smoochum",
+      "displayName": "Smoochum",
+      "description": "It tests everything by touching with its lips, which remember what it likes and dislikes.",
+      "thumbnail": "https://openpets.dev/pets/smoochum-c43f0258/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/smoochum-c43f0258/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/smoochum-c43f0258/smoochum.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "smeargle",
+      "displayName": "Smeargle",
+      "description": "It marks its territory by using its tail like a paintbrush. There are more than 5,000 different marks.",
+      "thumbnail": "https://openpets.dev/pets/smeargle-f9240545/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/smeargle-f9240545/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/smeargle-f9240545/smeargle.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slugma",
+      "displayName": "Slugma",
+      "description": "Its body is made of magma. If it doesn’t keep moving, its body will cool and harden.",
+      "thumbnail": "https://openpets.dev/pets/slugma-1fd07868/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slugma-1fd07868/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slugma-1fd07868/slugma.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slowpoke",
+      "displayName": "Slowpoke",
+      "description": "Although slow, it is skilled at fishing with its tail. It does not feel pain if its tail is bitten.",
+      "thumbnail": "https://openpets.dev/pets/slowpoke-6997ee3e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slowpoke-6997ee3e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slowpoke-6997ee3e/slowpoke.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slowking",
+      "displayName": "Slowking",
+      "description": "Being bitten by Shellder gave it intelligence comparable to that of award-winning scientists.",
+      "thumbnail": "https://openpets.dev/pets/slowking-ac55e137/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slowking-ac55e137/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slowking-ac55e137/slowking.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slowbro",
+      "displayName": "Slowbro",
+      "description": "Though usually dim witted, it seems to become inspired if the Shellder on its tail bites down.",
+      "thumbnail": "https://openpets.dev/pets/slowbro-799aa512/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slowbro-799aa512/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slowbro-799aa512/slowbro.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slakoth",
+      "displayName": "Slakoth",
+      "description": "It spends nearly all its time in a day sprawled out. Just seeing it makes one drowsy.",
+      "thumbnail": "https://openpets.dev/pets/slakoth-24224811/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slakoth-24224811/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slakoth-24224811/slakoth.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "slaking",
+      "displayName": "Slaking",
+      "description": "The world’s laziest Pokémon. When it is lounging, it is actually saving energy for striking back.",
+      "thumbnail": "https://openpets.dev/pets/slaking-dfc8be4e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/slaking-dfc8be4e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/slaking-dfc8be4e/slaking.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "skuntank",
+      "displayName": "Skuntank",
+      "description": "It attacks by spraying a horribly smelly fluid from the tip of its tail. Attacks from above confound it.",
+      "thumbnail": "https://openpets.dev/pets/skuntank-d6e75109/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skuntank-d6e75109/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skuntank-d6e75109/skuntank.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "skorupi",
+      "displayName": "Skorupi",
+      "description": "As soon as the tail claws close, its needle tips secrete poison. It can survive a year without food.",
+      "thumbnail": "https://openpets.dev/pets/skorupi-1e87a2e5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skorupi-1e87a2e5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skorupi-1e87a2e5/skorupi.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "skitty",
+      "displayName": "Skitty",
+      "description": "It can’t stop itself from chasing moving things, and it runs in a circle, chasing its own tail.",
+      "thumbnail": "https://openpets.dev/pets/skitty-8749e5ab/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skitty-8749e5ab/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skitty-8749e5ab/skitty.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "skiploom",
+      "displayName": "Skiploom",
+      "description": "It blooms when the weather warms. It floats in the sky to soak up as much sunlight as possible.",
+      "thumbnail": "https://openpets.dev/pets/skiploom-2b0c4cb7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skiploom-2b0c4cb7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skiploom-2b0c4cb7/skiploom.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "skarmory",
+      "displayName": "Skarmory",
+      "description": "Despite being clad entirely in iron-hard armor, it flies at speeds over 180 mph.",
+      "thumbnail": "https://openpets.dev/pets/skarmory-52f06105/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skarmory-52f06105/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skarmory-52f06105/skarmory.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "simisear",
+      "displayName": "Simisear",
+      "description": "It loves sweets because they become energy for the fire burning inside its body.",
+      "thumbnail": "https://openpets.dev/pets/simisear-6c5864e2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/simisear-6c5864e2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/simisear-6c5864e2/simisear.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "simisage",
+      "displayName": "Simisage",
+      "description": "Ill tempered, it fights by swinging its barbed tail around wildly. The leaf growing on its head is very bitter.",
+      "thumbnail": "https://openpets.dev/pets/simisage-728f5079/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/simisage-728f5079/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/simisage-728f5079/simisage.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "simipour",
+      "displayName": "Simipour",
+      "description": "The tuft on its head holds water. When the level runs low, it replenishes the tuft by siphoning up water with its tail.",
+      "thumbnail": "https://openpets.dev/pets/simipour-ee1d20bf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/simipour-ee1d20bf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/simipour-ee1d20bf/simipour.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "silcoon",
+      "displayName": "Silcoon",
+      "description": "It wraps silk around the branches of a tree. It drinks rainwater on its silk while awaiting evolution.",
+      "thumbnail": "https://openpets.dev/pets/silcoon-2ff05b13/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/silcoon-2ff05b13/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/silcoon-2ff05b13/silcoon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sigilyph",
+      "displayName": "Sigilyph",
+      "description": "They never vary the route they fly, because their memories of guarding an ancient city remain steadfast.",
+      "thumbnail": "https://openpets.dev/pets/sigilyph-e2e82d3f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sigilyph-e2e82d3f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sigilyph-e2e82d3f/sigilyph.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shuppet",
+      "displayName": "Shuppet",
+      "description": "It loves vengeful emotions and hangs in rows under the eaves of houses where vengeful people live.",
+      "thumbnail": "https://openpets.dev/pets/shuppet-c8e65a04/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shuppet-c8e65a04/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shuppet-c8e65a04/shuppet.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shuckle",
+      "displayName": "Shuckle",
+      "description": "It stores berries in its shell. The berries eventually ferment to become delicious juices.",
+      "thumbnail": "https://openpets.dev/pets/shuckle-be027641/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shuckle-be027641/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shuckle-be027641/shuckle.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shroomish",
+      "displayName": "Shroomish",
+      "description": "It spouts poison spores from the top of its head. These spores cause pain all over if inhaled.",
+      "thumbnail": "https://openpets.dev/pets/shroomish-1fd09fc1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shroomish-1fd09fc1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shroomish-1fd09fc1/shroomish.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shinx",
+      "displayName": "Shinx",
+      "description": "The extension and contraction of its muscles generates electricity. It glows when in trouble.",
+      "thumbnail": "https://openpets.dev/pets/shinx-b7c8699c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shinx-b7c8699c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shinx-b7c8699c/shinx.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shiftry",
+      "displayName": "Shiftry",
+      "description": "By flapping its leafy fan, it can whip up gusts of 100 ft/second that can level houses.",
+      "thumbnail": "https://openpets.dev/pets/shiftry-c7f12c9a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shiftry-c7f12c9a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shiftry-c7f12c9a/shiftry.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shieldon",
+      "displayName": "Shieldon",
+      "description": "It is outstandingly armored. As a result, it can eat grass and berries without having to fight.",
+      "thumbnail": "https://openpets.dev/pets/shieldon-19cc0631/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shieldon-19cc0631/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shieldon-19cc0631/shieldon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shelmet",
+      "displayName": "Shelmet",
+      "description": "When attacked, it defends itself by closing the lid of its shell. It can spit a sticky, poisonous liquid.",
+      "thumbnail": "https://openpets.dev/pets/shelmet-cd4a37ff/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shelmet-cd4a37ff/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shelmet-cd4a37ff/shelmet.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shellos",
+      "displayName": "Shellos",
+      "description": "Beware of pushing strongly on its squishy body, as it makes a mysterious purple fluid ooze out.",
+      "thumbnail": "https://openpets.dev/pets/shellos-ecc913a8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shellos-ecc913a8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shellos-ecc913a8/shellos.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shellos-east",
+      "displayName": "East Sea Shellos",
+      "description": "A Shellos from the East Sea, blue and pearl.",
+      "thumbnail": "https://openpets.dev/pets/shellos-east-e58a67e5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shellos-east-e58a67e5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shellos-east-e58a67e5/shellos-east.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shellder",
+      "displayName": "Shellder",
+      "description": "It swims backward by opening and closing its two shells. Its large tongue is always kept hanging out.",
+      "thumbnail": "https://openpets.dev/pets/shellder-ffc535bb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shellder-ffc535bb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shellder-ffc535bb/shellder.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shelgon",
+      "displayName": "Shelgon",
+      "description": "Within its rugged shell, its cells have begun changing. The shell peels off the instant it evolves.",
+      "thumbnail": "https://openpets.dev/pets/shelgon-4f116f00/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shelgon-4f116f00/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shelgon-4f116f00/shelgon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shedinja",
+      "displayName": "Shedinja",
+      "description": "A discarded bug shell that came to life. Peering into the crack on its back is said to steal one’s spirit.",
+      "thumbnail": "https://openpets.dev/pets/shedinja-54e49f5c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shedinja-54e49f5c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shedinja-54e49f5c/shedinja.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shaymin",
+      "displayName": "Shaymin",
+      "description": "The flowers all over its body burst into bloom if it is lovingly hugged and senses gratitude.",
+      "thumbnail": "https://openpets.dev/pets/shaymin-24cee664/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shaymin-24cee664/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shaymin-24cee664/shaymin.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shaymin-sky",
+      "displayName": "Sky Shaymin",
+      "description": "Shaymin's Sky Forme — petals trail like a hedgehog hare in flight.",
+      "thumbnail": "https://openpets.dev/pets/shaymin-sky-02c1c320/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shaymin-sky-02c1c320/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shaymin-sky-02c1c320/shaymin-sky.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sharpedo",
+      "displayName": "Sharpedo",
+      "description": "Its fangs rip through sheet iron. It swims at 75 mph and is known as “The Bully of the Sea.”",
+      "thumbnail": "https://openpets.dev/pets/sharpedo-5999dcd4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sharpedo-5999dcd4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sharpedo-5999dcd4/sharpedo.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sewaddle",
+      "displayName": "Sewaddle",
+      "description": "Leavanny dress it in clothes they made for it when it hatched. It hides its head in its hood while it is sleeping.",
+      "thumbnail": "https://openpets.dev/pets/sewaddle-cee8156e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sewaddle-cee8156e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sewaddle-cee8156e/sewaddle.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "seviper",
+      "displayName": "Seviper",
+      "description": "For many generations, it has feuded with Zangoose. It whets its bladed tail on rocks for battle.",
+      "thumbnail": "https://openpets.dev/pets/seviper-a5ceb0b1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/seviper-a5ceb0b1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/seviper-a5ceb0b1/seviper.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "servine",
+      "displayName": "Servine",
+      "description": "It moves along the ground as if sliding. Its swift movements befuddle its foes, and it then attacks with a vine whip.",
+      "thumbnail": "https://openpets.dev/pets/servine-8dbce377/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/servine-8dbce377/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/servine-8dbce377/servine.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "serperior",
+      "displayName": "Serperior",
+      "description": "It can stop its opponents’ movements with just a glare. It takes in solar energy and boosts it internally.",
+      "thumbnail": "https://openpets.dev/pets/serperior-4dca9ce8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/serperior-4dca9ce8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/serperior-4dca9ce8/serperior.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "veiglet",
+      "displayName": "Veiglet",
+      "description": "A tiny mischievous dark wizard pet inspired by Veigar.",
+      "thumbnail": "https://openpets.dev/pets/veiglet-2a287d23/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/veiglet-2a287d23/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/veiglet-2a287d23/veiglet.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "merry",
+      "displayName": "Merry",
+      "description": "A compact chibi ship pet inspired by the Going Merry, with animated water under the hull.",
+      "thumbnail": "https://openpets.dev/pets/merry-fc731d05/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/merry-fc731d05/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/merry-fc731d05/merry.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "little-black-mage",
+      "displayName": "Little Black Mage",
+      "description": "A tiny original black-mage-inspired Codex companion with glowing eyes, an oversized floppy hat, a short coat, and small boots.",
+      "thumbnail": "https://openpets.dev/pets/little-black-mage-ca094c2d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/little-black-mage-ca094c2d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/little-black-mage-ca094c2d/little-black-mage.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "unfezant",
+      "displayName": "Unfezant",
+      "description": "Males swing their head plumage to threaten opponents. The females’ flying abilities surpass those of the males.",
+      "thumbnail": "https://openpets.dev/pets/unfezant-c12e4dd3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/unfezant-c12e4dd3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/unfezant-c12e4dd3/unfezant.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tyrogue",
+      "displayName": "Tyrogue",
+      "description": "It is famous for its eagerness to fight and always nurses injuries from challenging larger foes.",
+      "thumbnail": "https://openpets.dev/pets/tyrogue-1628ef5d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tyrogue-1628ef5d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tyrogue-1628ef5d/tyrogue.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tyranitar",
+      "displayName": "Tyranitar",
+      "description": "If it rampages, it knocks down mountains and buries rivers. Maps must be redrawn afterward.",
+      "thumbnail": "https://openpets.dev/pets/tyranitar-87704024/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tyranitar-87704024/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tyranitar-87704024/tyranitar.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "typhlosion",
+      "displayName": "Typhlosion",
+      "description": "It attacks using blasts of fire. It creates heat shimmers with intense fire to hide itself.",
+      "thumbnail": "https://openpets.dev/pets/typhlosion-a96c6b3b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/typhlosion-a96c6b3b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/typhlosion-a96c6b3b/typhlosion.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tynamo",
+      "displayName": "Tynamo",
+      "description": "While one alone doesn’t have much power, a chain of many Tynamo can be as powerful as lightning.",
+      "thumbnail": "https://openpets.dev/pets/tynamo-94e0e00a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tynamo-94e0e00a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tynamo-94e0e00a/tynamo.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tympole",
+      "displayName": "Tympole",
+      "description": "They warn others of danger by vibrating their cheeks to create a high-pitched sound.",
+      "thumbnail": "https://openpets.dev/pets/tympole-8fd6c976/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tympole-8fd6c976/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tympole-8fd6c976/tympole.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "turtwig",
+      "displayName": "Turtwig",
+      "description": "The shell on its back is made of soil. On a very healthy Turtwig, the shell should feel moist.",
+      "thumbnail": "https://openpets.dev/pets/turtwig-a1421789/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/turtwig-a1421789/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/turtwig-a1421789/turtwig.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "trubbish",
+      "displayName": "Trubbish",
+      "description": "Inhaling the gas they belch will make you sleep for a week. They prefer unsanitary places.",
+      "thumbnail": "https://openpets.dev/pets/trubbish-c911f2bf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/trubbish-c911f2bf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/trubbish-c911f2bf/trubbish.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tropius",
+      "displayName": "Tropius",
+      "description": "Delicious fruits grew out from around its neck because it always ate the same kind of fruit.",
+      "thumbnail": "https://openpets.dev/pets/tropius-0a986767/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tropius-0a986767/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tropius-0a986767/tropius.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "treecko",
+      "displayName": "Treecko",
+      "description": "The soles of its feet are covered by countless tiny spikes, enabling it to walk on walls and ceilings.",
+      "thumbnail": "https://openpets.dev/pets/treecko-e363711a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/treecko-e363711a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/treecko-e363711a/treecko.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "trapinch",
+      "displayName": "Trapinch",
+      "description": "It makes a conical pit in desert sand and lies in wait at the bottom for prey to come tumbling down.",
+      "thumbnail": "https://openpets.dev/pets/trapinch-f8c42a82/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/trapinch-f8c42a82/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/trapinch-f8c42a82/trapinch.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tranquill",
+      "displayName": "Tranquill",
+      "description": "It can return to its Trainer’s location regardless of the distance separating them.",
+      "thumbnail": "https://openpets.dev/pets/tranquill-651d86b2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tranquill-651d86b2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tranquill-651d86b2/tranquill.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "toxicroak",
+      "displayName": "Toxicroak",
+      "description": "It has a poison sac at its throat. When it croaks, the stored poison is churned for greater potency.",
+      "thumbnail": "https://openpets.dev/pets/toxicroak-c89eab56/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/toxicroak-c89eab56/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/toxicroak-c89eab56/toxicroak.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "totodile",
+      "displayName": "Totodile",
+      "description": "It has the habit of biting anything with its developed jaws. Even its Trainer needs to be careful.",
+      "thumbnail": "https://openpets.dev/pets/totodile-cc56eb5b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/totodile-cc56eb5b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/totodile-cc56eb5b/totodile.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "torterra",
+      "displayName": "Torterra",
+      "description": "Some Pokémon are born on a Torterra’s back and spend their entire life there.",
+      "thumbnail": "https://openpets.dev/pets/torterra-58834e0c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/torterra-58834e0c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/torterra-58834e0c/torterra.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tornadus",
+      "displayName": "Tornadus",
+      "description": "The lower half of its body is wrapped in a cloud of energy. It zooms through the sky at 200 mph.",
+      "thumbnail": "https://openpets.dev/pets/tornadus-8133323c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tornadus-8133323c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tornadus-8133323c/tornadus.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tornadus-therian",
+      "displayName": "Therian Tornadus",
+      "description": "Tornadus in its tailed Therian Forme, lashing the wind.",
+      "thumbnail": "https://openpets.dev/pets/tornadus-therian-cad0bddf/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tornadus-therian-cad0bddf/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tornadus-therian-cad0bddf/tornadus-therian.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "torkoal",
+      "displayName": "Torkoal",
+      "description": "It burns coal inside its shell for energy. It blows out black soot if it is endangered.",
+      "thumbnail": "https://openpets.dev/pets/torkoal-fc129a61/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/torkoal-fc129a61/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/torkoal-fc129a61/torkoal.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "torchic",
+      "displayName": "Torchic",
+      "description": "A fire burns inside, so it feels very warm to hug. It launches fireballs of 1,800 degrees F.",
+      "thumbnail": "https://openpets.dev/pets/torchic-f1e7e3ee/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/torchic-f1e7e3ee/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/torchic-f1e7e3ee/torchic.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "togetic",
+      "displayName": "Togetic",
+      "description": "To share its happiness, it flies around the world seeking kind- hearted people.",
+      "thumbnail": "https://openpets.dev/pets/togetic-951885e0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/togetic-951885e0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/togetic-951885e0/togetic.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "togepi",
+      "displayName": "Togepi",
+      "description": "It transforms the kindness and joy of others into happiness, which it stores in its shell.",
+      "thumbnail": "https://openpets.dev/pets/togepi-af473ca3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/togepi-af473ca3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/togepi-af473ca3/togepi.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "togekiss",
+      "displayName": "Togekiss",
+      "description": "It shares many blessings with people who respect one another’s rights and avoid needless strife.",
+      "thumbnail": "https://openpets.dev/pets/togekiss-80510d20/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/togekiss-80510d20/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/togekiss-80510d20/togekiss.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tirtouga",
+      "displayName": "Tirtouga",
+      "description": "Restored from a fossil, this Pokémon can dive to depths beyond half a mile.",
+      "thumbnail": "https://openpets.dev/pets/tirtouga-11c90018/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tirtouga-11c90018/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tirtouga-11c90018/tirtouga.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "timburr",
+      "displayName": "Timburr",
+      "description": "It fights by swinging a piece of lumber around. It is close to evolving when it can handle the lumber without difficulty.",
+      "thumbnail": "https://openpets.dev/pets/timburr-92f8b659/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/timburr-92f8b659/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/timburr-92f8b659/timburr.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "thundurus",
+      "displayName": "Thundurus",
+      "description": "Countless charred remains mar the landscape of places through which Thundurus has passed.",
+      "thumbnail": "https://openpets.dev/pets/thundurus-13011f52/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/thundurus-13011f52/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/thundurus-13011f52/thundurus.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "thundurus-therian",
+      "displayName": "Therian Thundurus",
+      "description": "Thundurus in its tailed Therian Forme, charged like a storm.",
+      "thumbnail": "https://openpets.dev/pets/thundurus-therian-cde2fe2f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/thundurus-therian-cde2fe2f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/thundurus-therian-cde2fe2f/thundurus-therian.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "throh",
+      "displayName": "Throh",
+      "description": "When it tightens its belt, it becomes stronger. Wild Throh use vines to weave their own belts.",
+      "thumbnail": "https://openpets.dev/pets/throh-3d045f7a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/throh-3d045f7a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/throh-3d045f7a/throh.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "terrakion",
+      "displayName": "Terrakion",
+      "description": "This Pokémon came to the defense of Pokémon that had lost their homes in a war among humans.",
+      "thumbnail": "https://openpets.dev/pets/terrakion-104a3916/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/terrakion-104a3916/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/terrakion-104a3916/terrakion.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tepig",
+      "displayName": "Tepig",
+      "description": "It can deftly dodge its foe’s attacks while shooting fireballs from its nose. It roasts berries before it eats them.",
+      "thumbnail": "https://openpets.dev/pets/tepig-b082f57d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tepig-b082f57d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tepig-b082f57d/tepig.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tentacruel",
+      "displayName": "Tentacruel",
+      "description": "It extends its 80 tentacles to form an encircling poisonous net that is difficult to escape.",
+      "thumbnail": "https://openpets.dev/pets/tentacruel-91b4a118/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tentacruel-91b4a118/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tentacruel-91b4a118/tentacruel.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tentacool",
+      "displayName": "Tentacool",
+      "description": "Because its body is almost entirely composed of water, it shrivels up if it is washed ashore.",
+      "thumbnail": "https://openpets.dev/pets/tentacool-a6a2878e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tentacool-a6a2878e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tentacool-a6a2878e/tentacool.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "teddiursa",
+      "displayName": "Teddiursa",
+      "description": "It lets honey soak into its paws so it can lick them all the time. Every set of paws tastes unique.",
+      "thumbnail": "https://openpets.dev/pets/teddiursa-29ee3de2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/teddiursa-29ee3de2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/teddiursa-29ee3de2/teddiursa.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tauros",
+      "displayName": "Tauros",
+      "description": "Once it takes aim at its foe, it makes a headlong charge. It is famous for its violent nature.",
+      "thumbnail": "https://openpets.dev/pets/tauros-f11466f1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tauros-f11466f1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tauros-f11466f1/tauros.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tangrowth",
+      "displayName": "Tangrowth",
+      "description": "Its arms are made of plants that bind themselves to things. They grow back right away if cut.",
+      "thumbnail": "https://openpets.dev/pets/tangrowth-10adcb94/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tangrowth-10adcb94/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tangrowth-10adcb94/tangrowth.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "tangela",
+      "displayName": "Tangela",
+      "description": "The blue vines shrouding its body are covered in a growth of fine hair. It is known to be ticklish.",
+      "thumbnail": "https://openpets.dev/pets/tangela-3ade29c8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tangela-3ade29c8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tangela-3ade29c8/tangela.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "taillow",
+      "displayName": "Taillow",
+      "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates.",
+      "thumbnail": "https://openpets.dev/pets/taillow-63ef41b7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/taillow-63ef41b7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/taillow-63ef41b7/taillow.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swoobat",
+      "displayName": "Swoobat",
+      "description": "It emits sound waves of various frequencies from its nose, including some powerful enough to destroy rocks.",
+      "thumbnail": "https://openpets.dev/pets/swoobat-51446296/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swoobat-51446296/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swoobat-51446296/swoobat.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swinub",
+      "displayName": "Swinub",
+      "description": "It has a very sensitive nose. It can locate mushrooms, berries, and even hot springs buried under ice.",
+      "thumbnail": "https://openpets.dev/pets/swinub-bf158784/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swinub-bf158784/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swinub-bf158784/swinub.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swellow",
+      "displayName": "Swellow",
+      "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey.",
+      "thumbnail": "https://openpets.dev/pets/swellow-2dd23886/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swellow-2dd23886/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swellow-2dd23886/swellow.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swanna",
+      "displayName": "Swanna",
+      "description": "Swanna start to dance at dusk. The one dancing in the middle is the leader of the flock.",
+      "thumbnail": "https://openpets.dev/pets/swanna-5da76eab/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swanna-5da76eab/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swanna-5da76eab/swanna.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swampert",
+      "displayName": "Swampert",
+      "description": "It can swim while towing a large ship. It bashes down foes with a swing of its thick arms.",
+      "thumbnail": "https://openpets.dev/pets/swampert-17e481df/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swampert-17e481df/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swampert-17e481df/swampert.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swalot",
+      "displayName": "Swalot",
+      "description": "It swallows anything whole. It sweats toxic fluids from its follicles to douse foes.",
+      "thumbnail": "https://openpets.dev/pets/swalot-b85b78b0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swalot-b85b78b0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swalot-b85b78b0/swalot.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swadloon",
+      "displayName": "Swadloon",
+      "description": "Forests where Swadloon live have superb foliage because the nutrients they make from fallen leaves nourish the plant life.",
+      "thumbnail": "https://openpets.dev/pets/swadloon-cba8e9db/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swadloon-cba8e9db/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swadloon-cba8e9db/swadloon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "swablu",
+      "displayName": "Swablu",
+      "description": "It can’t relax if it or its surroundings are not clean. It wipes off dirt with its wings.",
+      "thumbnail": "https://openpets.dev/pets/swablu-6a1d300d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swablu-6a1d300d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swablu-6a1d300d/swablu.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "surskit",
+      "displayName": "Surskit",
+      "description": "It appears as if it is skating on water. It draws prey with a sweet scent from the tip of its head.",
+      "thumbnail": "https://openpets.dev/pets/surskit-6bebd3bb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/surskit-6bebd3bb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/surskit-6bebd3bb/surskit.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sunkern",
+      "displayName": "Sunkern",
+      "description": "It suddenly falls out of the sky in the morning. A year after a cold summer, their population explodes.",
+      "thumbnail": "https://openpets.dev/pets/sunkern-cc44a822/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sunkern-cc44a822/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sunkern-cc44a822/sunkern.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    }
+  ]
+}

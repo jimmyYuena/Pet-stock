@@ -3,6 +3,53 @@ import Foundation
 import AppKit
 import AVFoundation
 import UserNotifications
+import Security
+
+private enum StockPetKeychain {
+    private static let service = "com.stockpet.market-data"
+
+    static func string(for account: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    @discardableResult
+    static func set(_ value: String, for account: String) -> Bool {
+        guard let data = value.data(using: .utf8) else { return false }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [kSecValueData as String: data]
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if updateStatus == errSecSuccess { return true }
+        guard updateStatus == errSecItemNotFound else { return false }
+        var newItem = query
+        newItem[kSecValueData as String] = data
+        return SecItemAdd(newItem as CFDictionary, nil) == errSecSuccess
+    }
+
+    @discardableResult
+    static func remove(_ account: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        return status == errSecSuccess || status == errSecItemNotFound
+    }
+}
 
 struct Position: Identifiable, Codable, Equatable {
     var id = UUID()
@@ -77,6 +124,49 @@ struct MarketIndexSnapshot: Identifiable {
     let changePercent: Double
 }
 
+/// 顶部指数栏里的一项（可自定义），symbol 直接用行情源代码，如 sh000001 / usIXIC / hkHSI。
+struct WatchIndex: Identifiable, Codable, Equatable {
+    var symbol: String
+    var name: String
+    var id: String { symbol }
+}
+
+struct IndexGroup: Identifiable {
+    let title: String
+    let items: [WatchIndex]
+    var id: String { title }
+}
+
+/// 预置指数目录（symbol 均已联网核对可取到行情）。
+enum IndexCatalog {
+    static let groups: [IndexGroup] = [
+        IndexGroup(title: "A股指数", items: [
+            WatchIndex(symbol: "sh000001", name: "上证指数"),
+            WatchIndex(symbol: "sz399001", name: "深证成指"),
+            WatchIndex(symbol: "sz399006", name: "创业板指"),
+            WatchIndex(symbol: "sh000688", name: "科创50"),
+            WatchIndex(symbol: "sh000300", name: "沪深300"),
+            WatchIndex(symbol: "sh000905", name: "中证500")
+        ]),
+        IndexGroup(title: "美股", items: [
+            WatchIndex(symbol: "usDJI", name: "道琼斯"),
+            WatchIndex(symbol: "usIXIC", name: "纳斯达克"),
+            WatchIndex(symbol: "usINX", name: "标普500"),
+            WatchIndex(symbol: "usQQQ", name: "纳指100 QQQ")
+        ]),
+        IndexGroup(title: "港股", items: [
+            WatchIndex(symbol: "hkHSI", name: "恒生指数"),
+            WatchIndex(symbol: "hkHSTECH", name: "恒生科技")
+        ]),
+        IndexGroup(title: "日经", items: [
+            WatchIndex(symbol: "sh513880", name: "日经225(ETF)")
+        ])
+    ]
+    static let all: [WatchIndex] = groups.flatMap { $0.items }
+    /// 默认仍是原来那几个 A 股指数
+    static let defaults: [WatchIndex] = Array(groups[0].items.prefix(5))
+}
+
 struct PositionMarketSnapshot {
     let currentPrice: Double?
     let changeAmount: Double
@@ -147,9 +237,10 @@ private enum MarketSessionPhase: Equatable {
 
     var shouldRefreshLatestPrice: Bool {
         switch self {
-        case .preMarket, .regular, .afterHours:
+        case .preMarket, .regular, .afterHours, .overnight:
+            // 隔夜时段也刷新：新浪 gb_ 会给出最新的盘后收盘价，而不是停在 0.00%
             return true
-        case .middayBreak, .overnight, .closed, .unknown:
+        case .middayBreak, .closed, .unknown:
             return false
         }
     }
@@ -502,11 +593,24 @@ final class PetStore: ObservableObject {
     @Published var stockSearchResults: [StockSearchResult] = []
     @Published var isSearchingStocks = false
     @Published var stockSearchError: String?
+    @Published var alpacaAPIKey = ""
+    @Published var alpacaAPISecret = ""
+    @Published var alpacaStatus = "未配置 Alpaca，夜盘将继续显示盘后最后价格"
+    @Published var watchIndices: [WatchIndex] = []
+    @Published var includeUSInReturn = true
+    @Published var newsHoldingsOnly = false
+    @Published var newsPushIntervalMinutes = 15   // 0 = 关闭推送
 
     private let key = "stockPet.positions.v1"
+    private let watchIndicesKey = "stockPet.watchIndices.v1"
+    private let includeUSInReturnKey = "stockPet.includeUSInReturn.v1"
+    private let newsHoldingsOnlyKey = "stockPet.newsHoldingsOnly.v1"
+    private let newsPushIntervalKey = "stockPet.newsPushInterval.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
     private static let notificationsEnabledKey = "stockPet.notifications.enabled.v1"
     private static let notifiedNewsKey = "stockPet.news.notifiedIDs.v1"
+    private static let alpacaAPIKeyAccount = "alpaca-api-key"
+    private static let alpacaAPISecretAccount = "alpaca-api-secret"
     private let speaker = AVSpeechSynthesizer()
     private var isRestoringPositions = true
     private var notifiedNewsIDs: Set<String> = []
@@ -514,7 +618,17 @@ final class PetStore: ObservableObject {
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
 
+    var hasAlpacaCredentials: Bool {
+        !alpacaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !alpacaAPISecret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     init() {
+        alpacaAPIKey = StockPetKeychain.string(for: Self.alpacaAPIKeyAccount) ?? ""
+        alpacaAPISecret = StockPetKeychain.string(for: Self.alpacaAPISecretAccount) ?? ""
+        if !alpacaAPIKey.isEmpty, !alpacaAPISecret.isEmpty {
+            alpacaStatus = "Alpaca 已配置，夜盘时自动使用免费 overnight 行情"
+        }
         if UserDefaults.standard.object(forKey: Self.notificationsEnabledKey) != nil {
             notificationsEnabled = UserDefaults.standard.bool(forKey: Self.notificationsEnabledKey)
         }
@@ -523,6 +637,16 @@ final class PetStore: ObservableObject {
         } else {
             positions = Self.defaultPositions
         }
+        if let data = UserDefaults.standard.data(forKey: watchIndicesKey),
+           let saved = try? JSONDecoder().decode([WatchIndex].self, from: data), !saved.isEmpty {
+            watchIndices = saved
+        } else {
+            watchIndices = IndexCatalog.defaults
+        }
+        let prefs = UserDefaults.standard
+        if prefs.object(forKey: includeUSInReturnKey) != nil { includeUSInReturn = prefs.bool(forKey: includeUSInReturnKey) }
+        if prefs.object(forKey: newsHoldingsOnlyKey) != nil { newsHoldingsOnly = prefs.bool(forKey: newsHoldingsOnlyKey) }
+        if prefs.object(forKey: newsPushIntervalKey) != nil { newsPushIntervalMinutes = prefs.integer(forKey: newsPushIntervalKey) }
         isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
         notifiedNewsIDs = Set(UserDefaults.standard.stringArray(forKey: Self.notifiedNewsKey) ?? [])
@@ -531,6 +655,31 @@ final class PetStore: ObservableObject {
         }
         startNewsPolling()
         startMarketPolling()
+    }
+
+    func saveAlpacaCredentials() {
+        alpacaAPIKey = alpacaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        alpacaAPISecret = alpacaAPISecret.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hasAlpacaCredentials else {
+            alpacaStatus = "请完整填写 API Key 和 Secret Key"
+            return
+        }
+        let savedKey = StockPetKeychain.set(alpacaAPIKey, for: Self.alpacaAPIKeyAccount)
+        let savedSecret = StockPetKeychain.set(alpacaAPISecret, for: Self.alpacaAPISecretAccount)
+        guard savedKey, savedSecret else {
+            alpacaStatus = "保存失败，请检查系统钥匙串权限"
+            return
+        }
+        alpacaStatus = "密钥已保存，正在刷新美股行情…"
+        Task { await refreshMarketData() }
+    }
+
+    func clearAlpacaCredentials() {
+        StockPetKeychain.remove(Self.alpacaAPIKeyAccount)
+        StockPetKeychain.remove(Self.alpacaAPISecretAccount)
+        alpacaAPIKey = ""
+        alpacaAPISecret = ""
+        alpacaStatus = "已停用 Alpaca 夜盘行情"
     }
 
     private static func loadSavedPositions(forKey key: String) -> [Position]? {
@@ -566,8 +715,10 @@ final class PetStore: ObservableObject {
             while !Task.isCancelled {
                 guard let self else { return }
                 await self.refreshNews()
+                // 推送频率:关闭(0)时仍每 30 分钟刷新一次列表，只是不发通知
+                let minutes = self.newsPushIntervalMinutes > 0 ? self.newsPushIntervalMinutes : 30
                 do {
-                    try await Task.sleep(nanoseconds: 60_000_000_000)
+                    try await Task.sleep(nanoseconds: UInt64(minutes) * 60_000_000_000)
                 } catch {
                     return
                 }
@@ -593,29 +744,72 @@ final class PetStore: ObservableObject {
         }
     }
 
+    // MARK: - 自定义指数栏
+
+    func isWatchingIndex(_ symbol: String) -> Bool {
+        watchIndices.contains { $0.symbol == symbol }
+    }
+
+    func toggleWatchIndex(_ item: WatchIndex) {
+        if let idx = watchIndices.firstIndex(where: { $0.symbol == item.symbol }) {
+            watchIndices.remove(at: idx)
+        } else {
+            watchIndices.append(item)
+        }
+        persistWatchIndices()
+    }
+
+    func addWatchIndex(symbol: String, name: String) {
+        let trimmed = symbol.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !watchIndices.contains(where: { $0.symbol == trimmed }) else { return }
+        watchIndices.append(WatchIndex(symbol: trimmed, name: name))
+        persistWatchIndices()
+    }
+
+    func removeWatchIndex(_ item: WatchIndex) {
+        watchIndices.removeAll { $0.symbol == item.symbol }
+        persistWatchIndices()
+    }
+
+    func resetWatchIndices() {
+        watchIndices = IndexCatalog.defaults
+        persistWatchIndices()
+    }
+
+    private func persistWatchIndices() {
+        if let data = try? JSONEncoder().encode(watchIndices) {
+            UserDefaults.standard.set(data, forKey: watchIndicesKey)
+        }
+        Task { await refreshMarketData() }
+    }
+
+    func savePreferences() {
+        let d = UserDefaults.standard
+        d.set(includeUSInReturn, forKey: includeUSInReturnKey)
+        d.set(newsHoldingsOnly, forKey: newsHoldingsOnlyKey)
+        d.set(newsPushIntervalMinutes, forKey: newsPushIntervalKey)
+        // 新闻范围改变时立即重拉资讯（总收益是实时计算的，无需刷新行情）
+        Task { await refreshNews() }
+    }
+
     func refreshMarketData(includeTrend: Bool = true) async {
         guard !isLoadingMarket else { return }
         isLoadingMarket = true
         marketError = nil
         defer { isLoadingMarket = false }
 
-        let indexDefinitions = [
-            ("sh000001", "上证指数", 3955.58),
-            ("sz399001", "深证成指", 14779.40),
-            ("sz399006", "创业板指", 3804.70),
-            ("sh000688", "科创50", 1924.27),
-            ("sh000300", "沪深300", 4786.78)
-        ]
-        let symbols = Set(indexDefinitions.map(\.0) + positions.compactMap(\.symbol).filter { !$0.isEmpty })
+        // 用户自定义的顶部指数栏（默认回落到内置 A 股指数）
+        let indexList = watchIndices.isEmpty ? IndexCatalog.defaults : watchIndices
+        let symbols = Set(indexList.map(\.symbol) + positions.compactMap(\.symbol).filter { !$0.isEmpty })
 
         do {
             let quotes = try await fetchQuotes(Array(symbols))
-            marketIndices = indexDefinitions.map { code, name, fallbackPrice in
-                let quote = quotes[code]
+            marketIndices = indexList.map { item in
+                let quote = quotes[item.symbol]
                 return MarketIndexSnapshot(
-                    id: code,
-                    name: name,
-                    price: quote?.price ?? fallbackPrice,
+                    id: item.symbol,
+                    name: item.name,
+                    price: quote?.price ?? 0,
                     change: quote?.change ?? 0,
                     changePercent: quote?.percent ?? 0
                 )
@@ -637,23 +831,25 @@ final class PetStore: ObservableObject {
                 let changePercent = shouldRefreshLatestPrice
                     ? quote?.percent ?? position.change
                     : (previous?.changePercent ?? quote?.percent ?? position.change)
+                // 分时走势与"是否刷新最新价"解耦：午休/隔夜等时段最新价可以冻结，
+                // 但当天的真实分时(上午/收盘前的走势)仍要展示，不能退回合成正弦波。
                 var liveTrend: [Double]? = nil
-                if includeTrend, shouldRefreshLatestPrice, !symbol.isEmpty {
+                if includeTrend, !symbol.isEmpty {
                     liveTrend = try? await fetchMinuteTrend(symbol)
                 }
 
                 let resolvedTrend: [Double]
-                let isLive: Bool
-                if let liveTrend, !liveTrend.isEmpty {
+                let hasRealTrend: Bool
+                if let liveTrend, liveTrend.count > 1 {
                     resolvedTrend = liveTrend
-                    isLive = quote != nil
-                } else if let previous, previous.isLive, !previous.trend.isEmpty {
-                    // 未到分时刷新周期时，复用上一次的真实走势，只更新报价数字。
+                    hasRealTrend = true
+                } else if let previous, previous.isLive, previous.trend.count > 1 {
+                    // 未到分时刷新周期时，复用上一次抓到的真实走势
                     resolvedTrend = previous.trend
-                    isLive = quote != nil
+                    hasRealTrend = true
                 } else {
                     resolvedTrend = Self.fallbackTrend(seed: changePercent)
-                    isLive = false
+                    hasRealTrend = false
                 }
 
                 snapshots[position.id] = PositionMarketSnapshot(
@@ -661,15 +857,15 @@ final class PetStore: ObservableObject {
                     changeAmount: changeAmount,
                     changePercent: changePercent,
                     trend: resolvedTrend,
-                    isLive: isLive && shouldRefreshLatestPrice
+                    isLive: hasRealTrend
                 )
             }
             positionMarkets = snapshots
             marketUpdatedAt = Date()
         } catch {
             marketError = "行情连接失败，当前展示本地走势"
-            marketIndices = indexDefinitions.map {
-                MarketIndexSnapshot(id: $0.0, name: $0.1, price: $0.2, change: 0, changePercent: 0)
+            marketIndices = indexList.map {
+                MarketIndexSnapshot(id: $0.symbol, name: $0.name, price: 0, change: 0, changePercent: 0)
             }
             positionMarkets = Dictionary(uniqueKeysWithValues: positions.map { position in
                 (position.id, PositionMarketSnapshot(
@@ -687,6 +883,55 @@ final class PetStore: ObservableObject {
         let price: Double
         let change: Double
         let percent: Double
+    }
+
+    private struct AlpacaBar: Decodable {
+        let close: Double
+
+        private enum CodingKeys: String, CodingKey {
+            case close = "c"
+        }
+    }
+
+    private struct AlpacaTrade: Decodable {
+        let price: Double
+
+        private enum CodingKeys: String, CodingKey {
+            case price = "p"
+        }
+    }
+
+    private struct AlpacaQuote: Decodable {
+        let askPrice: Double?
+        let bidPrice: Double?
+
+        private enum CodingKeys: String, CodingKey {
+            case askPrice = "ap"
+            case bidPrice = "bp"
+        }
+
+        var midpoint: Double? {
+            guard let askPrice, let bidPrice, askPrice > 0, bidPrice > 0 else { return nil }
+            return (askPrice + bidPrice) / 2
+        }
+    }
+
+    private struct AlpacaSnapshot: Decodable {
+        let latestTrade: AlpacaTrade?
+        let latestQuote: AlpacaQuote?
+        let minuteBar: AlpacaBar?
+        let previousDailyBar: AlpacaBar?
+
+        private enum CodingKeys: String, CodingKey {
+            case latestTrade
+            case latestQuote
+            case minuteBar
+            case previousDailyBar = "prevDailyBar"
+        }
+    }
+
+    private struct AlpacaBarsResponse: Decodable {
+        let bars: [String: [AlpacaBar]]?
     }
 
     private struct YahooChartResponse: Decodable {
@@ -762,14 +1007,44 @@ final class PetStore: ObservableObject {
                 .replacingOccurrences(of: "v_", with: "")
             let start = line.index(after: firstQuote)
             let fields = line[start..<lastQuote].split(separator: "~", omittingEmptySubsequences: false)
+            // 完整行情(美股 v_us…)里 [30] 是时间戳，涨跌额/涨跌幅在 [31]/[32]；
+            // 简版行情(v_s_…)里在 [4]/[5]。之前用了 [30]/[31] 导致美股涨跌幅解析失败、恒为 0。
             guard fields.count > 5,
                   let price = Double(fields[3]),
-                  let change = Double(fields.count > 30 ? fields[30] : fields[4]),
-                  let percent = Double(fields.count > 31 ? fields[31] : fields[5]) else { continue }
+                  let change = Double(fields.count > 32 ? fields[31] : fields[4]),
+                  let percent = Double(fields.count > 32 ? fields[32] : fields[5]) else { continue }
             result[key] = QuoteValue(price: price, change: change, percent: percent)
         }
 
-        for symbol in symbols where shouldFetchUSPrePostQuote(for: symbol) {
+        var alpacaResolvedSymbols = Set<String>()
+        let overnightSymbols = symbols.filter {
+            $0.lowercased().hasPrefix("us")
+                && MarketSessionResolver.session(for: $0).phase == .overnight
+        }
+        if !overnightSymbols.isEmpty {
+            if hasAlpacaCredentials {
+                do {
+                    let overnightQuotes = try await fetchAlpacaOvernightQuotes(
+                        overnightSymbols,
+                        fallbackQuotes: result
+                    )
+                    for (symbol, quote) in overnightQuotes {
+                        result[symbol] = quote
+                        alpacaResolvedSymbols.insert(symbol)
+                    }
+                    alpacaStatus = overnightQuotes.isEmpty
+                        ? "Alpaca 已连接，但当前持仓暂时没有夜盘报价"
+                        : "Alpaca 夜盘已连接 · 免费实时指示价"
+                } catch {
+                    alpacaStatus = "Alpaca 夜盘连接失败：\(error.localizedDescription)"
+                }
+            } else {
+                alpacaStatus = "未配置 Alpaca，夜盘将继续显示盘后最后价格"
+            }
+        }
+
+        for symbol in symbols where shouldFetchUSPrePostQuote(for: symbol)
+            && !alpacaResolvedSymbols.contains(symbol) {
             if let quote = try? await fetchUSPrePostQuote(symbol) {
                 result[symbol] = quote
             }
@@ -783,11 +1058,118 @@ final class PetStore: ObservableObject {
         return MarketSessionResolver.session(for: normalized).phase.shouldRefreshLatestPrice
     }
 
+    private enum AlpacaMarketError: LocalizedError {
+        case invalidCredentials
+        case badResponse(Int)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidCredentials:
+                return "API Key 无效或没有行情权限"
+            case let .badResponse(status):
+                return "服务返回 HTTP \(status)"
+            }
+        }
+    }
+
+    private func alpacaRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10
+        request.setValue(alpacaAPIKey, forHTTPHeaderField: "APCA-API-KEY-ID")
+        request.setValue(alpacaAPISecret, forHTTPHeaderField: "APCA-API-SECRET-KEY")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("StockPet/0.5", forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    private func validateAlpacaResponse(_ response: URLResponse) throws {
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 401 || status == 403 {
+            throw AlpacaMarketError.invalidCredentials
+        }
+        guard status == 200 else {
+            throw AlpacaMarketError.badResponse(status)
+        }
+    }
+
+    private func fetchAlpacaOvernightQuotes(
+        _ symbols: [String],
+        fallbackQuotes: [String: QuoteValue]
+    ) async throws -> [String: QuoteValue] {
+        let tickerBySymbol = Dictionary(uniqueKeysWithValues: symbols.map { symbol in
+            (symbol, String(symbol.dropFirst(2)).uppercased())
+        })
+        let tickers = tickerBySymbol.values.filter { !$0.isEmpty }.sorted()
+        guard !tickers.isEmpty,
+              var components = URLComponents(string: "https://data.alpaca.markets/v2/stocks/snapshots") else {
+            return [:]
+        }
+        components.queryItems = [
+            URLQueryItem(name: "symbols", value: tickers.joined(separator: ",")),
+            URLQueryItem(name: "feed", value: "overnight")
+        ]
+        guard let url = components.url else { return [:] }
+
+        let (data, response) = try await URLSession.shared.data(for: alpacaRequest(url: url))
+        try validateAlpacaResponse(response)
+        let snapshots = try JSONDecoder().decode([String: AlpacaSnapshot].self, from: data)
+
+        var quotes: [String: QuoteValue] = [:]
+        for (symbol, ticker) in tickerBySymbol {
+            guard let snapshot = snapshots[ticker] ?? snapshots[ticker.lowercased()],
+                  let price = snapshot.latestQuote?.midpoint
+                    ?? snapshot.minuteBar?.close
+                    ?? snapshot.latestTrade?.price,
+                  price > 0 else { continue }
+            // 夜盘涨跌以刚结束的美股常规/盘后最后价为基准；Alpaca 的前日 K 线只作兜底。
+            let previousClose = fallbackQuotes[symbol]?.price ?? snapshot.previousDailyBar?.close ?? price
+            let change = price - previousClose
+            let percent = previousClose == 0 ? 0 : change / previousClose * 100
+            quotes[symbol] = QuoteValue(price: price, change: change, percent: percent)
+        }
+        return quotes
+    }
+
     private func fetchUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
+        // 新浪 gb_ 接口国内可直接访问，含盘前/盘后价；Yahoo/Nasdaq 国内基本连不上，仅作兜底。
+        if let quote = try? await fetchSinaUSQuote(symbol) {
+            return quote
+        }
         if let quote = try? await fetchYahooUSPrePostQuote(symbol) {
             return quote
         }
         return try await fetchNasdaqUSQuote(symbol)
+    }
+
+    /// 新浪美股行情 hq_str_gb_<ticker>：字段 [1]=最新价 [2]=涨跌幅% [4]=涨跌额，
+    /// 盘前/盘后期间 [1] 会跟随延时行情更新（需带 finance.sina.com.cn 的 Referer）。
+    private func fetchSinaUSQuote(_ symbol: String) async throws -> QuoteValue? {
+        let ticker = String(symbol.dropFirst(2)).lowercased()
+        guard !ticker.isEmpty,
+              let url = URL(string: "https://hq.sinajs.cn/list=gb_\(ticker)") else {
+            return nil
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue("https://finance.sina.com.cn", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let text = String(data: data, encoding: .isoLatin1),
+              let firstQuote = text.firstIndex(of: "\""),
+              let lastQuote = text.lastIndex(of: "\""), firstQuote < lastQuote else {
+            return nil
+        }
+        let start = text.index(after: firstQuote)
+        let fields = text[start..<lastQuote].split(separator: ",", omittingEmptySubsequences: false)
+        guard fields.count > 4,
+              let price = Double(fields[1]), price > 0,
+              let percent = Double(fields[2]) else {
+            return nil
+        }
+        let change = Double(fields[4]) ?? (price * percent / (100 + percent))
+        return QuoteValue(price: price, change: change, percent: percent)
     }
 
     private func fetchYahooUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
@@ -875,6 +1257,14 @@ final class PetStore: ObservableObject {
     }
 
     private func fetchMinuteTrend(_ symbol: String) async throws -> [Double] {
+        if symbol.lowercased().hasPrefix("us"),
+           MarketSessionResolver.session(for: symbol).phase == .overnight,
+           hasAlpacaCredentials,
+           let overnightTrend = try? await fetchAlpacaOvernightTrend(symbol),
+           overnightTrend.count > 1 {
+            return overnightTrend
+        }
+
         var components = URLComponents(string: "https://web.ifzq.gtimg.cn/appstock/app/minute/query")
         components?.queryItems = [URLQueryItem(name: "code", value: symbol)]
         guard let url = components?.url else { return [] }
@@ -890,6 +1280,32 @@ final class PetStore: ObservableObject {
             guard fields.count > 1 else { return nil }
             return Double(fields[1])
         }
+    }
+
+    private func fetchAlpacaOvernightTrend(_ symbol: String) async throws -> [Double] {
+        let ticker = String(symbol.dropFirst(2)).uppercased()
+        guard !ticker.isEmpty,
+              var components = URLComponents(string: "https://data.alpaca.markets/v2/stocks/bars") else {
+            return []
+        }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        components.queryItems = [
+            URLQueryItem(name: "symbols", value: ticker),
+            URLQueryItem(name: "timeframe", value: "1Min"),
+            URLQueryItem(name: "start", value: formatter.string(from: Date().addingTimeInterval(-12 * 60 * 60))),
+            URLQueryItem(name: "end", value: formatter.string(from: Date())),
+            URLQueryItem(name: "feed", value: "boats"),
+            URLQueryItem(name: "adjustment", value: "raw"),
+            URLQueryItem(name: "sort", value: "asc"),
+            URLQueryItem(name: "limit", value: "1000")
+        ]
+        guard let url = components.url else { return [] }
+
+        let (data, response) = try await URLSession.shared.data(for: alpacaRequest(url: url))
+        try validateAlpacaResponse(response)
+        let decoded = try JSONDecoder().decode(AlpacaBarsResponse.self, from: data)
+        return (decoded.bars?[ticker] ?? []).map(\.close)
     }
 
     func searchStocks(_ query: String) async {
@@ -1014,15 +1430,23 @@ final class PetStore: ObservableObject {
 
     /// 今日全部持仓的总收益率（只看今天，不含历史成本）。
     /// 有市值时按市值加权；未填市值时退化为等权平均，保证仍反映今日涨跌而不是 0.00%。
+    /// 参与总收益计算的持仓（可在设置里选择是否算入美股）
+    var returnPositions: [Position] {
+        includeUSInReturn
+            ? positions
+            : positions.filter { !($0.symbol?.lowercased().hasPrefix("us") ?? false) }
+    }
+
     var totalReturn: Double {
-        guard !positions.isEmpty else { return 0 }
-        let totalValue = positions.reduce(0) { $0 + max(0, $1.value) }
+        let ps = returnPositions
+        guard !ps.isEmpty else { return 0 }
+        let totalValue = ps.reduce(0) { $0 + max(0, $1.value) }
         if totalValue > 0 {
-            return positions.reduce(0) { result, position in
+            return ps.reduce(0) { result, position in
                 result + max(0, position.value) * todayChange(for: position)
             } / totalValue
         }
-        return positions.reduce(0) { $0 + todayChange(for: $1) } / Double(positions.count)
+        return ps.reduce(0) { $0 + todayChange(for: $1) } / Double(ps.count)
     }
 
     var topPositions: [Position] {
@@ -1062,47 +1486,96 @@ final class PetStore: ObservableObject {
         }
     }
 
+    private struct SinaRollResponse: Decodable {
+        struct Payload: Decodable {
+            struct Item: Decodable {
+                let docid: String?
+                let title: String?
+                let url: String?
+                let media_name: String?
+                let ctime: String?
+            }
+            let data: [Item]
+        }
+        let result: Payload
+    }
+
+    /// 持仓相关关键词(名称 + 数字代码)，用于"只看持仓新闻"过滤
+    private var holdingKeywords: [String] {
+        positions.flatMap { position -> [String] in
+            var keywords: [String] = []
+            let name = position.name.trimmingCharacters(in: .whitespaces)
+            if name.count >= 2 { keywords.append(name) }
+            if let symbol = position.symbol {
+                let code = symbol.filter { $0.isNumber }
+                if code.count >= 4 { keywords.append(code) }
+            }
+            return keywords
+        }
+    }
+
     func refreshNews() async {
         guard !isLoadingNews else { return }
         isLoadingNews = true
         newsError = nil
         defer { isLoadingNews = false }
 
-        var gathered: [StockNews] = []
+        // 国内财经源（新浪财经滚动 · 全部财经）：链接直达 finance.sina.com.cn，
+        // 国内浏览器可直接打开，不再经过 Google 跳转。
+        guard let url = URL(string: "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2509&num=20&page=1") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("StockPet/0.5", forHTTPHeaderField: "User-Agent")
 
-        for position in topPositions {
-            var components = URLComponents(string: "https://news.google.com/rss/search")
-            components?.queryItems = [
-                URLQueryItem(name: "q", value: position.name),
-                URLQueryItem(name: "hl", value: "zh-CN"),
-                URLQueryItem(name: "gl", value: "CN"),
-                URLQueryItem(name: "ceid", value: "CN:zh-Hans")
-            ]
-            guard let url = components?.url else { continue }
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 12
-            request.setValue("StockPet/0.3", forHTTPHeaderField: "User-Agent")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return }
+            let decoded = try JSONDecoder().decode(SinaRollResponse.self, from: data)
 
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
-                gathered.append(contentsOf: StockNewsRSSParser.parse(data, stock: position.name).prefix(3))
-            } catch {
-                newsError = "资讯暂时不可用"
+            var gathered: [StockNews] = []
+            for item in decoded.result.data {
+                guard let title = item.title, !title.isEmpty,
+                      let urlString = item.url,
+                      let link = URL(string: urlString) else { continue }
+                let timestamp = Double(item.ctime ?? "") ?? Date().timeIntervalSince1970
+                let source = (item.media_name?.isEmpty == false) ? item.media_name! : "财经"
+                gathered.append(StockNews(
+                    id: item.docid ?? urlString,
+                    stock: "财经热点",
+                    title: title,
+                    source: source,
+                    link: link,
+                    publishedAt: Date(timeIntervalSince1970: timestamp)
+                ))
             }
-        }
 
-        var seenTitles = Set<String>()
-        newsItems = gathered
-            .sorted { $0.publishedAt > $1.publishedAt }
-            .filter { seenTitles.insert($0.title).inserted }
-            .prefix(9)
-            .map { $0 }
+            // 只看持仓新闻:按持仓名称/代码过滤大盘财经流
+            if newsHoldingsOnly {
+                let keywords = holdingKeywords
+                if !keywords.isEmpty {
+                    gathered = gathered.filter { news in
+                        keywords.contains { !$0.isEmpty && news.title.contains($0) }
+                    }
+                }
+            }
 
-        let unnotifiedNews = newsItems.filter {
-            !hiddenNewsIDs.contains($0.id) && !notifiedNewsIDs.contains($0.id)
+            var seenTitles = Set<String>()
+            newsItems = gathered
+                .sorted { $0.publishedAt > $1.publishedAt }
+                .filter { seenTitles.insert($0.title).inserted }
+                .prefix(9)
+                .map { $0 }
+
+            // 推送频率为"关闭"时不发通知，只更新列表
+            if newsPushIntervalMinutes > 0 {
+                let unnotifiedNews = newsItems.filter {
+                    !hiddenNewsIDs.contains($0.id) && !notifiedNewsIDs.contains($0.id)
+                }
+                sendNewsNotification(unnotifiedNews)
+            }
+        } catch {
+            newsError = "资讯暂时不可用"
         }
-        sendNewsNotification(unnotifiedNews)
     }
 
     func hideNews(_ item: StockNews) {
@@ -1770,6 +2243,9 @@ struct ContentView: View {
     @State private var motionToken = UUID()
     @State private var showingPetStore = false
     @State private var showingShareCard = false
+    @State private var showingAlpacaSettings = false
+    @State private var showingIndexSettings = false
+    @State private var showingPreferences = false
     @State private var shareIncludePositions = false
     @State private var shareFeedback = ""
     @State private var stockSearchQuery = ""
@@ -1925,6 +2401,15 @@ struct ContentView: View {
         .sheet(isPresented: $showingShareCard) {
             shareCardPage
         }
+        .sheet(isPresented: $showingAlpacaSettings) {
+            alpacaSettingsPage
+        }
+        .sheet(isPresented: $showingIndexSettings) {
+            IndexSettingsView(store: store)
+        }
+        .sheet(isPresented: $showingPreferences) {
+            PreferencesView(store: store)
+        }
         .onChange(of: debugState.actionToken) { _, _ in
             triggerPetMotion()
         }
@@ -2020,6 +2505,28 @@ struct ContentView: View {
                     .allowsWindowActivationEvents()
                     .accessibilityLabel("调试")
                     .help("调试当前宠物素材")
+                    .zIndex(10)
+                }
+                HStack {
+                    Spacer()
+                    Button {
+                        hoveringCompact = false
+                        showingPreferences = true
+                    } label: {
+                        Circle()
+                            .fill(.black.opacity(0.62))
+                            .frame(width: 25, height: 25)
+                            .overlay(Circle().stroke(.white.opacity(0.20)))
+                            .overlay(
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.92))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .allowsWindowActivationEvents()
+                    .accessibilityLabel("设置")
+                    .help("设置")
                     .zIndex(10)
                 }
                 Spacer()
@@ -2287,6 +2794,9 @@ struct ContentView: View {
                 toolbarIcon("arrow.clockwise", help: "刷新行情") {
                     Task { await store.refreshMarketData() }
                 }
+                toolbarIcon("moon.stars.fill", help: "美股夜盘设置") {
+                    showingAlpacaSettings = true
+                }
                 toolbarIcon(
                     expandedWindowStaysOnTop ? "pin.fill" : "pin",
                     help: expandedWindowStaysOnTop ? "取消置顶" : "保持置顶",
@@ -2311,7 +2821,10 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 toolbarIcon("square.and.arrow.up", help: "晒收益", action: openShareCard)
+                toolbarIcon("slider.horizontal.3", help: "自定义指数栏") { showingIndexSettings = true }
+                toolbarIcon("gearshape.fill", help: "设置") { showingPreferences = true }
                 toolbarIcon("bag.fill", help: "宠物商城") { showingPetStore = true }
+                toolbarIcon("moon.stars.fill", help: "美股夜盘设置") { showingAlpacaSettings = true }
                 toolbarIcon("ladybug.fill", help: "调试", action: openDebugPanel)
                 toolbarIcon(
                     expandedWindowStaysOnTop ? "pin.fill" : "pin",
@@ -2376,7 +2889,7 @@ struct ContentView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(store.marketError ?? "主要指数与持仓分时")
+                        Text(store.marketError ?? (hasOvernightUSPosition ? store.alpacaStatus : "主要指数与持仓分时"))
                             .font(.system(size: 9))
                             .foregroundStyle(store.marketError == nil ? .white.opacity(0.36) : .orange.opacity(0.85))
                         Text(marketUpdateText)
@@ -2667,6 +3180,13 @@ struct ContentView: View {
         return formatter.string(from: date)
     }
 
+    private var hasOvernightUSPosition: Bool {
+        store.positions.contains { position in
+            guard let symbol = position.symbol, symbol.lowercased().hasPrefix("us") else { return false }
+            return MarketSessionResolver.session(for: symbol).phase == .overnight
+        }
+    }
+
     private func price(_ value: Double) -> String {
         value >= 10_000 ? String(format: "%.1f", value) : String(format: "%.2f", value)
     }
@@ -2862,6 +3382,108 @@ struct ContentView: View {
         } else if let image = NSImage(named: NSImage.Name(appearance.previewName)) {
             Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
         }
+    }
+
+    private var alpacaSettingsPage: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.42, green: 0.64, blue: 1.0))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("美股夜盘行情")
+                        .font(.system(size: 16, weight: .bold))
+                    Text("Alpaca · 美东时间 20:00–04:00")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.38))
+                }
+                Spacer()
+                Button { showingAlpacaSettings = false } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(20)
+
+            Divider().overlay(.white.opacity(0.07))
+
+            VStack(alignment: .leading, spacing: 13) {
+                Text("免费账户使用实时指示报价；夜盘成交与分钟走势可能延迟约 15 分钟。密钥只保存在这台 Mac 的系统钥匙串中。")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("API KEY")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.38))
+                    SecureField("APCA-API-KEY-ID", text: $store.alpacaAPIKey)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11, design: .monospaced))
+                        .padding(.horizontal, 11)
+                        .frame(height: 36)
+                        .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(.white.opacity(0.1)))
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("SECRET KEY")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.38))
+                    SecureField("APCA-API-SECRET-KEY", text: $store.alpacaAPISecret)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11, design: .monospaced))
+                        .padding(.horizontal, 11)
+                        .frame(height: 36)
+                        .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(.white.opacity(0.1)))
+                }
+
+                Text(store.alpacaStatus)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(store.hasAlpacaCredentials ? .green.opacity(0.8) : .orange.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 10) {
+                    Button {
+                        store.saveAlpacaCredentials()
+                    } label: {
+                        Label("保存并刷新", systemImage: "arrow.clockwise")
+                            .font(.system(size: 10, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(Color(red: 0.24, green: 0.48, blue: 0.95), in: RoundedRectangle(cornerRadius: 9))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("清除密钥") {
+                        store.clearAlpacaCredentials()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.48))
+                    .frame(width: 92, height: 36)
+                    .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 9))
+                }
+
+                Link("免费注册并获取 API Key ↗", destination: URL(string: "https://app.alpaca.markets/signup")!)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color(red: 0.46, green: 0.68, blue: 1.0))
+            }
+            .padding(20)
+        }
+        .frame(width: 460, height: 420)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.075, green: 0.08, blue: 0.12), Color(red: 0.035, green: 0.04, blue: 0.065)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .preferredColorScheme(.dark)
     }
 
     private var petStorePage: some View {
@@ -3699,6 +4321,210 @@ struct PetField: TextFieldStyle {
             .frame(height: 28)
             .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).stroke(.white.opacity(0.07)))
+    }
+}
+
+struct PreferencesView: View {
+    @ObservedObject var store: PetStore
+    @Environment(\.dismiss) private var dismiss
+
+    private let gain = Color(red: 1.0, green: 0.28, blue: 0.30)
+    private let intervals = [0, 15, 30, 60]
+
+    private func intervalLabel(_ m: Int) -> String { m == 0 ? "关闭" : "\(m)分钟" }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("设置").font(.system(size: 15, weight: .semibold))
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                }.buttonStyle(.plain)
+            }
+            .foregroundStyle(.white)
+            .padding(16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    block("新闻范围") {
+                        Picker("", selection: Binding(
+                            get: { store.newsHoldingsOnly },
+                            set: { store.newsHoldingsOnly = $0; store.savePreferences() }
+                        )) {
+                            Text("全部财经").tag(false)
+                            Text("只看持仓").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Text(store.newsHoldingsOnly ? "只显示标题含持仓名称/代码的资讯" : "显示大盘热门财经资讯")
+                            .font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                    }
+
+                    block("推送频率") {
+                        HStack(spacing: 6) {
+                            ForEach(intervals, id: \.self) { value in
+                                Button {
+                                    store.newsPushIntervalMinutes = value
+                                    store.savePreferences()
+                                } label: {
+                                    Text(intervalLabel(value))
+                                        .font(.system(size: 11))
+                                        .padding(.horizontal, 11).frame(height: 28)
+                                        .background(store.newsPushIntervalMinutes == value ? gain.opacity(0.85) : Color.white.opacity(0.06),
+                                                    in: RoundedRectangle(cornerRadius: 7))
+                                        .foregroundStyle(.white)
+                                }.buttonStyle(.plain)
+                            }
+                        }
+                        Text("关闭则只更新资讯列表、不发系统通知").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                    }
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("总收益算入美股").font(.system(size: 12, weight: .medium)).foregroundStyle(.white)
+                            Text("关闭后总收益率只统计 A 股 / 港股持仓").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                        }
+                        Spacer()
+                        Toggle("", isOn: Binding(
+                            get: { store.includeUSInReturn },
+                            set: { store.includeUSInReturn = $0; store.savePreferences() }
+                        )).labelsHidden().toggleStyle(.switch).tint(gain)
+                    }
+
+                    block("美股夜盘源") {
+                        Text(store.alpacaStatus).font(.system(size: 10)).foregroundStyle(.white.opacity(0.5))
+                        Text("默认用新浪盘后收盘价；要真·隔夜逐笔行情，可在顶栏「月亮」图标里配置 Alpaca。")
+                            .font(.system(size: 10)).foregroundStyle(.white.opacity(0.35))
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 400, height: 540)
+        .background(Color(red: 0.07, green: 0.08, blue: 0.10))
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private func block<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.5))
+            content()
+        }
+    }
+}
+
+struct IndexSettingsView: View {
+    @ObservedObject var store: PetStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var searchTask: Task<Void, Never>?
+
+    private let gain = Color(red: 1.0, green: 0.28, blue: 0.30)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("自定义指数栏")
+                    .font(.system(size: 15, weight: .semibold))
+                Spacer()
+                Button("重置默认") { store.resetWatchIndices() }
+                    .font(.system(size: 11))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white.opacity(0.55))
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(.white)
+            .padding(16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    sectionHeader("已选 · \(store.watchIndices.count)（点勾去除）")
+                    if store.watchIndices.isEmpty {
+                        Text("暂无，勾选下方指数或搜索添加").font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
+                    } else {
+                        ForEach(store.watchIndices) { indexRow($0) }
+                    }
+
+                    sectionHeader("搜索添加任意标的")
+                    TextField("股票 / ETF / 指数 名称或代码", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .padding(.horizontal, 10)
+                        .frame(height: 32)
+                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(.white)
+                        .onChange(of: query) { _, newValue in runSearch(newValue) }
+                    if store.isSearchingStocks {
+                        Text("搜索中…").font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
+                    }
+                    ForEach(store.stockSearchResults) { r in
+                        indexRow(WatchIndex(symbol: r.symbol, name: r.name))
+                    }
+
+                    ForEach(IndexCatalog.groups) { group in
+                        sectionHeader(group.title)
+                        ForEach(group.items) { indexRow($0) }
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 400, height: 580)
+        .background(Color(red: 0.07, green: 0.08, blue: 0.10))
+        .preferredColorScheme(.dark)
+    }
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.5))
+    }
+
+    @ViewBuilder
+    private func indexRow(_ item: WatchIndex) -> some View {
+        let selected = store.isWatchingIndex(item.symbol)
+        Button {
+            store.toggleWatchIndex(item)
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.name).font(.system(size: 12, weight: .medium)).foregroundStyle(.white)
+                    Text(item.symbol).font(.system(size: 9)).foregroundStyle(.white.opacity(0.35))
+                }
+                Spacer()
+                Image(systemName: selected ? "checkmark.circle.fill" : "plus.circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(selected ? gain : .white.opacity(0.4))
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 40)
+            .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func runSearch(_ newValue: String) {
+        searchTask?.cancel()
+        let q = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            store.clearStockSearch()
+            return
+        }
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if Task.isCancelled { return }
+            await store.searchStocks(q)
+        }
     }
 }
 
