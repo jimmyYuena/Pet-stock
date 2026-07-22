@@ -106,6 +106,298 @@ struct StockNews: Identifiable, Hashable {
     let publishedAt: Date
 }
 
+private enum MarketRegion {
+    case mainlandChina
+    case hongKong
+    case unitedStates
+    case unknown
+}
+
+private enum MarketSessionPhase: Equatable {
+    case preMarket
+    case regular
+    case middayBreak
+    case afterHours
+    case overnight
+    case closed
+    case unknown
+
+    var label: String {
+        switch self {
+        case .preMarket: return "盘前交易"
+        case .regular: return "已开市"
+        case .middayBreak: return "午间休市"
+        case .afterHours: return "盘后交易"
+        case .overnight: return "隔夜交易"
+        case .closed: return "休市"
+        case .unknown: return "未设置"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .preMarket: return Color(red: 1.0, green: 0.70, blue: 0.16)
+        case .regular: return Color(red: 0.24, green: 0.78, blue: 0.28)
+        case .middayBreak: return Color(red: 0.78, green: 0.66, blue: 0.34)
+        case .afterHours: return Color(red: 0.57, green: 0.32, blue: 1.0)
+        case .overnight: return Color(red: 0.21, green: 0.54, blue: 1.0)
+        case .closed, .unknown: return Color.white.opacity(0.36)
+        }
+    }
+
+    var shouldRefreshLatestPrice: Bool {
+        switch self {
+        case .preMarket, .regular, .afterHours:
+            return true
+        case .middayBreak, .overnight, .closed, .unknown:
+            return false
+        }
+    }
+}
+
+private struct MarketSessionBadge {
+    let phase: MarketSessionPhase
+    let marketName: String
+    let detail: String
+
+    var label: String { phase.label }
+    var color: Color { phase.color }
+}
+
+private enum USMarketClockMode {
+    case daylightSaving
+    case standard
+
+    var timeZone: TimeZone {
+        switch self {
+        case .daylightSaving:
+            return TimeZone(secondsFromGMT: -4 * 60 * 60)!
+        case .standard:
+            return TimeZone(secondsFromGMT: -5 * 60 * 60)!
+        }
+    }
+}
+
+private enum MarketSessionResolver {
+    private static let utcPlus8 = TimeZone(secondsFromGMT: 8 * 60 * 60)!
+    private static let newYork = TimeZone(identifier: "America/New_York")!
+
+    private struct USMarketClock {
+        let mode: USMarketClockMode
+
+        var calendar: Calendar {
+            MarketSessionResolver.calendar(in: mode.timeZone)
+        }
+    }
+
+    private static let mainlandHolidays2026: Set<String> = [
+        "2026-01-01", "2026-01-02", "2026-01-03",
+        "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
+        "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23",
+        "2026-04-04", "2026-04-05", "2026-04-06",
+        "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05",
+        "2026-06-19", "2026-06-20", "2026-06-21",
+        "2026-09-25", "2026-09-26", "2026-09-27",
+        "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04",
+        "2026-10-05", "2026-10-06", "2026-10-07"
+    ]
+
+    private static let hongKongHolidays2026: Set<String> = [
+        "2026-01-01",
+        "2026-02-17", "2026-02-18", "2026-02-19",
+        "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07",
+        "2026-05-01", "2026-05-25",
+        "2026-06-19",
+        "2026-07-01",
+        "2026-09-26",
+        "2026-10-01", "2026-10-19",
+        "2026-12-25", "2026-12-26"
+    ]
+
+    private static let hongKongHalfDays2026: Set<String> = [
+        "2026-02-16",
+        "2026-12-24",
+        "2026-12-31"
+    ]
+
+    private static let usHolidays2026: Set<String> = [
+        "2026-01-01",
+        "2026-01-19",
+        "2026-02-16",
+        "2026-04-03",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-09-07",
+        "2026-11-26",
+        "2026-12-25"
+    ]
+
+    private static let usEarlyCloseDays2026: Set<String> = [
+        "2026-11-27",
+        "2026-12-24"
+    ]
+
+    static func session(for symbol: String?, at date: Date = Date()) -> MarketSessionBadge {
+        let region = region(for: symbol)
+        switch region {
+        case .mainlandChina:
+            return mainlandSession(at: date)
+        case .hongKong:
+            return hongKongSession(at: date)
+        case .unitedStates:
+            return usSession(at: date)
+        case .unknown:
+            return MarketSessionBadge(phase: .unknown, marketName: "未知市场", detail: "请先设置股票代码")
+        }
+    }
+
+    private static func region(for symbol: String?) -> MarketRegion {
+        let normalized = (symbol ?? "").lowercased()
+        if normalized.hasPrefix("sh") || normalized.hasPrefix("sz") { return .mainlandChina }
+        if normalized.hasPrefix("hk") { return .hongKong }
+        if normalized.hasPrefix("us") { return .unitedStates }
+        return .unknown
+    }
+
+    private static func mainlandSession(at date: Date) -> MarketSessionBadge {
+        let calendar = calendar(in: utcPlus8)
+        let key = dateKey(for: date, calendar: calendar)
+        guard isTradingDay(date, calendar: calendar, holidays: mainlandHolidays2026) else {
+            return MarketSessionBadge(phase: .closed, marketName: "A股", detail: "A股今日休市")
+        }
+
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let phase: MarketSessionPhase
+        switch minute {
+        case ..<minutes(9, 15):
+            phase = .closed
+        case minutes(9, 15)..<minutes(9, 30):
+            phase = .preMarket
+        case minutes(9, 30)..<minutes(11, 30):
+            phase = .regular
+        case minutes(11, 30)..<minutes(13, 0):
+            phase = .middayBreak
+        case minutes(13, 0)..<minutes(15, 0):
+            phase = .regular
+        case minutes(15, 0)..<minutes(15, 30):
+            phase = .afterHours
+        default:
+            phase = .closed
+        }
+        return MarketSessionBadge(phase: phase, marketName: "A股", detail: "A股交易日 \(key) · UTC+8")
+    }
+
+    private static func hongKongSession(at date: Date) -> MarketSessionBadge {
+        let calendar = calendar(in: utcPlus8)
+        let key = dateKey(for: date, calendar: calendar)
+        guard isTradingDay(date, calendar: calendar, holidays: hongKongHolidays2026) else {
+            return MarketSessionBadge(phase: .closed, marketName: "港股", detail: "港股今日休市")
+        }
+
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let isHalfDay = hongKongHalfDays2026.contains(key)
+        let afternoonClose = isHalfDay ? minutes(12, 10) : minutes(16, 10)
+        let afterHoursEnd = isHalfDay ? minutes(13, 0) : minutes(18, 0)
+        let phase: MarketSessionPhase
+        if minute < minutes(9, 0) {
+            phase = .closed
+        } else if minute < minutes(9, 30) {
+            phase = .preMarket
+        } else if minute < minutes(12, 0) {
+            phase = .regular
+        } else if isHalfDay, minute < afternoonClose {
+            phase = .regular
+        } else if !isHalfDay, minute < minutes(13, 0) {
+            phase = .middayBreak
+        } else if !isHalfDay, minute < afternoonClose {
+            phase = .regular
+        } else if minute < afterHoursEnd {
+            phase = .afterHours
+        } else {
+            phase = .closed
+        }
+        return MarketSessionBadge(phase: phase, marketName: "港股", detail: "港股交易日 \(key) · UTC+8")
+    }
+
+    private static func usSession(at date: Date) -> MarketSessionBadge {
+        let marketClock = usMarketClock(at: date)
+        let calendar = marketClock.calendar
+        let key = dateKey(for: date, calendar: calendar)
+        let minute = minuteOfDay(for: date, calendar: calendar)
+        let regularClose = usEarlyCloseDays2026.contains(key) ? minutes(13, 0) : minutes(16, 0)
+        let afterHoursEnd = usEarlyCloseDays2026.contains(key) ? minutes(17, 0) : minutes(20, 0)
+        let isTodayTradingDay = isTradingDay(date, calendar: calendar, holidays: usHolidays2026)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        let nextKey = dateKey(for: nextDate, calendar: calendar)
+        let isNextCalendarDayTradingDay = isTradingDay(nextDate, calendar: calendar, holidays: usHolidays2026)
+        let phase: MarketSessionPhase
+        if minute < minutes(4, 0) {
+            phase = isTodayTradingDay ? .overnight : .closed
+        } else if !isTodayTradingDay {
+            phase = .closed
+        } else if minute < minutes(9, 30) {
+            phase = .preMarket
+        } else if minute < regularClose {
+            phase = .regular
+        } else if minute < afterHoursEnd {
+            phase = .afterHours
+        } else if minute >= minutes(20, 0), isNextCalendarDayTradingDay {
+            phase = .overnight
+        } else {
+            phase = .closed
+        }
+
+        let detail: String
+        if phase == .overnight, minute >= minutes(20, 0) {
+            detail = "隔夜交易连接 \(nextKey) 美股交易日 · 纽约时间"
+        } else if isTodayTradingDay {
+            detail = "美股交易日 \(key) · 纽约时间"
+        } else {
+            detail = "美股今日休市"
+        }
+        return MarketSessionBadge(phase: phase, marketName: "美股", detail: detail)
+    }
+
+    private static func usMarketClock(at date: Date) -> USMarketClock {
+        let mode: USMarketClockMode = newYork.isDaylightSavingTime(for: date)
+            ? .daylightSaving
+            : .standard
+        return USMarketClock(mode: mode)
+    }
+
+    private static func calendar(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    private static func isTradingDay(_ date: Date, calendar: Calendar, holidays: Set<String>) -> Bool {
+        let weekday = calendar.component(.weekday, from: date)
+        guard weekday != 1, weekday != 7 else { return false }
+        return !holidays.contains(dateKey(for: date, calendar: calendar))
+    }
+
+    private static func dateKey(for date: Date, calendar: Calendar) -> String {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
+    }
+
+    private static func minuteOfDay(for date: Date, calendar: Calendar) -> Int {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return minutes(components.hour ?? 0, components.minute ?? 0)
+    }
+
+    private static func minutes(_ hour: Int, _ minute: Int) -> Int {
+        hour * 60 + minute
+    }
+}
+
 final class StockNewsRSSParser: NSObject, XMLParserDelegate {
     private let stock: String
     private var insideItem = false
@@ -188,7 +480,14 @@ final class PetStore: ObservableObject {
             schedulePositionsSave()
         }
     }
-    @Published var notificationsEnabled = true
+    @Published var notificationsEnabled = true {
+        didSet {
+            UserDefaults.standard.set(notificationsEnabled, forKey: Self.notificationsEnabledKey)
+            if notificationsEnabled {
+                requestNotificationAuthorizationIfNeeded()
+            }
+        }
+    }
     @Published var screenshot: NSImage?
     @Published var showingEditor = false
     @Published var newsItems: [StockNews] = []
@@ -206,14 +505,19 @@ final class PetStore: ObservableObject {
 
     private let key = "stockPet.positions.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
+    private static let notificationsEnabledKey = "stockPet.notifications.enabled.v1"
+    private static let notifiedNewsKey = "stockPet.news.notifiedIDs.v1"
     private let speaker = AVSpeechSynthesizer()
     private var isRestoringPositions = true
-    private var hasLoadedNews = false
+    private var notifiedNewsIDs: Set<String> = []
     private var positionsSaveTask: Task<Void, Never>?
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
 
     init() {
+        if UserDefaults.standard.object(forKey: Self.notificationsEnabledKey) != nil {
+            notificationsEnabled = UserDefaults.standard.bool(forKey: Self.notificationsEnabledKey)
+        }
         if let saved = Self.loadSavedPositions(forKey: key) {
             positions = saved
         } else {
@@ -221,6 +525,10 @@ final class PetStore: ObservableObject {
         }
         isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
+        notifiedNewsIDs = Set(UserDefaults.standard.stringArray(forKey: Self.notifiedNewsKey) ?? [])
+        if notificationsEnabled {
+            requestNotificationAuthorizationIfNeeded()
+        }
         startNewsPolling()
         startMarketPolling()
     }
@@ -317,10 +625,20 @@ final class PetStore: ObservableObject {
             for position in positions {
                 let symbol = position.symbol ?? ""
                 let quote = quotes[symbol]
-                let changePercent = quote?.percent ?? position.change
                 let previous = positionMarkets[position.id]
+                let session = MarketSessionResolver.session(for: symbol)
+                let shouldRefreshLatestPrice = session.phase.shouldRefreshLatestPrice
+                let displayedPrice = shouldRefreshLatestPrice
+                    ? quote?.price
+                    : (previous?.currentPrice ?? quote?.price)
+                let changeAmount = shouldRefreshLatestPrice
+                    ? quote?.change ?? 0
+                    : (previous?.changeAmount ?? quote?.change ?? 0)
+                let changePercent = shouldRefreshLatestPrice
+                    ? quote?.percent ?? position.change
+                    : (previous?.changePercent ?? quote?.percent ?? position.change)
                 var liveTrend: [Double]? = nil
-                if includeTrend, !symbol.isEmpty {
+                if includeTrend, shouldRefreshLatestPrice, !symbol.isEmpty {
                     liveTrend = try? await fetchMinuteTrend(symbol)
                 }
 
@@ -339,11 +657,11 @@ final class PetStore: ObservableObject {
                 }
 
                 snapshots[position.id] = PositionMarketSnapshot(
-                    currentPrice: quote?.price,
-                    changeAmount: quote?.change ?? 0,
+                    currentPrice: displayedPrice,
+                    changeAmount: changeAmount,
                     changePercent: changePercent,
                     trend: resolvedTrend,
-                    isLive: isLive
+                    isLive: isLive && shouldRefreshLatestPrice
                 )
             }
             positionMarkets = snapshots
@@ -371,9 +689,57 @@ final class PetStore: ObservableObject {
         let percent: Double
     }
 
+    private struct YahooChartResponse: Decodable {
+        let chart: YahooChart
+    }
+
+    private struct YahooChart: Decodable {
+        let result: [YahooChartResult]?
+    }
+
+    private struct YahooChartResult: Decodable {
+        let meta: YahooChartMeta
+        let indicators: YahooChartIndicators
+    }
+
+    private struct YahooChartMeta: Decodable {
+        let regularMarketPrice: Double?
+        let chartPreviousClose: Double?
+        let previousClose: Double?
+    }
+
+    private struct YahooChartIndicators: Decodable {
+        let quote: [YahooChartQuote]
+    }
+
+    private struct YahooChartQuote: Decodable {
+        let close: [Double?]?
+    }
+
+    private struct NasdaqQuoteInfoResponse: Decodable {
+        let data: NasdaqQuoteData?
+    }
+
+    private struct NasdaqQuoteData: Decodable {
+        let primaryData: NasdaqQuotePriceData?
+    }
+
+    private struct NasdaqQuotePriceData: Decodable {
+        let lastSalePrice: String?
+        let netChange: String?
+        let percentageChange: String?
+    }
+
     private func fetchQuotes(_ symbols: [String]) async throws -> [String: QuoteValue] {
-        guard !symbols.isEmpty,
-              let url = URL(string: "https://qt.gtimg.cn/q=" + symbols.map { "s_\($0)" }.joined(separator: ",")) else {
+        guard !symbols.isEmpty else {
+            return [:]
+        }
+        let querySymbols = symbols.flatMap { symbol -> [String] in
+            symbol.lowercased().hasPrefix("us")
+                ? ["s_\(symbol)", symbol]
+                : ["s_\(symbol)"]
+        }
+        guard let url = URL(string: "https://qt.gtimg.cn/q=" + querySymbols.joined(separator: ",")) else {
             return [:]
         }
         var request = URLRequest(url: url)
@@ -391,16 +757,121 @@ final class PetStore: ObservableObject {
                   let firstQuote = line.firstIndex(of: "\""),
                   let lastQuote = line.lastIndex(of: "\""), firstQuote < lastQuote else { continue }
             let rawKey = String(line[..<equals]).trimmingCharacters(in: .whitespacesAndNewlines)
-            let key = rawKey.replacingOccurrences(of: "v_s_", with: "")
+            let key = rawKey
+                .replacingOccurrences(of: "v_s_", with: "")
+                .replacingOccurrences(of: "v_", with: "")
             let start = line.index(after: firstQuote)
             let fields = line[start..<lastQuote].split(separator: "~", omittingEmptySubsequences: false)
             guard fields.count > 5,
                   let price = Double(fields[3]),
-                  let change = Double(fields[4]),
-                  let percent = Double(fields[5]) else { continue }
+                  let change = Double(fields.count > 30 ? fields[30] : fields[4]),
+                  let percent = Double(fields.count > 31 ? fields[31] : fields[5]) else { continue }
             result[key] = QuoteValue(price: price, change: change, percent: percent)
         }
+
+        for symbol in symbols where shouldFetchUSPrePostQuote(for: symbol) {
+            if let quote = try? await fetchUSPrePostQuote(symbol) {
+                result[symbol] = quote
+            }
+        }
         return result
+    }
+
+    private func shouldFetchUSPrePostQuote(for symbol: String) -> Bool {
+        let normalized = symbol.lowercased()
+        guard normalized.hasPrefix("us") else { return false }
+        return MarketSessionResolver.session(for: normalized).phase.shouldRefreshLatestPrice
+    }
+
+    private func fetchUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
+        if let quote = try? await fetchYahooUSPrePostQuote(symbol) {
+            return quote
+        }
+        return try await fetchNasdaqUSQuote(symbol)
+    }
+
+    private func fetchYahooUSPrePostQuote(_ symbol: String) async throws -> QuoteValue? {
+        let ticker = String(symbol.dropFirst(2)).uppercased()
+        guard !ticker.isEmpty,
+              var components = URLComponents(string: "https://query1.finance.yahoo.com/v8/finance/chart/\(ticker)") else {
+            return nil
+        }
+        components.queryItems = [
+            URLQueryItem(name: "range", value: "1d"),
+            URLQueryItem(name: "interval", value: "1m"),
+            URLQueryItem(name: "includePrePost", value: "true")
+        ]
+        guard let url = components.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("application/json,text/plain,*/*", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let decoded = try JSONDecoder().decode(YahooChartResponse.self, from: data)
+        guard let chart = decoded.chart.result?.first else { return nil }
+
+        let latestPrice = chart.indicators.quote
+            .first?
+            .close?
+            .reversed()
+            .compactMap { $0 }
+            .first ?? chart.meta.regularMarketPrice
+        guard let price = latestPrice else { return nil }
+
+        let previousClose = chart.meta.chartPreviousClose ?? chart.meta.previousClose ?? price
+        let change = price - previousClose
+        let percent = previousClose == 0 ? 0 : change / previousClose * 100
+        return QuoteValue(price: price, change: change, percent: percent)
+    }
+
+    private func fetchNasdaqUSQuote(_ symbol: String) async throws -> QuoteValue? {
+        let ticker = String(symbol.dropFirst(2)).uppercased()
+        guard !ticker.isEmpty,
+              var components = URLComponents(string: "https://api.nasdaq.com/api/quote/\(ticker)/info") else {
+            return nil
+        }
+        components.queryItems = [URLQueryItem(name: "assetclass", value: "stocks")]
+        guard let url = components.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("application/json,text/plain,*/*", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        let decoded = try JSONDecoder().decode(NasdaqQuoteInfoResponse.self, from: data)
+        guard let primaryData = decoded.data?.primaryData,
+              let price = Self.parseMarketNumber(primaryData.lastSalePrice) else {
+            return nil
+        }
+
+        return QuoteValue(
+            price: price,
+            change: Self.parseMarketNumber(primaryData.netChange) ?? 0,
+            percent: Self.parseMarketNumber(primaryData.percentageChange) ?? 0
+        )
+    }
+
+    private static func parseMarketNumber(_ value: String?) -> Double? {
+        guard let value else { return nil }
+        let cleaned = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: "%", with: "")
+            .replacingOccurrences(of: "+", with: "")
+        guard !cleaned.isEmpty, cleaned.lowercased() != "n/a" else { return nil }
+        return Double(cleaned)
     }
 
     private func fetchMinuteTrend(_ symbol: String) async throws -> [Double] {
@@ -597,7 +1068,6 @@ final class PetStore: ObservableObject {
         newsError = nil
         defer { isLoadingNews = false }
 
-        let previousIDs = Set(newsItems.map(\.id))
         var gathered: [StockNews] = []
 
         for position in topPositions {
@@ -629,11 +1099,10 @@ final class PetStore: ObservableObject {
             .prefix(9)
             .map { $0 }
 
-        if hasLoadedNews,
-           let newest = newsItems.first(where: { !previousIDs.contains($0.id) }) {
-            sendNewsNotification(newest)
+        let unnotifiedNews = newsItems.filter {
+            !hiddenNewsIDs.contains($0.id) && !notifiedNewsIDs.contains($0.id)
         }
-        hasLoadedNews = true
+        sendNewsNotification(unnotifiedNews)
     }
 
     func hideNews(_ item: StockNews) {
@@ -650,19 +1119,87 @@ final class PetStore: ObservableObject {
         UserDefaults.standard.set(Array(hiddenNewsIDs.suffix(100)), forKey: hiddenNewsKey)
     }
 
-    private func sendNewsNotification(_ item: StockNews) {
-        guard notificationsEnabled else { return }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
-            guard allowed else { return }
+    private func markNewsAsNotified(_ ids: [String]) {
+        notifiedNewsIDs.formUnion(ids.filter { !$0.isEmpty })
+        UserDefaults.standard.set(Array(Array(notifiedNewsIDs).suffix(200)), forKey: Self.notifiedNewsKey)
+    }
+
+    private func requestNotificationAuthorizationIfNeeded() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else { return }
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        }
+    }
+
+    private func sendSystemNotification(
+        identifier: String,
+        title: String,
+        body: String,
+        threadIdentifier: String,
+        userInfo: [AnyHashable: Any] = [:],
+        completion: ((Bool) -> Void)? = nil
+    ) {
+        guard notificationsEnabled else {
+            completion?(false)
+            return
+        }
+
+        let scheduleNotification = {
             let content = UNMutableNotificationContent()
-            content.title = "\(item.stock) · 热门资讯"
-            content.body = item.title
+            content.title = title
+            content.body = body
             content.sound = .default
-            // 记录对应新闻链接，点击通知时打开网页。
-            if let link = item.link?.absoluteString {
-                content.userInfo = ["link": link]
+            content.threadIdentifier = threadIdentifier
+            content.userInfo = userInfo
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request) { error in
+                completion?(error == nil)
             }
-            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: item.id, content: content, trigger: nil))
+        }
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                scheduleNotification()
+            case .notDetermined:
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
+                    if allowed {
+                        scheduleNotification()
+                    } else {
+                        completion?(false)
+                    }
+                }
+            case .denied:
+                completion?(false)
+            @unknown default:
+                completion?(false)
+            }
+        }
+    }
+
+    private func sendNewsNotification(_ items: [StockNews]) {
+        guard notificationsEnabled, let newest = items.first else { return }
+        let ids = items.map(\.id)
+        let title = items.count == 1 ? "\(newest.stock) · 热门资讯" : "持仓热门资讯"
+        let body = items.count == 1
+            ? newest.title
+            : "新增 \(items.count) 条，\(newest.stock)：\(newest.title)"
+        var userInfo: [AnyHashable: Any] = [:]
+        if let link = newest.link?.absoluteString {
+            userInfo["link"] = link
+        }
+
+        sendSystemNotification(
+            identifier: "stock-news-\(newest.id)",
+            title: title,
+            body: body,
+            threadIdentifier: "stock-news",
+            userInfo: userInfo
+        ) { [weak self] delivered in
+            guard delivered else { return }
+            Task { @MainActor in
+                self?.markNewsAsNotified(ids)
+            }
         }
     }
 
@@ -679,14 +1216,12 @@ final class PetStore: ObservableObject {
         speaker.stopSpeaking(at: .immediate)
         speaker.speak(speech)
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { allowed, _ in
-            guard allowed else { return }
-            let content = UNMutableNotificationContent()
-            content.title = "持仓异动提醒"
-            content.body = message
-            content.sound = .default
-            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
-        }
+        sendSystemNotification(
+            identifier: "stock-alert-\(UUID().uuidString)",
+            title: "持仓异动提醒",
+            body: message,
+            threadIdentifier: "stock-alert"
+        )
     }
 }
 
@@ -788,7 +1323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound])
+        completionHandler([.banner, .list, .sound])
     }
 
     // 点击通知：如果带有新闻链接就用默认浏览器打开对应网页。
@@ -1784,7 +2319,6 @@ struct ContentView: View {
                     action: toggleExpandedWindowPriority
                 )
             }
-            toolbarIcon("chevron.down", help: "收起") { toggleExpanded(false) }
             toolbarIcon("xmark", help: "收起到宠物", action: collapseToCompactPet)
         }
         .padding(.horizontal, usesPeekLayout ? 12 : 20)
@@ -2025,10 +2559,13 @@ struct ContentView: View {
                 Text(position.name)
                     .font(.system(size: 11, weight: .semibold))
                     .lineLimit(1)
-                Text(position.symbol?.uppercased() ?? "未设置代码")
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.3))
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(position.symbol?.uppercased() ?? "未设置代码")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .lineLimit(1)
+                    marketSessionTag(for: position, compact: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -2082,11 +2619,7 @@ struct ContentView: View {
                     Text(position.symbol?.uppercased() ?? "未设置代码")
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.34))
-                    Text(snapshot?.isLive == true ? "实时" : "回退")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(snapshot?.isLive == true ? .blue : .white.opacity(0.32))
-                        .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(.white.opacity(0.05), in: Capsule())
+                    marketSessionTag(for: position)
                 }
             }
             .frame(minWidth: 145, maxWidth: .infinity, alignment: .leading)
@@ -2111,6 +2644,20 @@ struct ContentView: View {
         }
         .padding(.horizontal, 20)
         .frame(height: 82)
+    }
+
+    private func marketSessionTag(for position: Position, compact: Bool = false) -> some View {
+        let session = MarketSessionResolver.session(for: position.symbol)
+        return Text(session.label)
+            .font(.system(size: compact ? 7 : 8, weight: .semibold))
+            .foregroundStyle(session.color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, compact ? 4 : 5)
+            .padding(.vertical, 2)
+            .background(session.color.opacity(0.13), in: Capsule())
+            .overlay(Capsule().stroke(session.color.opacity(0.24), lineWidth: 1))
+            .help("\(session.marketName) · \(session.detail)")
     }
 
     private var marketUpdateText: String {
@@ -2249,8 +2796,8 @@ struct ContentView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("异动提醒").font(.system(size: 11, weight: .semibold))
-                    Text("语音与系统弹窗").font(.system(size: 8)).foregroundStyle(.white.opacity(0.34))
+                    Text("系统推送").font(.system(size: 11, weight: .semibold))
+                    Text("热门资讯与异动提醒").font(.system(size: 8)).foregroundStyle(.white.opacity(0.34))
                 }
                 Spacer()
                 Toggle("", isOn: $store.notificationsEnabled).labelsHidden().toggleStyle(.switch).tint(.red)
