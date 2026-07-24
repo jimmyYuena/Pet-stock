@@ -1,9 +1,10 @@
 # Third-party artwork notice
 
-The public v0.4.1 release does not ship the OpenPets packs listed below. Public
-builds include only the original SwiftUI robot and the CC0 skins documented at
-the end of this file. The following packs may exist in a private local
-development workspace, but are excluded from public DMGs and new source commits:
+Public builds include the original SwiftUI robot, the CC0 skins documented at
+the end of this file, and the project-owner-supplied derivative artwork listed
+as public below. Other OpenPets packs may exist in a private local development
+workspace, but remain excluded from public packages unless added to the explicit
+public build list:
 
 - OpenPets: https://github.com/alvinunreal/openpets
 - Pet gallery: https://openpets.dev/
@@ -27,13 +28,22 @@ development workspace, but are excluded from public DMGs and new source commits:
   Note: several of these are fan-made likenesses of commercial IP characters
   (Labubu/POP MART, Chiikawa series, 奶龙, Crybaby). Local personal use only —
   do NOT redistribute or ship publicly without rights clearance.
+- gpt-niang (`gptniang` GPT娘): project-owner-supplied OpenPets-format pack
+  (uploaded zip, 9-state atlas incl. run-left/run-right). Included in public
+  builds as commercially usable derivative artwork per the project owner.
+- 2026-07-24 public character batch: Pikachu, Doraemon-series Gian/Suneo/Shizuka,
+  Crayon Shin-chan, Chibi Maruko-chan, Tetsuwan Atom, Sailor Moon/Usagi Tsukino,
+  Kagome Higurashi, Kaito Kid, League of Legends Heimerdinger, JX3 衍天宗/醋摆摆,
+  BanG Dream 丰川祥子, Nimbus/筋斗云小孩, and 山田. These OpenPets-format
+  derivative atlases were supplied by the project owner, who states that the
+  adaptations may be used commercially. They are included in public DMG and
+  App Store builds through the explicit public pet list.
 
 The OpenPets application code is MIT-licensed. OpenPets states that pet
 spritesheets and preview images are licensed separately by their creators and
-are not automatically covered by the application's MIT license. These frames
-are currently included only for local, non-commercial development and should
-not be redistributed until explicit permission or a compatible asset license
-has been confirmed.
+are not automatically covered by the application's MIT license. Packs not
+explicitly identified above as public remain local-only until their commercial
+and redistribution status is confirmed.
 
 ## itch.io asset packs included in the app
 

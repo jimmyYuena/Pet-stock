@@ -3,6 +3,15 @@
 build/
 .dev/
 dev-build/
+app-store-export/
+*.pkg
+*.provisionprofile
+*.mobileprovision
+*.p12
+*.cer
+.appstore.env
+pet/incoming/
+pet/new/
 
 # 签名证书 / 钥匙串（含私钥，勿提交）
 packaging/macos/certificates/

@@ -49,6 +49,17 @@
 
 产物固定为 `build/持仓宠物.dmg`。每次构建都会删除旧安装包和临时应用，只保留最新版本；安装时拖入 Applications 即可覆盖旧版。当前构建目标为 Apple Silicon（arm64）Mac。
 
+## Mac App Store 准备
+
+Mac App Store 使用独立于官网 DMG 的沙盒签名流程。仓库已提供：
+
+- `native/StockPet.entitlements`：商店版最小沙盒权限；
+- `native/PrivacyInfo.xcprivacy`：隐私清单；
+- `build-app-store.sh`：使用环境变量读取证书和描述文件的商店 `.pkg` 构建脚本；
+- `APP_STORE_SUBMISSION.md`：App Store Connect、素材授权、审核备注和上传清单。
+
+商店签名资料不得提交到仓库。详细步骤见 [APP_STORE_SUBMISSION.md](APP_STORE_SUBMISSION.md)。
+
 ## 0.3.2 功能
 
 - 上传持仓截图作为录入参考

@@ -6,11 +6,13 @@ ROOT="${0:A:h}"
 # 会导致通知/图标服务取不到 app 图标（通知左侧空白）。
 APP="$ROOT/dev-build/持仓宠物.app"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
-EXTENDED_SKINS=(labubu chiikawa usagi hachiware capy shuitunlulu deskotter nai gugugaga crybaby beretbear woolbell bubu jokebear obear)
-SWIFT_FLAGS=()
+source "$ROOT/packaging/public-pet-skins.zsh"
+SWIFT_FLAGS=(-D PUBLIC_CREATOR_SKINS)
+HAS_LOCAL_EXTENDED_SKINS=false
 
 if [[ -f "$ROOT/native/Resources/OpenPets/skin_labubu_idle_0.png" ]]; then
-  SWIFT_FLAGS+=(-D LOCAL_EXTENDED_SKINS)
+  SWIFT_FLAGS=(-D LOCAL_EXTENDED_SKINS)
+  HAS_LOCAL_EXTENDED_SKINS=true
 fi
 
 pkill -x StockPet 2>/dev/null || true
@@ -38,13 +40,13 @@ if command -v iconutil >/dev/null 2>&1; then
 else
   cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
 fi
-if (( ${#SWIFT_FLAGS[@]} > 0 )); then
-  for prefix in "${EXTENDED_SKINS[@]}"; do
-    cp "$ROOT/native/Resources/OpenPets/skin_${prefix}_"*.png "$APP/Contents/Resources/"
-  done
+if [[ "$HAS_LOCAL_EXTENDED_SKINS" == true ]]; then
+  cp "$ROOT/native/Resources/OpenPets/"skin_*.png "$APP/Contents/Resources/"
+else
+  copy_public_pet_skins \
+    "$ROOT/native/Resources/OpenPets" \
+    "$APP/Contents/Resources"
 fi
-cp "$ROOT/native/Resources/OpenPets/"skin_mech_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_polar_*.png "$APP/Contents/Resources/"
 codesign --force --deep --sign - "$APP" >/dev/null
 # 让 LaunchServices 重新登记这个 app 的图标，并刷新 Dock / 通知守护进程的图标缓存，
 # 否则通知左侧会一直沿用早期构建缓存下来的空白图标。

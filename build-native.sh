@@ -4,14 +4,16 @@ set -euo pipefail
 ROOT="${0:A:h}"
 BUILD="$ROOT/build"
 APP="$BUILD/持仓宠物.app"
-VERSION="0.4.1"
+VERSION="0.4.2"
 DMG="$BUILD/持仓宠物.dmg"
+source "$ROOT/packaging/public-pet-skins.zsh"
 
 rm -rf "$APP" "$BUILD/dmg-root"
 find "$BUILD" -maxdepth 1 -type f -name '持仓宠物*.dmg' -exec rm -f {} + 2>/dev/null || true
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$BUILD/dmg-root"
 
 swiftc -parse-as-library \
+  -D PUBLIC_CREATOR_SKINS \
   -target arm64-apple-macos15.0 \
   -framework SwiftUI \
   -framework AppKit \
@@ -26,10 +28,9 @@ if command -v iconutil >/dev/null 2>&1; then
 else
   cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
 fi
-# Public releases contain only original artwork and assets with confirmed
-# redistribution terms. Local-only OpenPets packs are intentionally excluded.
-cp "$ROOT/native/Resources/OpenPets/"skin_mech_*.png "$APP/Contents/Resources/"
-cp "$ROOT/native/Resources/OpenPets/"skin_polar_*.png "$APP/Contents/Resources/"
+copy_public_pet_skins \
+  "$ROOT/native/Resources/OpenPets" \
+  "$APP/Contents/Resources"
 codesign --force --deep --sign - "$APP"
 
 cp -R "$APP" "$BUILD/dmg-root/"

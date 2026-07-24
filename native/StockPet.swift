@@ -2050,6 +2050,57 @@ private func defaultCompactWindowFrame(for window: NSWindow) -> NSRect {
     )
 }
 
+private enum AnonymousUsageAnalytics {
+    private static let installationIDKey = "stockPet.analytics.installationID.v1"
+    private static let lastReportedDayKey = "stockPet.analytics.lastReportedDay.v1"
+    private static let endpoint = URL(string: "https://mclarenai.cn/api/stock-pet/events/app-open")!
+
+    static func reportAppOpenIfNeeded() {
+        let defaults = UserDefaults.standard
+        let today = chinaDayString()
+        guard defaults.string(forKey: lastReportedDayKey) != today else { return }
+
+        let installationID: String
+        if let existing = defaults.string(forKey: installationIDKey), UUID(uuidString: existing) != nil {
+            installationID = existing
+        } else {
+            installationID = UUID().uuidString.lowercased()
+            defaults.set(installationID, forKey: installationIDKey)
+        }
+
+        let info = Bundle.main.infoDictionary
+        let payload: [String: String] = [
+            "installation_id": installationID,
+            "app_version": info?["CFBundleShortVersionString"] as? String ?? "unknown",
+            "build": info?["CFBundleVersion"] as? String ?? "unknown",
+            "os_version": ProcessInfo.processInfo.operatingSystemVersionString,
+            "locale": Locale.current.identifier
+        ]
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.timeoutInterval = 8
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        Task {
+            guard let (_, response) = try? await URLSession.shared.data(for: request),
+                  let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else { return }
+            defaults.set(today, forKey: lastReportedDayKey)
+        }
+    }
+
+    private static func chinaDayString() -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let iconURL = Bundle.main.url(forResource: "StockPet", withExtension: "icns"),
@@ -2057,6 +2108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             NSApplication.shared.applicationIconImage = iconImage
         }
         UNUserNotificationCenter.current().delegate = self
+        AnonymousUsageAnalytics.reportAppOpenIfNeeded()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             guard let window = self.mainPetWindow else { return }
             UserDefaults.standard.set(false, forKey: mainPetWindowExpandedKey)
@@ -2375,11 +2427,115 @@ enum PetAnimTuning {
     static var speedMultiplier: Double = 1.0
 }
 
+enum PetAnimationAction: String, CaseIterable, Codable, Hashable, Identifiable {
+    case idle
+    case happy
+    case sad
+    case waving
+    case jump
+    case failed
+    case waiting
+    case review
+    case runleft
+    case runright
+    case run
+    case walk
+    case attack
+    case shoot
+    case hurt
+    case crash
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .idle: return "待机"
+        case .happy: return "开心"
+        case .sad: return "难过"
+        case .waving: return "挥手"
+        case .jump: return "跳跃"
+        case .failed: return "倒下"
+        case .waiting: return "小憩"
+        case .review: return "思考"
+        case .runleft: return "向左跑"
+        case .runright: return "向右跑"
+        case .run: return "奔跑"
+        case .walk: return "行走"
+        case .attack: return "攻击"
+        case .shoot: return "发射"
+        case .hurt: return "受击"
+        case .crash: return "摔倒"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .idle: return "figure.stand"
+        case .happy: return "face.smiling"
+        case .sad: return "cloud.rain"
+        case .waving: return "hand.wave"
+        case .jump: return "arrow.up"
+        case .failed: return "arrow.down.to.line"
+        case .waiting: return "zzz"
+        case .review: return "text.magnifyingglass"
+        case .runleft: return "arrow.left"
+        case .runright: return "arrow.right"
+        case .run: return "figure.run"
+        case .walk: return "figure.walk"
+        case .attack: return "bolt.fill"
+        case .shoot: return "scope"
+        case .hurt: return "bandage"
+        case .crash: return "exclamationmark.triangle"
+        }
+    }
+
+    var playbackSpeed: Double {
+        switch self {
+        case .runleft, .runright, .run: return 6.0
+        case .walk: return 4.5
+        case .attack, .shoot, .jump: return 5.0
+        case .waiting: return 2.6
+        default: return 4.0
+        }
+    }
+}
+
+/// 运行时探测皮肤某个动作的帧数（skin_<id>_<state>_N 连号计数），结果缓存。
+/// 好处：新皮肤只要把帧文件放进资源就自动识别，不用改代码里的帧数表。
+enum PetFrameProbe {
+    nonisolated(unsafe) private static var cache: [String: Int] = [:]
+
+    static func frameCount(skin: String, state: String) -> Int {
+        let key = "\(skin)|\(state)"
+        if let cached = cache[key] { return cached }
+        var count = 0
+        while count < 24, NSImage(named: NSImage.Name("skin_\(skin)_\(state)_\(count)")) != nil {
+            count += 1
+        }
+        cache[key] = count
+        return count
+    }
+}
+
+struct PetAnimationSettings: Codable, Equatable {
+    var scale: Double = 1.0
+    var primaryAction: PetAnimationAction = .idle
+    var hoverAction: PetAnimationAction = .happy
+    var positiveAction: PetAnimationAction = .happy
+    var negativeAction: PetAnimationAction = .sad
+
+    static let `default` = PetAnimationSettings()
+}
+
 @MainActor
 final class PetDebugState: ObservableObject {
+    private static let appearanceSettingsKey = "stockPet.appearanceAnimationSettings.v1"
+
     @Published var isMockingReturn = false
     @Published var mockReturnRate = 0.0
     @Published var actionToken = UUID()
+    @Published var previewAction: PetAnimationAction?
+    @Published private(set) var appearanceSettings: [String: PetAnimationSettings]
 
     @Published var speedMultiplier: Double {
         didSet {
@@ -2397,11 +2553,45 @@ final class PetDebugState: ObservableObject {
     }
 
     init() {
+        if let data = UserDefaults.standard.data(forKey: Self.appearanceSettingsKey),
+           let saved = try? JSONDecoder().decode([String: PetAnimationSettings].self, from: data) {
+            appearanceSettings = saved
+        } else {
+            appearanceSettings = [:]
+        }
         overrideEnabled = UserDefaults.standard.bool(forKey: "stockPet.mockOverride.enabled.v1")
         overrideValue = UserDefaults.standard.double(forKey: "stockPet.mockOverride.value.v1")
         let savedSpeed = UserDefaults.standard.double(forKey: "stockPet.animSpeed.v1")
         speedMultiplier = savedSpeed > 0 ? savedSpeed : 1.0
         PetAnimTuning.speedMultiplier = speedMultiplier
+    }
+
+    func settings(for appearance: PetAppearance) -> PetAnimationSettings {
+        var settings = appearanceSettings[appearance.rawValue] ?? .default
+        let available = Set(appearance.availableAnimationActions)
+        if !available.contains(settings.primaryAction) { settings.primaryAction = .idle }
+        if !available.contains(settings.hoverAction) {
+            settings.hoverAction = available.contains(.happy) ? .happy : .idle
+        }
+        if !available.contains(settings.positiveAction) {
+            settings.positiveAction = available.contains(.happy) ? .happy : .idle
+        }
+        if !available.contains(settings.negativeAction) {
+            settings.negativeAction = available.contains(.sad) ? .sad : .idle
+        }
+        return settings
+    }
+
+    func updateSettings(
+        for appearance: PetAppearance,
+        _ update: (inout PetAnimationSettings) -> Void
+    ) {
+        var settings = settings(for: appearance)
+        update(&settings)
+        settings.scale = min(2.0, max(0.5, settings.scale))
+        appearanceSettings[appearance.rawValue] = settings
+        guard let data = try? JSONEncoder().encode(appearanceSettings) else { return }
+        UserDefaults.standard.set(data, forKey: Self.appearanceSettingsKey)
     }
 }
 
@@ -2443,18 +2633,36 @@ struct PetSkinSpec {
     let idleFrames: Int
     let happyFrames: Int
     let sadFrames: Int
+    /// 左右跑动帧数（0 表示该皮肤没有跑动动画）
+    var runFrames: Int = 0
 }
 
 enum PetAppearance: String, CaseIterable, Identifiable {
     case robot, mech, polar
+    case gptniang
     case labubu, chiikawa, usagi, hachiware, capy, shuitunlulu, deskotter, nai, gugugaga, crybaby
     case beretbear, woolbell, bubu, jokebear, obear
+    case caishen
+    case fleetsnowfluff, kunkunchick, yuexinmiao, pingo, guanmiao, advzombie
+    case pikachu
+    case gian, suneo, shizuka
+    case shinchan, maruko, atom, sailormoon
+    case kagome, kaitokid, heimerdinger
+    case yantianzong, cubaibai, sakiko, nimbus, yamada
 
     var id: String { rawValue }
 
     static var availableCases: [PetAppearance] {
 #if LOCAL_EXTENDED_SKINS
         Array(allCases)
+#elseif PUBLIC_CREATOR_SKINS
+        [
+            .robot, .mech, .polar, .gptniang,
+            .pikachu, .gian, .suneo, .shizuka,
+            .shinchan, .maruko, .atom, .sailormoon,
+            .kagome, .kaitokid, .heimerdinger,
+            .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada
+        ]
 #else
         [.robot, .mech, .polar]
 #endif
@@ -2465,6 +2673,7 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .robot: return "行情机器人"
         case .mech: return "涨跌机甲"
         case .polar: return "红绿北极熊"
+        case .gptniang: return "GPT娘"
         case .labubu: return "拉布布"
         case .chiikawa: return "吉伊"
         case .usagi: return "疯兔"
@@ -2480,6 +2689,29 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .bubu: return "布布熊"
         case .jokebear: return "搞笑白熊"
         case .obear: return "围巾棕熊"
+        case .caishen: return "财神爷"
+        case .fleetsnowfluff: return "雪绒码农"
+        case .kunkunchick: return "坤坤鸡"
+        case .yuexinmiao: return "月薪喵"
+        case .pingo: return "企鹅Pingo"
+        case .guanmiao: return "官喵"
+        case .advzombie: return "冒险僵尸"
+        case .pikachu: return "Pikachu"
+        case .gian: return "哆啦A梦·胖虎"
+        case .suneo: return "哆啦A梦·小夫"
+        case .shizuka: return "哆啦A梦·静香"
+        case .shinchan: return "蜡笔小新"
+        case .maruko: return "樱桃小丸子"
+        case .atom: return "铁臂阿童木"
+        case .sailormoon: return "美少女战士"
+        case .kagome: return "犬夜叉·戈薇"
+        case .kaitokid: return "怪盗基德"
+        case .heimerdinger: return "LoL 黑默丁格"
+        case .yantianzong: return "剑网3·衍天宗"
+        case .cubaibai: return "剑网3·醋摆摆"
+        case .sakiko: return "丰川祥子"
+        case .nimbus: return "筋斗云小孩"
+        case .yamada: return "山田"
         }
     }
 
@@ -2490,14 +2722,58 @@ enum PetAppearance: String, CaseIterable, Identifiable {
             return PetSkinSpec(idleFrames: 10, happyFrames: 10, sadFrames: 10)
         case .polar:
             return PetSkinSpec(idleFrames: 12, happyFrames: 12, sadFrames: 10)
+        case .gptniang:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
         case .labubu, .chiikawa, .usagi, .hachiware, .capy, .shuitunlulu, .deskotter, .nai, .gugugaga, .crybaby:
-            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
         case .beretbear, .woolbell:
-            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
         case .bubu, .jokebear, .obear:
-            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8)
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .caishen:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 6, sadFrames: 6)
+        case .fleetsnowfluff, .kunkunchick, .yuexinmiao, .pingo, .guanmiao, .advzombie:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 6, sadFrames: 6, runFrames: 8)
+        case .pikachu, .gian, .suneo, .shizuka, .shinchan, .maruko, .atom, .sailormoon,
+             .kagome, .kaitokid, .heimerdinger, .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada:
+            return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
         default:
             return nil
+        }
+    }
+
+    var availableAnimationActions: [PetAnimationAction] {
+        if self == .robot {
+            return [.idle, .happy, .sad]
+        }
+        return PetAnimationAction.allCases.filter { animationFrameCount(for: $0) > 0 }
+    }
+
+    func animationFrameCount(for action: PetAnimationAction) -> Int {
+        switch self {
+        case .robot:
+            return [.idle, .happy, .sad].contains(action) ? 1 : 0
+        case .mech:
+            switch action {
+            case .idle, .happy, .sad: return 10
+            case .run, .attack: return 8
+            case .shoot: return 4
+            case .crash: return 10
+            default: return 0
+            }
+        case .polar:
+            switch action {
+            case .idle, .happy: return 12
+            case .sad, .run, .jump, .crash: return 10
+            case .walk: return 12
+            case .attack: return 8
+            case .hurt: return 6
+            default: return 0
+            }
+        default:
+            guard skinSpec != nil else { return 0 }
+            // 运行时按资源文件自动探测帧数：素材有哪 9 个动作就能播哪 9 个
+            return PetFrameProbe.frameCount(skin: rawValue, state: action.rawValue)
         }
     }
 
@@ -2517,6 +2793,7 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .robot: return "红涨绿跌随行情变身，元气担当"
         case .mech: return "七档收益动作：奔跑、跳跃、攻击、滑倒"
         case .polar: return "八档收益动作：欢跑、投掷、受击、眩晕"
+        case .gptniang: return "白发 GPT 娘，拖拽还会左右小跑"
         case .labubu: return "顶流拉布布，涨跌都拉风"
         case .chiikawa: return "小小一只，替你扛住大盘"
         case .usagi: return "乌拉！涨了跟你一起发疯"
@@ -2532,6 +2809,29 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .bubu: return "软乎乎布布，跌了也抱抱你"
         case .jokebear: return "淡定白熊，涨跌都好笑"
         case .obear: return "红围巾棕熊，暖暖守护仓位"
+        case .caishen: return "财神爷坐镇，涨了给你发红包，跌了替你镇宅"
+        case .fleetsnowfluff: return "粉发墨镜小码农，边敲代码边盯盘"
+        case .kunkunchick: return "篮球背带小鸡，涨了给你来段律动"
+        case .yuexinmiao: return "月薪喵陪你搬砖，赚了加鸡腿"
+        case .pingo: return "红围巾企鹅，冷静吃鱼稳如冰山"
+        case .guanmiao: return "红袍官喵保佑，仓位步步高升"
+        case .advzombie: return "冒险小僵尸，跌麻了也能爬起来"
+        case .pikachu: return "电气鼠陪你盯盘，涨了放电庆祝"
+        case .gian: return "胖虎气场全开，替你扛住行情波动"
+        case .suneo: return "小夫灵活机敏，陪你观察盘面变化"
+        case .shizuka: return "静香温柔陪伴，涨跌都保持从容"
+        case .shinchan: return "小新负责搞怪，震荡行情也不无聊"
+        case .maruko: return "小丸子陪你慢慢看盘，不被波动带节奏"
+        case .atom: return "阿童木能量满格，守护你的核心仓位"
+        case .sailormoon: return "月野兔变身守护，收益转正一起庆祝"
+        case .kagome: return "戈薇穿越行情波动，陪你等待机会"
+        case .kaitokid: return "怪盗基德优雅登场，捕捉盘面异动"
+        case .heimerdinger: return "大发明家启动装置，研究每一次行情变化"
+        case .yantianzong: return "衍天宗观星推演，陪你判断市场方向"
+        case .cubaibai: return "醋摆摆执笔看盘，涨跌都淡定应对"
+        case .sakiko: return "丰川祥子陪你专注工作，也关心今日收益"
+        case .nimbus: return "乘着筋斗云穿越行情，涨了就加速"
+        case .yamada: return "山田安静陪伴，工作看盘两不误"
         }
     }
 }
@@ -2550,6 +2850,10 @@ struct ContentView: View {
     @State private var compactPetHovering = false
     @State private var compactWindowFrameBeforeExpansion: NSRect?
     @GestureState private var draggingCompactWindow = false
+    @State private var walkDirection = 0
+    @State private var walkStopToken = UUID()
+    @State private var dragEventMonitor: Any?
+    @State private var lastWindowX: CGFloat?
     @State private var hoveringPet = false
     @State private var isScreenshotDropTargeted = false
     @State private var alertPulse = false
@@ -2589,6 +2893,19 @@ struct ContentView: View {
         return PetAppearance.availableCases.contains(selected) ? selected : .robot
     }
 
+    private var selectedAnimationSettings: PetAnimationSettings {
+        debugState.settings(for: selectedAppearance)
+    }
+
+    private var appearanceScaleBinding: Binding<Double> {
+        Binding(
+            get: { selectedAnimationSettings.scale },
+            set: { newValue in
+                debugState.updateSettings(for: selectedAppearance) { $0.scale = newValue }
+            }
+        )
+    }
+
     private var speedMultiplierBinding: Binding<Double> {
         Binding(
             get: { debugState.speedMultiplier },
@@ -2618,10 +2935,12 @@ struct ContentView: View {
         return CGFloat(1 + clampedReturn / 20)
     }
 
-    private var compactPetSide: CGFloat { 100 * petScale }
+    private var compactPetSide: CGFloat { 116 * petScale }
 
     private var compactWindowSize: NSSize {
-        NSSize(width: compactPetSide + 50, height: compactPetSide + 65)
+        // 侧边和顶部多留白：跑动/跳跃姿势会甩出精灵图中心区域，避免被窗口边裁切
+        let visualSide = compactPetSide * CGFloat(selectedAnimationSettings.scale)
+        return NSSize(width: visualSide + 92, height: visualSide + 104)
     }
 
     private var expandedWindowHeight: CGFloat {
@@ -2679,11 +2998,18 @@ struct ContentView: View {
                 }
             }
         }
+        .onChange(of: selectedAnimationSettings.scale) { _, _ in
+            guard !isDebugWindow, !isExpanded else { return }
+            DispatchQueue.main.async {
+                resizeCompactWindowForReturn()
+            }
+        }
         .onAppear {
             if !isDebugWindow {
                 DispatchQueue.main.async {
                     resizeCompactWindowForReturn(animated: false)
                 }
+                installDragWalkMonitor()
             }
         }
         .sheet(isPresented: $showingPetStore) {
@@ -2721,6 +3047,10 @@ struct ContentView: View {
         }
         .onDisappear {
             if isDebugWindow { resetDebugState() }
+            if let monitor = dragEventMonitor {
+                NotificationCenter.default.removeObserver(monitor)
+                dragEventMonitor = nil
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             if !isDebugWindow {
@@ -2740,9 +3070,13 @@ struct ContentView: View {
                 returnRate: displayReturn,
                 isAlerting: alertPulse,
                 isHovered: compactPetHovering,
-                appearance: selectedAppearance
+                appearance: selectedAppearance,
+                animationSettings: selectedAnimationSettings,
+                previewAction: debugState.previewAction,
+                walkDirection: walkDirection
             )
             .frame(width: compactPetSide, height: compactPetSide)
+            .id(debugState.actionToken)
             .overlay {
                 CompactPetInteractionLayer {
                     toggleExpanded(true)
@@ -2755,7 +3089,7 @@ struct ContentView: View {
                 .padding(.vertical, 4)
                 .background(mood.color.opacity(0.9), in: Capsule())
                 .overlay(Capsule().stroke(.white.opacity(0.18)))
-                .offset(y: compactPetSide / 2 + 16)
+                .offset(y: compactPetSide * CGFloat(selectedAnimationSettings.scale) / 2 + 16)
                 .allowsHitTesting(false)
             VStack {
                 HStack {
@@ -3041,9 +3375,12 @@ struct ContentView: View {
                 returnRate: displayReturn,
                 isAlerting: alertPulse,
                 isHovered: hoveringPet,
-                appearance: selectedAppearance
+                appearance: selectedAppearance,
+                animationSettings: selectedAnimationSettings,
+                previewAction: debugState.previewAction
             )
             .frame(width: 150, height: 150)
+            .id(debugState.actionToken)
             .onHover { hoveringPet = $0 }
             Text(statusText).font(.system(size: 12)).foregroundStyle(.white.opacity(0.58))
             Text(percent(displayReturn))
@@ -3630,9 +3967,12 @@ struct ContentView: View {
                         returnRate: displayReturn,
                         isAlerting: alertPulse,
                         isHovered: hoveringPet,
-                        appearance: selectedAppearance
+                        appearance: selectedAppearance,
+                        animationSettings: selectedAnimationSettings,
+                        previewAction: debugState.previewAction
                     )
                     .frame(width: 150, height: 150)
+                    .id(debugState.actionToken)
                 }
                 .frame(width: 160, height: 150)
                 .contentShape(Rectangle())
@@ -3928,7 +4268,8 @@ struct ContentView: View {
                                 returnRate: displayReturn,
                                 isAlerting: false,
                                 isHovered: false,
-                                appearance: appearance
+                                appearance: appearance,
+                                animationSettings: debugState.settings(for: appearance)
                             )
                             .frame(height: 112)
                             Text(appearance.name).font(.system(size: 13, weight: .semibold))
@@ -3958,6 +4299,10 @@ struct ContentView: View {
 
     private func selectAppearance(_ appearance: PetAppearance) {
         selectedAppearanceRaw = appearance.rawValue
+        if let previewAction = debugState.previewAction,
+           !appearance.availableAnimationActions.contains(previewAction) {
+            debugState.previewAction = nil
+        }
         triggerPetMotion()
     }
 
@@ -4102,6 +4447,8 @@ struct ContentView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(.white.opacity(0.52))
 
+            petSizeControl
+
             VStack(alignment: .leading, spacing: 7) {
                 HStack {
                     Text("总收益率")
@@ -4154,6 +4501,8 @@ struct ContentView: View {
                 }
             }
 
+            animationActionPanel
+
             Button {
                 debugState.isMockingReturn = true
                 store.testAlert(returnRate: debugState.mockReturnRate)
@@ -4205,6 +4554,145 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(mood.color.opacity(0.48), lineWidth: 1)
         )
+    }
+
+    private var petSizeControl: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text("人物大小")
+                    .font(.system(size: 10, weight: .medium))
+                Spacer()
+                Text("×\(String(format: "%.2f", selectedAnimationSettings.scale))")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(selectedAnimationSettings.scale == 1 ? .secondary : mood.color)
+            }
+            Slider(value: appearanceScaleBinding, in: 0.5...2.0, step: 0.05)
+                .tint(mood.color)
+            HStack(spacing: 5) {
+                ForEach([0.5, 0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { scale in
+                    Button("×\(petScaleLabel(scale))") {
+                        debugState.updateSettings(for: selectedAppearance) { $0.scale = scale }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
+                Spacer()
+                Text("仅对当前宠物生效")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.white.opacity(0.38))
+            }
+        }
+    }
+
+    private func petScaleLabel(_ scale: Double) -> String {
+        if scale.rounded() == scale { return String(format: "%.0f", scale) }
+        if (scale * 10).rounded() == scale * 10 { return String(format: "%.1f", scale) }
+        return String(format: "%.2f", scale)
+    }
+
+    private var animationActionPanel: some View {
+        let selectedAction = debugState.previewAction ?? selectedAnimationSettings.primaryAction
+        return VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label("动作预览与分配", systemImage: "play.rectangle")
+                    .font(.system(size: 10, weight: .semibold))
+                Spacer()
+                Text("点击动作，调试页与右侧宠物同步播放")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.white.opacity(0.38))
+            }
+
+            ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 6) {
+                    ForEach(selectedAppearance.availableAnimationActions) { action in
+                        Button {
+                            debugState.previewAction = action
+                            debugState.actionToken = UUID()
+                        } label: {
+                            Label(action.label, systemImage: action.systemImage)
+                                .font(.system(size: 9, weight: selectedAction == action ? .semibold : .regular))
+                                .padding(.horizontal, 8)
+                                .frame(height: 28)
+                                .background(
+                                    selectedAction == action ? mood.color.opacity(0.24) : .white.opacity(0.05),
+                                    in: RoundedRectangle(cornerRadius: 8)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(selectedAction == action ? mood.color.opacity(0.8) : .white.opacity(0.07))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.bottom, 3)
+            }
+            .frame(height: 36)
+
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: 6
+            ) {
+                animationRoleSummary("主要动作", action: selectedAnimationSettings.primaryAction, icon: "star.fill")
+                animationRoleSummary("鼠标悬停", action: selectedAnimationSettings.hoverAction, icon: "cursorarrow.motionlines")
+                animationRoleSummary("收益为正", action: selectedAnimationSettings.positiveAction, icon: "arrow.up.right")
+                animationRoleSummary("收益为负", action: selectedAnimationSettings.negativeAction, icon: "arrow.down.right")
+            }
+
+            Text("把「\(selectedAction.label)」设置为")
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.48))
+
+            HStack(spacing: 5) {
+                animationAssignmentButton("主要", icon: "star") { $0.primaryAction = selectedAction }
+                animationAssignmentButton("悬停", icon: "cursorarrow") { $0.hoverAction = selectedAction }
+                animationAssignmentButton("开心", icon: "arrow.up") { $0.positiveAction = selectedAction }
+                animationAssignmentButton("难过", icon: "arrow.down") { $0.negativeAction = selectedAction }
+            }
+        }
+        .padding(10)
+        .background(.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.07)))
+    }
+
+    private func animationRoleSummary(
+        _ title: String,
+        action: PetAnimationAction,
+        icon: String
+    ) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(mood.color)
+            Text(title)
+                .font(.system(size: 8))
+                .foregroundStyle(.white.opacity(0.42))
+            Spacer()
+            Text(action.label)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.78))
+        }
+        .padding(.horizontal, 7)
+        .frame(height: 25)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 7))
+    }
+
+    private func animationAssignmentButton(
+        _ title: String,
+        icon: String,
+        update: @escaping (inout PetAnimationSettings) -> Void
+    ) -> some View {
+        Button {
+            debugState.updateSettings(for: selectedAppearance, update)
+            debugState.actionToken = UUID()
+        } label: {
+            Label(title, systemImage: icon)
+                .font(.system(size: 8, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 27)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.mini)
     }
 
     private var editor: some View {
@@ -4766,6 +5254,43 @@ struct ContentView: View {
         }
     }
 
+    /// 监听窗口移动：拖动迷你宠物时按水平位移方向播放左/右跑动动画。
+    /// 不用 NSEvent 拖拽监听——系统接管窗口拖动时收不到 leftMouseDragged。
+    private func installDragWalkMonitor() {
+        guard dragEventMonitor == nil else { return }
+        dragEventMonitor = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            let window = note.object as? NSWindow
+            Task { @MainActor in
+                handleWindowMove(window)
+            }
+        }
+    }
+
+    @MainActor
+    private func handleWindowMove(_ window: NSWindow?) {
+        guard !isExpanded,
+              let window,
+              window.title == "持仓宠物",
+              NSEvent.pressedMouseButtons & 1 == 1 else {
+            lastWindowX = nil
+            return
+        }
+        let x = window.frame.origin.x
+        let previous = lastWindowX
+        lastWindowX = x
+        guard let previous, abs(x - previous) > 0.7 else { return }
+        walkDirection = x - previous > 0 ? 1 : -1
+        let token = UUID()
+        walkStopToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if walkStopToken == token { walkDirection = 0 }
+        }
+    }
+
     private func openDebugPanel() {
         if !debugState.isMockingReturn {
             debugState.mockReturnRate = store.totalReturn
@@ -4782,6 +5307,8 @@ struct ContentView: View {
     private func resetDebugState() {
         debugState.isMockingReturn = false
         debugState.mockReturnRate = store.totalReturn
+        debugState.previewAction = nil
+        debugState.actionToken = UUID()
     }
 
     private func applyMainPetWindowPresentation(bringToFront: Bool = false) {
@@ -5016,6 +5543,25 @@ struct PreferencesView: View {
                         Text(store.alpacaStatus).font(.system(size: 10)).foregroundStyle(.white.opacity(0.5))
                         Text("默认用新浪盘后收盘价；要真·隔夜逐笔行情，可在顶栏「月亮」图标里配置 Alpaca。")
                             .font(.system(size: 10)).foregroundStyle(.white.opacity(0.35))
+                    }
+
+                    block("隐私与数据") {
+                        Text("持仓和调试设置保存在本机；持仓截图只在设备上识别。每天首次启动会发送一次不含持仓内容的匿名统计事件，详情见隐私政策。")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 16) {
+                            Link(
+                                "隐私政策 ↗",
+                                destination: URL(string: "https://github.com/andy304yang/Pet-stock/blob/main/PRIVACY.md")!
+                            )
+                            Link(
+                                "第三方说明 ↗",
+                                destination: URL(string: "https://github.com/andy304yang/Pet-stock/blob/main/THIRD_PARTY_NOTICES.md")!
+                            )
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(gain)
                     }
                 }
                 .padding(16)
@@ -5324,14 +5870,53 @@ struct AnimatedStockPet: View {
     let isAlerting: Bool
     let isHovered: Bool
     let appearance: PetAppearance
+    var animationSettings: PetAnimationSettings = .default
+    var previewAction: PetAnimationAction? = nil
+    /// 拖拽方向：-1 向左走，1 向右走，0 正常状态
+    var walkDirection: Int = 0
 
     @State private var hoverStartedAt = Date.distantPast
     @State private var alertStartedAt = Date.distantPast
+    @State private var actionStartedAt = Date()
+
+    private var displayedAction: PetAnimationAction {
+        // 调试预览优先级最高：用户点了哪个动作就播哪个，不被悬停/异动打断
+        if let previewAction {
+            return previewAction
+        }
+        if isHovered || isAlerting {
+            return animationSettings.hoverAction
+        }
+        if returnRate > 0.001 {
+            return animationSettings.positiveAction
+        }
+        if returnRate < -0.001 {
+            return animationSettings.negativeAction
+        }
+        return animationSettings.primaryAction
+    }
+
+    private var displayedMood: PetMood {
+        switch displayedAction {
+        case .sad, .hurt, .crash, .failed: return .bear
+        case .happy, .jump, .attack, .shoot, .waving: return .bull
+        default: return mood
+        }
+    }
+
+    private var displayedReturnRate: Double {
+        switch displayedAction {
+        case .sad, .hurt, .crash, .failed: return min(-1, returnRate)
+        case .happy, .jump, .attack, .shoot, .waving: return max(2, returnRate)
+        default: return returnRate
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let time = timeline.date.timeIntervalSinceReferenceDate
+                let actionTime = max(0, timeline.date.timeIntervalSince(actionStartedAt))
                 let side = min(proxy.size.width, proxy.size.height)
                 let positiveReturn = max(0, returnRate)
                 let happinessStrength = min(1, positiveReturn / 5)
@@ -5385,22 +5970,25 @@ struct AnimatedStockPet: View {
                     Group {
                         if appearance == .robot {
                             StockPetMascot(
-                                mood: mood,
-                                returnRate: returnRate,
+                                mood: displayedMood,
+                                returnRate: displayedReturnRate,
                                 blinking: time.truncatingRemainder(dividingBy: 4.1) > 3.88,
                                 actionActive: bullActionActive || bearActionActive
                             )
                         } else {
                             OpenPetsMascot(
-                                mood: mood,
-                                returnRate: returnRate,
-                                time: time,
+                                mood: displayedMood,
+                                returnRate: displayedReturnRate,
+                                time: actionTime,
                                 actionActive: bullActionActive || bearActionActive,
-                                appearance: appearance
+                                appearance: appearance,
+                                animationAction: displayedAction,
+                                walkDirection: walkDirection
                             )
                         }
                     }
                     .scaleEffect(x: breath, y: 2 - breath, anchor: .bottom)
+                    .scaleEffect(CGFloat(animationSettings.scale), anchor: .bottom)
                     .offset(x: shake, y: idleLift - jumpHeight)
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
@@ -5409,10 +5997,21 @@ struct AnimatedStockPet: View {
         .onChange(of: isHovered) { wasHovered, hovering in
             guard hovering && !wasHovered else { return }
             hoverStartedAt = Date()
+            actionStartedAt = Date()
         }
         .onChange(of: isAlerting) { wasAlerting, alerting in
             guard alerting && !wasAlerting else { return }
             alertStartedAt = Date()
+            actionStartedAt = Date()
+        }
+        .onChange(of: previewAction) { _, _ in
+            actionStartedAt = Date()
+        }
+        .onChange(of: animationSettings) { _, _ in
+            actionStartedAt = Date()
+        }
+        .onChange(of: returnRate >= 0) { _, _ in
+            actionStartedAt = Date()
         }
         .accessibilityHidden(true)
     }
@@ -5424,6 +6023,8 @@ struct OpenPetsMascot: View {
     let time: TimeInterval
     let actionActive: Bool
     let appearance: PetAppearance
+    let animationAction: PetAnimationAction?
+    var walkDirection: Int = 0
 
     private func frameIndex(count: Int, speed rawSpeed: Double, pingPong: Bool = false) -> Int {
         let speed = rawSpeed * PetAnimTuning.speedMultiplier
@@ -5443,6 +6044,26 @@ struct OpenPetsMascot: View {
         pingPong: Bool = false
     ) -> String {
         "skin_\(skin)_\(state)_\(frameIndex(count: count, speed: speed, pingPong: pingPong))"
+    }
+
+    private var configuredFrameName: String? {
+        let action: PetAnimationAction
+        if walkDirection != 0,
+           appearance.animationFrameCount(for: walkDirection > 0 ? .runright : .runleft) > 0 {
+            action = walkDirection > 0 ? .runright : .runleft
+        } else if let animationAction {
+            action = animationAction
+        } else {
+            return nil
+        }
+        let count = appearance.animationFrameCount(for: action)
+        guard count > 0 else { return nil }
+        return skinFrame(
+            appearance.rawValue,
+            state: action.rawValue,
+            count: count,
+            speed: action.playbackSpeed
+        )
     }
 
     private var mechFrameName: String {
@@ -5539,6 +6160,13 @@ struct OpenPetsMascot: View {
         // 贴近作者调好的节奏：约 4fps，异动时略快
         let fps = (actionActive ? 5.5 : 4.0) * PetAnimTuning.speedMultiplier
 
+        // 拖拽中：朝拖动方向小跑（跑动帧率稍快，跟手感）
+        if walkDirection != 0 && spec.runFrames > 0 {
+            let runFps = 6.0 * PetAnimTuning.speedMultiplier
+            let frame = Int(time * runFps) % spec.runFrames
+            return "skin_\(appearance.rawValue)_\(walkDirection > 0 ? "runright" : "runleft")_\(frame)"
+        }
+
         let sequence: [String]
         if !isExpressive {
             sequence = ["idle"]
@@ -5570,7 +6198,13 @@ struct OpenPetsMascot: View {
 
     var body: some View {
         Group {
-            if let frame = currentSkinFrame,
+            if let frame = configuredFrameName,
+               let image = NSImage(named: NSImage.Name(frame)) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else if let frame = currentSkinFrame,
                let image = NSImage(named: NSImage.Name(frame)) {
                 Image(nsImage: image)
                     .resizable()
