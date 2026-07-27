@@ -4793,7 +4793,7 @@ struct ContentView: View {
                 font: .system(size: 10, weight: .bold, design: .rounded),
                 width: changeWidth,
                 height: 26,
-                alignment: .leading,
+                alignment: .center,
                 backgroundOpacity: 0.13,
                 cornerRadius: 7,
                 pulsesByDeltaDirection: false
@@ -4882,7 +4882,7 @@ struct ContentView: View {
                 font: .system(size: 12, weight: .bold, design: .rounded),
                 width: 88,
                 height: 30,
-                alignment: .leading,
+                alignment: .center,
                 horizontalPadding: 9,
                 backgroundOpacity: 0.16,
                 cornerRadius: 7,
