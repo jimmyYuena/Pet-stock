@@ -4,9 +4,8 @@ set -euo pipefail
 ROOT="${0:A:h}"
 BUILD="$ROOT/build"
 APP="$BUILD/持仓宠物.app"
-VERSION="0.4.2"
+VERSION="0.4.3"
 DMG="$BUILD/持仓宠物.dmg"
-source "$ROOT/packaging/public-pet-skins.zsh"
 
 rm -rf "$APP" "$BUILD/dmg-root"
 find "$BUILD" -maxdepth 1 -type f -name '持仓宠物*.dmg' -exec rm -f {} + 2>/dev/null || true
@@ -28,9 +27,8 @@ if command -v iconutil >/dev/null 2>&1; then
 else
   cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
 fi
-copy_public_pet_skins \
-  "$ROOT/native/Resources/OpenPets" \
-  "$APP/Contents/Resources"
+cp "$ROOT/native/Resources/OpenPets/"skin_{gptniang,pikachu,gian,suneo,shizuka,shinchan,maruko,atom,sailormoon,kagome,kaitokid,heimerdinger,yantianzong,cubaibai,sakiko,nimbus,yamada,maidlet,mikan,ricklet,totoro,trump,white_muse_realistic}_*.png \
+  "$APP/Contents/Resources/"
 codesign --force --deep --sign - "$APP"
 
 cp -R "$APP" "$BUILD/dmg-root/"

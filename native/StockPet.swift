@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import Foundation
 import AppKit
 import AVFoundation
@@ -59,6 +60,20 @@ struct Position: Identifiable, Codable, Equatable {
     var value: Double
     var change: Double
     var symbol: String? = nil
+}
+
+enum PriceAlertBoundary: String, Codable {
+    case lower
+    case upper
+}
+
+struct PriceAlertRule: Identifiable, Codable, Equatable {
+    var id: UUID { positionID }
+    let positionID: UUID
+    var lowerPrice: Double
+    var upperPrice: Double
+    var isEnabled: Bool
+    var triggeredBoundary: PriceAlertBoundary?
 }
 
 private enum PositionScreenshotOCR {
@@ -338,6 +353,27 @@ private enum MarketRegion {
     case hongKong
     case unitedStates
     case unknown
+}
+
+enum ReturnBubbleMarket: String, CaseIterable, Hashable, Identifiable {
+    case mainlandChina
+    case unitedStates
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .mainlandChina: return "A股"
+        case .unitedStates: return "美股"
+        }
+    }
+
+    fileprivate var sessionProbeSymbol: String {
+        switch self {
+        case .mainlandChina: return "sh000001"
+        case .unitedStates: return "usAAPL"
+        }
+    }
 }
 
 private enum MarketSessionPhase: Equatable {
@@ -706,6 +742,7 @@ final class PetStore: ObservableObject {
         didSet {
             guard !isRestoringPositions else { return }
             schedulePositionsSave()
+            prunePriceAlertsToCurrentPositions()
         }
     }
     @Published var notificationsEnabled = true {
@@ -741,15 +778,27 @@ final class PetStore: ObservableObject {
     @Published var includeUSInReturn = true
     @Published var newsHoldingsOnly = false
     @Published var newsPushIntervalMinutes = 15   // 0 = 关闭推送
+    @Published var returnAnimationEnabled = true
+    @Published var returnAnimationIntervalSeconds = 30
+    @Published var returnChangeBubbleEnabled = true
+    @Published var returnBubbleMarket: ReturnBubbleMarket = .mainlandChina
+    @Published private(set) var priceAlerts: [UUID: PriceAlertRule] = [:]
+    @Published private(set) var isPriceAlertAnimating = false
+    @Published private(set) var priceAlertAnimationToken = UUID()
 
     private let key = "stockPet.positions.v1"
     private let watchIndicesKey = "stockPet.watchIndices.v1"
     private let includeUSInReturnKey = "stockPet.includeUSInReturn.v1"
     private let newsHoldingsOnlyKey = "stockPet.newsHoldingsOnly.v1"
     private let newsPushIntervalKey = "stockPet.newsPushInterval.v1"
+    private let returnAnimationEnabledKey = "stockPet.returnAnimation.enabled.v1"
+    private let returnAnimationIntervalKey = "stockPet.returnAnimation.interval.v1"
+    private let returnChangeBubbleEnabledKey = "stockPet.returnAnimation.bubbleEnabled.v1"
+    private let returnBubbleMarketKey = "stockPet.returnAnimation.bubbleMarket.v1"
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
     private static let notificationsEnabledKey = "stockPet.notifications.enabled.v1"
     private static let notifiedNewsKey = "stockPet.news.notifiedIDs.v1"
+    private static let priceAlertsKey = "stockPet.priceAlerts.v1"
     private static let alpacaAPIKeyAccount = "alpaca-api-key"
     private static let alpacaAPISecretAccount = "alpaca-api-secret"
     private let speaker = AVSpeechSynthesizer()
@@ -758,6 +807,7 @@ final class PetStore: ObservableObject {
     private var positionsSaveTask: Task<Void, Never>?
     private var newsPollingTask: Task<Void, Never>?
     private var marketPollingTask: Task<Void, Never>?
+    private var priceAlertAnimationTask: Task<Void, Never>?
 
     var hasAlpacaCredentials: Bool {
         !alpacaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -778,6 +828,15 @@ final class PetStore: ObservableObject {
         } else {
             positions = Self.defaultPositions
         }
+        if let data = UserDefaults.standard.data(forKey: Self.priceAlertsKey),
+           let saved = try? JSONDecoder().decode([PriceAlertRule].self, from: data) {
+            let validPositionIDs = Set(positions.map(\.id))
+            priceAlerts = Dictionary(
+                uniqueKeysWithValues: saved
+                    .filter { validPositionIDs.contains($0.positionID) }
+                    .map { ($0.positionID, $0) }
+            )
+        }
         if let data = UserDefaults.standard.data(forKey: watchIndicesKey),
            let saved = try? JSONDecoder().decode([WatchIndex].self, from: data), !saved.isEmpty {
             watchIndices = saved
@@ -788,6 +847,20 @@ final class PetStore: ObservableObject {
         if prefs.object(forKey: includeUSInReturnKey) != nil { includeUSInReturn = prefs.bool(forKey: includeUSInReturnKey) }
         if prefs.object(forKey: newsHoldingsOnlyKey) != nil { newsHoldingsOnly = prefs.bool(forKey: newsHoldingsOnlyKey) }
         if prefs.object(forKey: newsPushIntervalKey) != nil { newsPushIntervalMinutes = prefs.integer(forKey: newsPushIntervalKey) }
+        if prefs.object(forKey: returnAnimationEnabledKey) != nil {
+            returnAnimationEnabled = prefs.bool(forKey: returnAnimationEnabledKey)
+        }
+        let savedReturnAnimationInterval = prefs.integer(forKey: returnAnimationIntervalKey)
+        if savedReturnAnimationInterval == 30 || savedReturnAnimationInterval == 60 {
+            returnAnimationIntervalSeconds = savedReturnAnimationInterval
+        }
+        if prefs.object(forKey: returnChangeBubbleEnabledKey) != nil {
+            returnChangeBubbleEnabled = prefs.bool(forKey: returnChangeBubbleEnabledKey)
+        }
+        if let rawValue = prefs.string(forKey: returnBubbleMarketKey),
+           let savedMarket = ReturnBubbleMarket(rawValue: rawValue) {
+            returnBubbleMarket = savedMarket
+        }
         isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
         notifiedNewsIDs = Set(UserDefaults.standard.stringArray(forKey: Self.notifiedNewsKey) ?? [])
@@ -1045,11 +1118,11 @@ final class PetStore: ObservableObject {
             var tick = 0
             while !Task.isCancelled {
                 guard let self else { return }
-                // 报价（收益率数字）每 2 秒刷新一次；分时走势较重，约每 30 秒才重新拉取。
-                await self.refreshMarketData(includeTrend: tick % 15 == 0)
+                // 报价（收益率数字）每 3 秒刷新一次；分时走势较重，约每 30 秒才重新拉取。
+                await self.refreshMarketData(includeTrend: tick % 10 == 0)
                 tick += 1
                 do {
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
+                    try await Task.sleep(nanoseconds: 3_000_000_000)
                 } catch {
                     return
                 }
@@ -1101,8 +1174,153 @@ final class PetStore: ObservableObject {
         d.set(includeUSInReturn, forKey: includeUSInReturnKey)
         d.set(newsHoldingsOnly, forKey: newsHoldingsOnlyKey)
         d.set(newsPushIntervalMinutes, forKey: newsPushIntervalKey)
+        d.set(returnAnimationEnabled, forKey: returnAnimationEnabledKey)
+        d.set(returnAnimationIntervalSeconds, forKey: returnAnimationIntervalKey)
+        d.set(returnChangeBubbleEnabled, forKey: returnChangeBubbleEnabledKey)
+        d.set(returnBubbleMarket.rawValue, forKey: returnBubbleMarketKey)
         // 新闻范围改变时立即重拉资讯（总收益是实时计算的，无需刷新行情）
         Task { await refreshNews() }
+    }
+
+    var isReturnBubbleMarketOpen: Bool {
+        MarketSessionResolver.session(
+            for: returnBubbleMarket.sessionProbeSymbol
+        ).phase == .regular
+    }
+
+    var returnBubbleMarketStatusText: String {
+        let session = MarketSessionResolver.session(
+            for: returnBubbleMarket.sessionProbeSymbol
+        )
+        return "\(returnBubbleMarket.label) · \(session.label)"
+    }
+
+    func priceAlert(for positionID: UUID) -> PriceAlertRule? {
+        priceAlerts[positionID]
+    }
+
+    func setPriceAlert(
+        for positionID: UUID,
+        lowerPrice: Double,
+        upperPrice: Double,
+        isEnabled: Bool
+    ) {
+        let lower = max(0.0001, min(lowerPrice, upperPrice))
+        let upper = max(lower, max(lowerPrice, upperPrice))
+        priceAlerts[positionID] = PriceAlertRule(
+            positionID: positionID,
+            lowerPrice: lower,
+            upperPrice: upper,
+            isEnabled: isEnabled,
+            triggeredBoundary: nil
+        )
+        persistPriceAlerts()
+        if notificationsEnabled {
+            requestNotificationAuthorizationIfNeeded()
+        }
+    }
+
+    func removePriceAlert(for positionID: UUID) {
+        priceAlerts.removeValue(forKey: positionID)
+        persistPriceAlerts()
+    }
+
+    private func persistPriceAlerts() {
+        let rules = priceAlerts.values.sorted {
+            $0.positionID.uuidString < $1.positionID.uuidString
+        }
+        guard let data = try? JSONEncoder().encode(rules) else { return }
+        UserDefaults.standard.set(data, forKey: Self.priceAlertsKey)
+    }
+
+    private func prunePriceAlertsToCurrentPositions() {
+        let validPositionIDs = Set(positions.map(\.id))
+        let filtered = priceAlerts.filter { validPositionIDs.contains($0.key) }
+        guard filtered.count != priceAlerts.count else { return }
+        priceAlerts = filtered
+        persistPriceAlerts()
+    }
+
+    private func evaluatePriceAlerts(
+        snapshots: [UUID: PositionMarketSnapshot]
+    ) {
+        var rulesChanged = false
+        for position in positions {
+            guard var rule = priceAlerts[position.id],
+                  rule.isEnabled,
+                  let currentPrice = snapshots[position.id]?.currentPrice,
+                  currentPrice > 0 else { continue }
+
+            let boundary: PriceAlertBoundary?
+            if currentPrice <= rule.lowerPrice {
+                boundary = .lower
+            } else if currentPrice >= rule.upperPrice {
+                boundary = .upper
+            } else {
+                boundary = nil
+            }
+
+            guard boundary != rule.triggeredBoundary else { continue }
+            rule.triggeredBoundary = boundary
+            priceAlerts[position.id] = rule
+            rulesChanged = true
+            guard let boundary else { continue }
+
+            sendPriceAlertNotification(
+                position: position,
+                currentPrice: currentPrice,
+                rule: rule,
+                boundary: boundary
+            )
+            triggerPriceAlertAnimation()
+        }
+        if rulesChanged {
+            persistPriceAlerts()
+        }
+    }
+
+    private func sendPriceAlertNotification(
+        position: Position,
+        currentPrice: Double,
+        rule: PriceAlertRule,
+        boundary: PriceAlertBoundary
+    ) {
+        let direction = boundary == .upper ? "上穿" : "下穿"
+        let targetPrice = boundary == .upper ? rule.upperPrice : rule.lowerPrice
+        let formattedCurrent = Self.formattedAlertPrice(currentPrice)
+        let formattedTarget = Self.formattedAlertPrice(targetPrice)
+        sendSystemNotification(
+            identifier: "price-alert-\(position.id.uuidString)-\(boundary.rawValue)-\(UUID().uuidString)",
+            title: "\(position.name) · 价格监控",
+            body: "最新价 \(formattedCurrent)，已\(direction)目标价 \(formattedTarget)。宠物正在奔跑提醒你。",
+            threadIdentifier: "price-alert"
+        )
+    }
+
+    private func triggerPriceAlertAnimation() {
+        let token = UUID()
+        priceAlertAnimationTask?.cancel()
+        priceAlertAnimationToken = token
+        isPriceAlertAnimating = true
+        priceAlertAnimationTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self?.priceAlertAnimationToken == token else { return }
+                self?.isPriceAlertAnimating = false
+                self?.priceAlertAnimationTask = nil
+            }
+        }
+    }
+
+    private static func formattedAlertPrice(_ value: Double) -> String {
+        if value >= 1_000 { return String(format: "%.1f", value) }
+        if value >= 10 { return String(format: "%.2f", value) }
+        return String(format: "%.3f", value)
     }
 
     func refreshMarketData(includeTrend: Bool = true) async {
@@ -1173,6 +1391,7 @@ final class PetStore: ObservableObject {
                     isLive: hasRealTrend
                 )
             }
+            evaluatePriceAlerts(snapshots: snapshots)
             positionMarkets = snapshots
             marketUpdatedAt = Date()
         } catch {
@@ -1715,6 +1934,7 @@ final class PetStore: ObservableObject {
 
     func removePosition(id: UUID) {
         positions.removeAll { $0.id == id }
+        removePriceAlert(for: id)
         save()
     }
 
@@ -2500,12 +2720,324 @@ enum PetAnimationAction: String, CaseIterable, Codable, Hashable, Identifiable {
     }
 }
 
+private struct ImportedPetSourceManifest: Decodable {
+    let id: String?
+    let displayName: String?
+    let displayNameZh: String?
+    let name: String?
+    let nameZh: String?
+    let chineseName: String?
+    let description: String?
+    let spritesheetPath: String?
+}
+
+private struct ImportedPetRecord: Codable, Identifiable {
+    let id: String
+    let name: String
+    let tagline: String
+    let frameCounts: [String: Int]
+}
+
+private struct ImportedPetError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+private enum ImportedPetRegistry {
+    nonisolated(unsafe) private static var records: [String: ImportedPetRecord] = [:]
+    nonisolated(unsafe) private static var baseDirectory: URL?
+    nonisolated(unsafe) private static var sheetCache: [String: CGImage] = [:]
+    nonisolated(unsafe) private static var frameCache: [String: NSImage] = [:]
+
+    static func configure(_ importedPets: [ImportedPetRecord], baseDirectory: URL) {
+        records = Dictionary(uniqueKeysWithValues: importedPets.map { ($0.id, $0) })
+        self.baseDirectory = baseDirectory
+        sheetCache.removeAll()
+        frameCache.removeAll()
+        PetFrameProbe.clearCache()
+    }
+
+    static var appearances: [PetAppearance] {
+        records.values
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .compactMap { PetAppearance(rawValue: $0.id) }
+    }
+
+    static func record(for id: String) -> ImportedPetRecord? {
+        records[id]
+    }
+
+    static func frameCount(skin: String, state: String) -> Int? {
+        records[skin]?.frameCounts[state]
+    }
+
+    static func image(skin: String, state: String, index: Int) -> NSImage? {
+        guard records[skin] != nil,
+              let location = atlasLocation(state: state, index: index) else {
+            return nil
+        }
+        let cacheKey = "\(skin)|\(state)|\(index)"
+        if let cached = frameCache[cacheKey] { return cached }
+        guard let sheet = spritesheet(for: skin) else { return nil }
+        let frameWidth = 192
+        let frameHeight = 208
+        let cropRect = CGRect(
+            x: CGFloat(location.column * frameWidth),
+            y: CGFloat(location.row * frameHeight),
+            width: CGFloat(frameWidth),
+            height: CGFloat(frameHeight)
+        )
+        guard let frame = sheet.cropping(to: cropRect) else { return nil }
+        let image = NSImage(
+            cgImage: frame,
+            size: NSSize(width: CGFloat(frameWidth), height: CGFloat(frameHeight))
+        )
+        frameCache[cacheKey] = image
+        return image
+    }
+
+    private static func spritesheet(for skin: String) -> CGImage? {
+        if let cached = sheetCache[skin] { return cached }
+        guard let baseDirectory else { return nil }
+        let url = baseDirectory
+            .appendingPathComponent(skin, isDirectory: true)
+            .appendingPathComponent("spritesheet.webp")
+        guard let image = NSImage(contentsOf: url),
+              let sheet = image.cgImage(
+                forProposedRect: nil,
+                context: nil,
+                hints: nil
+              ) else {
+            return nil
+        }
+        sheetCache[skin] = sheet
+        return sheet
+    }
+
+    private static func atlasLocation(
+        state: String,
+        index: Int
+    ) -> (row: Int, column: Int)? {
+        guard index >= 0 else { return nil }
+        switch state {
+        case "idle": return index < 6 ? (0, index) : nil
+        case "runright": return index < 8 ? (1, index) : nil
+        case "runleft": return index < 8 ? (2, index) : nil
+        case "waving": return index < 4 ? (3, index) : nil
+        case "jump": return index < 5 ? (4, index) : nil
+        case "failed", "sad": return index < 8 ? (5, index) : nil
+        case "waiting": return index < 6 ? (6, index) : nil
+        case "run": return index < 6 ? (7, index) : nil
+        case "review": return index < 6 ? (8, index) : nil
+        case "happy":
+            if index < 4 { return (3, index) }
+            return index < 9 ? (4, index - 4) : nil
+        default:
+            return nil
+        }
+    }
+}
+
+@MainActor
+private final class ImportedPetLibrary: ObservableObject {
+    static let shared = ImportedPetLibrary()
+
+    @Published private(set) var pets: [ImportedPetRecord] = []
+
+    private let fileManager = FileManager.default
+    private let baseDirectory: URL
+
+    private static let standardFrameCounts: [String: Int] = [
+        "idle": 6,
+        "runright": 8,
+        "runleft": 8,
+        "waving": 4,
+        "jump": 5,
+        "failed": 8,
+        "waiting": 6,
+        "run": 6,
+        "review": 6,
+        "happy": 9,
+        "sad": 8
+    ]
+
+    private init() {
+        let applicationSupport = fileManager.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first ?? fileManager.temporaryDirectory
+        baseDirectory = applicationSupport
+            .appendingPathComponent("StockPet", isDirectory: true)
+            .appendingPathComponent("ImportedPets", isDirectory: true)
+        reload()
+    }
+
+    @discardableResult
+    func importFolder(_ sourceDirectory: URL) throws -> ImportedPetRecord {
+        let manifestURL = sourceDirectory.appendingPathComponent("pet.json")
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
+            throw ImportedPetError(message: "所选文件夹中缺少 pet.json")
+        }
+        let manifest = try JSONDecoder().decode(
+            ImportedPetSourceManifest.self,
+            from: Data(contentsOf: manifestURL)
+        )
+        let spritesheetName = manifest.spritesheetPath?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeSpritesheetName = (spritesheetName?.isEmpty == false
+            ? URL(fileURLWithPath: spritesheetName!).lastPathComponent
+            : "spritesheet.webp")
+        let spritesheetURL = sourceDirectory.appendingPathComponent(safeSpritesheetName)
+        guard fileManager.fileExists(atPath: spritesheetURL.path) else {
+            throw ImportedPetError(message: "所选文件夹中缺少 \(safeSpritesheetName)")
+        }
+        guard let sourceImage = NSImage(contentsOf: spritesheetURL),
+              let sheet = sourceImage.cgImage(
+                forProposedRect: nil,
+                context: nil,
+                hints: nil
+              ) else {
+            throw ImportedPetError(message: "无法读取 spritesheet.webp")
+        }
+        guard sheet.width == 1536, sheet.height == 1872 else {
+            throw ImportedPetError(
+                message: "动作图集尺寸应为 1536×1872，当前为 \(sheet.width)×\(sheet.height)"
+            )
+        }
+
+        let rawID = manifest.id?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let id = try normalizedID(
+            rawID?.isEmpty == false ? rawID! : sourceDirectory.lastPathComponent
+        )
+        guard !PetAppearance.allCases.contains(where: { $0.rawValue == id }) else {
+            throw ImportedPetError(message: "“\(id)”与内置宠物 ID 重复")
+        }
+        guard pets.allSatisfy({ $0.id != id }) else {
+            throw ImportedPetError(message: "已经导入过 ID 为“\(id)”的宠物")
+        }
+
+        let name = resolvedName(
+            manifest: manifest,
+            fallback: sourceDirectory.lastPathComponent
+        )
+        let description = manifest.description?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let tagline = description?.isEmpty == false
+            ? description!
+            : "\(name)陪你盯盘"
+        let record = ImportedPetRecord(
+            id: id,
+            name: name,
+            tagline: tagline,
+            frameCounts: Self.standardFrameCounts
+        )
+
+        try fileManager.createDirectory(
+            at: baseDirectory,
+            withIntermediateDirectories: true
+        )
+        let targetDirectory = baseDirectory.appendingPathComponent(id, isDirectory: true)
+        try fileManager.createDirectory(
+            at: targetDirectory,
+            withIntermediateDirectories: false
+        )
+        do {
+            try fileManager.copyItem(
+                at: manifestURL,
+                to: targetDirectory.appendingPathComponent("pet.json")
+            )
+            try fileManager.copyItem(
+                at: spritesheetURL,
+                to: targetDirectory.appendingPathComponent("spritesheet.webp")
+            )
+            let metadata = try JSONEncoder().encode(record)
+            try metadata.write(
+                to: targetDirectory.appendingPathComponent("imported-pet.json"),
+                options: .atomic
+            )
+        } catch {
+            try? fileManager.removeItem(at: targetDirectory)
+            throw error
+        }
+        reload()
+        return record
+    }
+
+    private func reload() {
+        guard let directories = try? fileManager.contentsOfDirectory(
+            at: baseDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            pets = []
+            ImportedPetRegistry.configure([], baseDirectory: baseDirectory)
+            return
+        }
+        pets = directories.compactMap { directory in
+            let metadataURL = directory.appendingPathComponent("imported-pet.json")
+            guard let data = try? Data(contentsOf: metadataURL) else { return nil }
+            return try? JSONDecoder().decode(ImportedPetRecord.self, from: data)
+        }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        ImportedPetRegistry.configure(pets, baseDirectory: baseDirectory)
+    }
+
+    private func resolvedName(
+        manifest: ImportedPetSourceManifest,
+        fallback: String
+    ) -> String {
+        let candidates = [
+            manifest.chineseName,
+            manifest.displayNameZh,
+            manifest.nameZh,
+            manifest.displayName,
+            manifest.name,
+            fallback
+        ].compactMap {
+            $0?.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { !$0.isEmpty }
+        if let chinese = candidates.first(where: {
+            $0.range(of: #"[\p{Han}]"#, options: .regularExpression) != nil
+        }) {
+            return chinese
+        }
+        return candidates.first ?? fallback
+    }
+
+    private func normalizedID(_ source: String) throws -> String {
+        var result = ""
+        for scalar in source.lowercased().unicodeScalars {
+            let isNumber = scalar.value >= 48 && scalar.value <= 57
+            let isLetter = scalar.value >= 97 && scalar.value <= 122
+            if isNumber || isLetter {
+                result.unicodeScalars.append(scalar)
+            } else if result.last != "_" {
+                result.append("_")
+            }
+        }
+        result = result.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+        guard !result.isEmpty else {
+            throw ImportedPetError(message: "pet.json 的 id 无法转换成有效宠物 ID")
+        }
+        if result.first?.isNumber == true {
+            result = "pet_\(result)"
+        }
+        return result
+    }
+}
+
 /// 运行时探测皮肤某个动作的帧数（skin_<id>_<state>_N 连号计数），结果缓存。
 /// 好处：新皮肤只要把帧文件放进资源就自动识别，不用改代码里的帧数表。
 enum PetFrameProbe {
     nonisolated(unsafe) private static var cache: [String: Int] = [:]
 
     static func frameCount(skin: String, state: String) -> Int {
+        if let importedCount = ImportedPetRegistry.frameCount(
+            skin: skin,
+            state: state
+        ) {
+            return importedCount
+        }
         let key = "\(skin)|\(state)"
         if let cached = cache[key] { return cached }
         var count = 0
@@ -2515,14 +3047,53 @@ enum PetFrameProbe {
         cache[key] = count
         return count
     }
+
+    static func clearCache() {
+        cache.removeAll()
+    }
 }
 
 struct PetAnimationSettings: Codable, Equatable {
+    static let defaultIdleSequence: [PetAnimationAction] = [
+        .idle, .waving, .idle, .waiting, .idle, .review
+    ]
+
     var scale: Double = 1.0
     var primaryAction: PetAnimationAction = .idle
-    var hoverAction: PetAnimationAction = .happy
-    var positiveAction: PetAnimationAction = .happy
-    var negativeAction: PetAnimationAction = .sad
+    var hoverAction: PetAnimationAction = .waving
+    var positiveAction: PetAnimationAction = .jump
+    var negativeAction: PetAnimationAction = .failed
+
+    private enum CodingKeys: String, CodingKey {
+        case scale
+        case primaryAction
+        case hoverAction
+        case positiveAction
+        case negativeAction
+    }
+
+    init(
+        scale: Double = 1.0,
+        primaryAction: PetAnimationAction = .idle,
+        hoverAction: PetAnimationAction = .waving,
+        positiveAction: PetAnimationAction = .jump,
+        negativeAction: PetAnimationAction = .failed
+    ) {
+        self.scale = scale
+        self.primaryAction = primaryAction
+        self.hoverAction = hoverAction
+        self.positiveAction = positiveAction
+        self.negativeAction = negativeAction
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scale = try container.decodeIfPresent(Double.self, forKey: .scale) ?? 1.0
+        primaryAction = try container.decodeIfPresent(PetAnimationAction.self, forKey: .primaryAction) ?? .idle
+        hoverAction = try container.decodeIfPresent(PetAnimationAction.self, forKey: .hoverAction) ?? .waving
+        positiveAction = try container.decodeIfPresent(PetAnimationAction.self, forKey: .positiveAction) ?? .jump
+        negativeAction = try container.decodeIfPresent(PetAnimationAction.self, forKey: .negativeAction) ?? .failed
+    }
 
     static let `default` = PetAnimationSettings()
 }
@@ -2530,6 +3101,8 @@ struct PetAnimationSettings: Codable, Equatable {
 @MainActor
 final class PetDebugState: ObservableObject {
     private static let appearanceSettingsKey = "stockPet.appearanceAnimationSettings.v1"
+    private static let animationRulesVersionKey = "stockPet.animationRulesVersion"
+    private static let currentAnimationRulesVersion = 2
 
     @Published var isMockingReturn = false
     @Published var mockReturnRate = 0.0
@@ -2553,9 +3126,21 @@ final class PetDebugState: ObservableObject {
     }
 
     init() {
+        let needsAnimationRulesMigration =
+            UserDefaults.standard.integer(forKey: Self.animationRulesVersionKey)
+                < Self.currentAnimationRulesVersion
         if let data = UserDefaults.standard.data(forKey: Self.appearanceSettingsKey),
            let saved = try? JSONDecoder().decode([String: PetAnimationSettings].self, from: data) {
-            appearanceSettings = saved
+            if needsAnimationRulesMigration {
+                appearanceSettings = saved.mapValues { settings in
+                    var migrated = settings
+                    migrated.positiveAction = .jump
+                    migrated.negativeAction = .failed
+                    return migrated
+                }
+            } else {
+                appearanceSettings = saved
+            }
         } else {
             appearanceSettings = [:]
         }
@@ -2564,6 +3149,18 @@ final class PetDebugState: ObservableObject {
         let savedSpeed = UserDefaults.standard.double(forKey: "stockPet.animSpeed.v1")
         speedMultiplier = savedSpeed > 0 ? savedSpeed : 1.0
         PetAnimTuning.speedMultiplier = speedMultiplier
+        if needsAnimationRulesMigration {
+            UserDefaults.standard.set(
+                Self.currentAnimationRulesVersion,
+                forKey: Self.animationRulesVersionKey
+            )
+            if let migratedData = try? JSONEncoder().encode(appearanceSettings) {
+                UserDefaults.standard.set(
+                    migratedData,
+                    forKey: Self.appearanceSettingsKey
+                )
+            }
+        }
     }
 
     func settings(for appearance: PetAppearance) -> PetAnimationSettings {
@@ -2571,13 +3168,19 @@ final class PetDebugState: ObservableObject {
         let available = Set(appearance.availableAnimationActions)
         if !available.contains(settings.primaryAction) { settings.primaryAction = .idle }
         if !available.contains(settings.hoverAction) {
-            settings.hoverAction = available.contains(.happy) ? .happy : .idle
+            settings.hoverAction = available.contains(.waving)
+                ? .waving
+                : (available.contains(.happy) ? .happy : .idle)
         }
         if !available.contains(settings.positiveAction) {
-            settings.positiveAction = available.contains(.happy) ? .happy : .idle
+            settings.positiveAction = available.contains(.jump)
+                ? .jump
+                : (available.contains(.happy) ? .happy : .idle)
         }
         if !available.contains(settings.negativeAction) {
-            settings.negativeAction = available.contains(.sad) ? .sad : .idle
+            settings.negativeAction = available.contains(.failed)
+                ? .failed
+                : (available.contains(.sad) ? .sad : .idle)
         }
         return settings
     }
@@ -2637,38 +3240,156 @@ struct PetSkinSpec {
     var runFrames: Int = 0
 }
 
-enum PetAppearance: String, CaseIterable, Identifiable {
-    case robot, mech, polar
-    case gptniang
-    case labubu, chiikawa, usagi, hachiware, capy, shuitunlulu, deskotter, nai, gugugaga, crybaby
-    case beretbear, woolbell, bubu, jokebear, obear
-    case caishen
-    case fleetsnowfluff, kunkunchick, yuexinmiao, pingo, guanmiao, advzombie
-    case pikachu
-    case gian, suneo, shizuka
-    case shinchan, maruko, atom, sailormoon
-    case kagome, kaitokid, heimerdinger
-    case yantianzong, cubaibai, sakiko, nimbus, yamada
+struct PetAppearance: RawRepresentable, CaseIterable, Identifiable, Hashable {
+    let rawValue: String
+
+    private init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    init?(rawValue: String) {
+        guard Self.allCases.contains(where: { $0.rawValue == rawValue })
+                || ImportedPetRegistry.record(for: rawValue) != nil else {
+            return nil
+        }
+        self.rawValue = rawValue
+    }
+
+    static let robot = PetAppearance("robot")
+    static let mech = PetAppearance("mech")
+    static let polar = PetAppearance("polar")
+    static let gptniang = PetAppearance("gptniang")
+    static let labubu = PetAppearance("labubu")
+    static let chiikawa = PetAppearance("chiikawa")
+    static let usagi = PetAppearance("usagi")
+    static let hachiware = PetAppearance("hachiware")
+    static let capy = PetAppearance("capy")
+    static let shuitunlulu = PetAppearance("shuitunlulu")
+    static let deskotter = PetAppearance("deskotter")
+    static let nai = PetAppearance("nai")
+    static let gugugaga = PetAppearance("gugugaga")
+    static let crybaby = PetAppearance("crybaby")
+    static let beretbear = PetAppearance("beretbear")
+    static let woolbell = PetAppearance("woolbell")
+    static let bubu = PetAppearance("bubu")
+    static let jokebear = PetAppearance("jokebear")
+    static let obear = PetAppearance("obear")
+    static let caishen = PetAppearance("caishen")
+    static let fleetsnowfluff = PetAppearance("fleetsnowfluff")
+    static let kunkunchick = PetAppearance("kunkunchick")
+    static let yuexinmiao = PetAppearance("yuexinmiao")
+    static let pingo = PetAppearance("pingo")
+    static let guanmiao = PetAppearance("guanmiao")
+    static let advzombie = PetAppearance("advzombie")
+    static let pikachu = PetAppearance("pikachu")
+    static let gian = PetAppearance("gian")
+    static let suneo = PetAppearance("suneo")
+    static let shizuka = PetAppearance("shizuka")
+    static let shinchan = PetAppearance("shinchan")
+    static let maruko = PetAppearance("maruko")
+    static let atom = PetAppearance("atom")
+    static let sailormoon = PetAppearance("sailormoon")
+    static let kagome = PetAppearance("kagome")
+    static let kaitokid = PetAppearance("kaitokid")
+    static let heimerdinger = PetAppearance("heimerdinger")
+    static let yantianzong = PetAppearance("yantianzong")
+    static let cubaibai = PetAppearance("cubaibai")
+    static let sakiko = PetAppearance("sakiko")
+    static let nimbus = PetAppearance("nimbus")
+    static let yamada = PetAppearance("yamada")
+    static let maidlet = PetAppearance("maidlet")
+    static let mikan = PetAppearance("mikan")
+    static let ricklet = PetAppearance("ricklet")
+    static let totoro = PetAppearance("totoro")
+    static let trump = PetAppearance("trump")
+    static let white_muse_realistic = PetAppearance("white_muse_realistic")
+    // AUTO-IMPORT: PET_CASES
 
     var id: String { rawValue }
 
+    static let allCases: [PetAppearance] = [
+        .robot, .mech, .polar, .gptniang,
+        .labubu, .chiikawa, .usagi, .hachiware, .capy, .shuitunlulu,
+        .deskotter, .nai, .gugugaga, .crybaby,
+        .beretbear, .woolbell, .bubu, .jokebear, .obear,
+        .caishen,
+        .fleetsnowfluff, .kunkunchick, .yuexinmiao, .pingo, .guanmiao,
+        .advzombie, .pikachu,
+        .gian, .suneo, .shizuka,
+        .shinchan, .maruko, .atom, .sailormoon,
+        .kagome, .kaitokid, .heimerdinger,
+        .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada,
+        .maidlet,
+        .mikan,
+        .ricklet,
+        .totoro,
+        .trump,
+        .white_muse_realistic,
+        // AUTO-IMPORT: ALL_CASES
+    ]
+
+    private static let removedCases: Set<PetAppearance> = [
+        .mech, .polar, .labubu
+    ]
+
+    private static let featuredCases: [PetAppearance] = [
+        .trump,
+        .white_muse_realistic,
+        .shuitunlulu,
+        .fleetsnowfluff,
+        .shinchan,
+        .cubaibai
+    ]
+
     static var availableCases: [PetAppearance] {
+        let builtInCases: [PetAppearance]
 #if LOCAL_EXTENDED_SKINS
-        Array(allCases)
+        builtInCases = [.nai] + allCases.filter {
+            $0 != .nai && !removedCases.contains($0)
+        }
 #elseif PUBLIC_CREATOR_SKINS
-        [
-            .robot, .mech, .polar, .gptniang,
+        builtInCases = [
+            .robot, .gptniang,
             .pikachu, .gian, .suneo, .shizuka,
             .shinchan, .maruko, .atom, .sailormoon,
             .kagome, .kaitokid, .heimerdinger,
-            .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada
+            .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada,
+            .maidlet,
+            .mikan,
+            .ricklet,
+            .totoro,
+            .trump,
+            .white_muse_realistic,
+            // AUTO-IMPORT: PUBLIC_CASES
         ]
 #else
-        [.robot, .mech, .polar]
+        builtInCases = [.robot]
+#endif
+        let availableFeaturedCases = featuredCases.filter {
+            builtInCases.contains($0)
+        }
+        let featuredCaseSet = Set(availableFeaturedCases)
+        let remainingBuiltInCases = builtInCases.filter {
+            !featuredCaseSet.contains($0)
+        }
+        let sortedBuiltInCases = availableFeaturedCases + remainingBuiltInCases
+#if LOCAL_EXTENDED_SKINS
+        return sortedBuiltInCases + ImportedPetRegistry.appearances
+#else
+        return sortedBuiltInCases
 #endif
     }
 
+    private var importedRecord: ImportedPetRecord? {
+        ImportedPetRegistry.record(for: rawValue)
+    }
+
+    var isImported: Bool {
+        importedRecord != nil
+    }
+
     var name: String {
+        if let importedRecord { return importedRecord.name }
         switch self {
         case .robot: return "行情机器人"
         case .mech: return "涨跌机甲"
@@ -2712,11 +3433,30 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .sakiko: return "丰川祥子"
         case .nimbus: return "筋斗云小孩"
         case .yamada: return "山田"
+        case .maidlet: return "Maidlet"
+        case .mikan: return "Mikan"
+        case .ricklet: return "Ricklet"
+        case .totoro: return "Totoro"
+        case .trump: return "Trump"
+        case .white_muse_realistic: return "White Muse"
+        // AUTO-IMPORT: PET_NAMES
+        default: return rawValue
         }
     }
 
     /// 帧动画皮肤规格（nil 表示非帧动画皮肤）
     var skinSpec: PetSkinSpec? {
+        if let importedRecord {
+            return PetSkinSpec(
+                idleFrames: importedRecord.frameCounts["idle"] ?? 0,
+                happyFrames: importedRecord.frameCounts["happy"] ?? 0,
+                sadFrames: importedRecord.frameCounts["sad"] ?? 0,
+                runFrames: max(
+                    importedRecord.frameCounts["runleft"] ?? 0,
+                    importedRecord.frameCounts["runright"] ?? 0
+                )
+            )
+        }
         switch self {
         case .mech:
             return PetSkinSpec(idleFrames: 10, happyFrames: 10, sadFrames: 10)
@@ -2737,6 +3477,13 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .pikachu, .gian, .suneo, .shizuka, .shinchan, .maruko, .atom, .sailormoon,
              .kagome, .kaitokid, .heimerdinger, .yantianzong, .cubaibai, .sakiko, .nimbus, .yamada:
             return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .maidlet: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .mikan: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .ricklet: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .totoro: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .trump: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        case .white_muse_realistic: return PetSkinSpec(idleFrames: 6, happyFrames: 9, sadFrames: 8, runFrames: 8)
+        // AUTO-IMPORT: PET_SPECS
         default:
             return nil
         }
@@ -2746,10 +3493,22 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         if self == .robot {
             return [.idle, .happy, .sad]
         }
+        let nineRowAtlasActions: [PetAnimationAction] = [
+            .idle, .runright, .runleft, .waving, .jump,
+            .failed, .waiting, .run, .review
+        ]
+        if nineRowAtlasActions.allSatisfy({
+            animationFrameCount(for: $0) > 0
+        }) {
+            return nineRowAtlasActions
+        }
         return PetAnimationAction.allCases.filter { animationFrameCount(for: $0) > 0 }
     }
 
     func animationFrameCount(for action: PetAnimationAction) -> Int {
+        if let importedRecord {
+            return importedRecord.frameCounts[action.rawValue] ?? 0
+        }
         switch self {
         case .robot:
             return [.idle, .happy, .sad].contains(action) ? 1 : 0
@@ -2789,6 +3548,7 @@ enum PetAppearance: String, CaseIterable, Identifiable {
     }
 
     var tagline: String {
+        if let importedRecord { return importedRecord.tagline }
         switch self {
         case .robot: return "红涨绿跌随行情变身，元气担当"
         case .mech: return "七档收益动作：奔跑、跳跃、攻击、滑倒"
@@ -2832,6 +3592,51 @@ enum PetAppearance: String, CaseIterable, Identifiable {
         case .sakiko: return "丰川祥子陪你专注工作，也关心今日收益"
         case .nimbus: return "乘着筋斗云穿越行情，涨了就加速"
         case .yamada: return "山田安静陪伴，工作看盘两不误"
+        case .maidlet: return "A cute 3D maid-style desktop pet based on the provided avatar."
+        case .mikan: return "A semi-realistic calico cat pet with orange, black, and white markings."
+        case .ricklet: return "A tiny chaotic scientist companion inspired by Rick Sanchez."
+        case .totoro: return "A pointy-eared chinchilla digital pet inspired by the reference."
+        case .trump: return "A small smooth-edged digital pet caricature inspired by Donald Trump."
+        case .white_muse_realistic: return "A photorealistic miniature desktop companion in an oversized white button-up shirt, inspired by the provided reference."
+        // AUTO-IMPORT: PET_TAGLINES
+        default: return "\(name)陪你盯盘"
+        }
+    }
+
+    func image(named frameName: String) -> NSImage? {
+        if isImported {
+            for action in PetAnimationAction.allCases {
+                let prefix = "skin_\(rawValue)_\(action.rawValue)_"
+                guard frameName.hasPrefix(prefix),
+                      let index = Int(frameName.dropFirst(prefix.count)) else {
+                    continue
+                }
+                return ImportedPetRegistry.image(
+                    skin: rawValue,
+                    state: action.rawValue,
+                    index: index
+                )
+            }
+            return nil
+        }
+        return NSImage(named: NSImage.Name(frameName))
+    }
+}
+
+private enum PetCatalogTab: String, CaseIterable, Identifiable {
+    case all
+    case character
+    case anime
+    case cute
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: return "全部"
+        case .character: return "角色"
+        case .anime: return "二次元"
+        case .cute: return "萌宠"
         }
     }
 }
@@ -2839,6 +3644,9 @@ enum PetAppearance: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @ObservedObject var store: PetStore
     @ObservedObject var debugState: PetDebugState
+#if LOCAL_EXTENDED_SKINS
+    @ObservedObject private var importedPetLibrary = ImportedPetLibrary.shared
+#endif
     let isDebugWindow: Bool
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -2863,8 +3671,13 @@ struct ContentView: View {
     @State private var showingAlpacaSettings = false
     @State private var showingIndexSettings = false
     @State private var showingPreferences = false
+    @State private var priceAlertEditingPosition: Position?
     @State private var shareIncludePositions = false
     @State private var shareFeedback = ""
+    @State private var petImportMessage = ""
+    @State private var petImportFailed = false
+    @State private var petImportMessageToken = UUID()
+    @State private var selectedPetCatalogTab: PetCatalogTab = .all
     @State private var stockSearchQuery = ""
     @State private var stockSearchTask: Task<Void, Never>?
     @FocusState private var stockSearchFocused: Bool
@@ -2883,7 +3696,9 @@ struct ContentView: View {
     }
 
     private var displayReturn: Double {
-        if debugState.isMockingReturn { return debugState.mockReturnRate }
+        if isDebugWindow && debugState.isMockingReturn {
+            return debugState.mockReturnRate
+        }
         if debugState.overrideEnabled { return debugState.overrideValue }
         return store.totalReturn
     }
@@ -2893,8 +3708,56 @@ struct ContentView: View {
         return PetAppearance.availableCases.contains(selected) ? selected : .robot
     }
 
+    private var filteredPetAppearances: [PetAppearance] {
+        let appearances = PetAppearance.availableCases
+        switch selectedPetCatalogTab {
+        case .all:
+            return appearances
+        case .cute:
+            return appearances.filter {
+                !$0.isImported
+                    && !Self.characterPetIDs.contains($0.rawValue)
+                    && !Self.animePetIDs.contains($0.rawValue)
+            }
+        case .character:
+            return appearances.filter {
+                !$0.isImported
+                    && Self.characterPetIDs.contains($0.rawValue)
+            }
+        case .anime:
+            return appearances.filter {
+                !$0.isImported
+                    && Self.animePetIDs.contains($0.rawValue)
+            }
+        }
+    }
+
+    private static let characterPetIDs: Set<String> = [
+        "robot", "mech", "gptniang", "fleetsnowfluff", "caishen",
+        "advzombie", "heimerdinger", "yantianzong", "cubaibai",
+        "maidlet", "ricklet", "trump", "white_muse_realistic"
+    ]
+
+    private static let animePetIDs: Set<String> = [
+        "pikachu", "gian", "suneo", "shizuka",
+        "shinchan", "maruko", "atom", "sailormoon", "kagome",
+        "kaitokid", "sakiko", "nimbus", "yamada", "totoro"
+    ]
+
     private var selectedAnimationSettings: PetAnimationSettings {
         debugState.settings(for: selectedAppearance)
+    }
+
+    private var activePetPreviewAction: PetAnimationAction? {
+        store.isPriceAlertAnimating ? .run : debugState.previewAction
+    }
+
+    private var activePetViewID: String {
+        "\(debugState.actionToken.uuidString)-\(store.priceAlertAnimationToken.uuidString)"
+    }
+
+    private var shouldShowReturnChangeBubble: Bool {
+        store.returnChangeBubbleEnabled && store.isReturnBubbleMarketOpen
     }
 
     private var appearanceScaleBinding: Binding<Double> {
@@ -2927,15 +3790,7 @@ struct ContentView: View {
         displayReturn >= 0 ? .bull : .bear
     }
 
-    private var petScale: CGFloat {
-        let clampedReturn = min(10, max(-10, displayReturn))
-        if clampedReturn >= 0 {
-            return CGFloat(1 + clampedReturn / 10)
-        }
-        return CGFloat(1 + clampedReturn / 20)
-    }
-
-    private var compactPetSide: CGFloat { 116 * petScale }
+    private let compactPetSide: CGFloat = 116
 
     private var compactWindowSize: NSSize {
         // 侧边和顶部多留白：跑动/跳跃姿势会甩出精灵图中心区域，避免被窗口边裁切
@@ -2989,25 +3844,19 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .animation(.spring(response: 0.3, dampingFraction: 0.82), value: isExpanded)
-        .animation(.spring(response: 0.34, dampingFraction: 0.8), value: petScale)
         .onChange(of: displayReturn) { _, _ in
             triggerPetMotion()
-            if !isDebugWindow && !isExpanded {
-                DispatchQueue.main.async {
-                    resizeCompactWindowForReturn()
-                }
-            }
         }
         .onChange(of: selectedAnimationSettings.scale) { _, _ in
             guard !isDebugWindow, !isExpanded else { return }
             DispatchQueue.main.async {
-                resizeCompactWindowForReturn()
+                resizeCompactWindow()
             }
         }
         .onAppear {
             if !isDebugWindow {
                 DispatchQueue.main.async {
-                    resizeCompactWindowForReturn(animated: false)
+                    resizeCompactWindow(animated: false)
                 }
                 installDragWalkMonitor()
             }
@@ -3042,6 +3891,24 @@ struct ContentView: View {
         .sheet(isPresented: $showingPreferences) {
             PreferencesView(store: store)
         }
+        .sheet(item: $priceAlertEditingPosition) { position in
+            PriceAlertEditor(
+                position: position,
+                currentPrice: store.positionMarkets[position.id]?.currentPrice ?? 0,
+                existingRule: store.priceAlert(for: position.id),
+                onSave: { lowerPrice, upperPrice, isEnabled in
+                    store.setPriceAlert(
+                        for: position.id,
+                        lowerPrice: lowerPrice,
+                        upperPrice: upperPrice,
+                        isEnabled: isEnabled
+                    )
+                },
+                onDelete: {
+                    store.removePriceAlert(for: position.id)
+                }
+            )
+        }
         .onChange(of: debugState.actionToken) { _, _ in
             triggerPetMotion()
         }
@@ -3072,11 +3939,14 @@ struct ContentView: View {
                 isHovered: compactPetHovering,
                 appearance: selectedAppearance,
                 animationSettings: selectedAnimationSettings,
-                previewAction: debugState.previewAction,
+                returnAnimationEnabled: store.returnAnimationEnabled,
+                returnAnimationIntervalSeconds: store.returnAnimationIntervalSeconds,
+                showsReturnChangeBubble: shouldShowReturnChangeBubble,
+                previewAction: activePetPreviewAction,
                 walkDirection: walkDirection
             )
             .frame(width: compactPetSide, height: compactPetSide)
-            .id(debugState.actionToken)
+            .id(activePetViewID)
             .overlay {
                 CompactPetInteractionLayer {
                     toggleExpanded(true)
@@ -3327,71 +4197,173 @@ struct ContentView: View {
     }
 
     private var debugExpandedView: some View {
-        ZStack {
-            LinearGradient(colors: [Color(red: 0.12, green: 0.13, blue: 0.17), Color(red: 0.045, green: 0.05, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Circle()
-                .fill(mood.color.opacity(0.14))
-                .frame(width: 300, height: 300)
-                .blur(radius: 55)
-                .offset(y: -155)
+        VStack(spacing: 0) {
+            debugPetPicker
 
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Circle().fill(mood.color).frame(width: 7, height: 7).shadow(color: mood.color, radius: 5)
-                    Text("宠物调试").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.82))
-                    Spacer()
-                    Button { closeDebugPanel() } label: {
-                        Image(systemName: "xmark").font(.system(size: 9, weight: .semibold)).frame(width: 25, height: 24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
+            ScrollView(showsIndicators: true) {
+                debugPanel
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+            }
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.12, green: 0.13, blue: 0.17),
+                    Color(red: 0.045, green: 0.05, blue: 0.07)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    private var debugPetPicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("选择宠物")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.72))
+                Spacer()
+#if LOCAL_EXTENDED_SKINS
+                Button {
+                    choosePetImportFolder()
+                } label: {
+                    Label("导入素材", systemImage: "folder.badge.plus")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+#endif
+                Text(selectedAppearance.name)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(mood.color)
+            }
+            .padding(.horizontal, 14)
+
+#if LOCAL_EXTENDED_SKINS
+            if !petImportMessage.isEmpty {
+                Label(
+                    petImportMessage,
+                    systemImage: petImportFailed
+                        ? "exclamationmark.triangle.fill"
+                        : "checkmark.circle.fill"
+                )
+                .font(.system(size: 8, weight: .medium))
+                .foregroundStyle(petImportFailed ? .orange : .green)
+                .lineLimit(2)
+                .padding(.horizontal, 14)
+            }
+#endif
+
+            HStack(spacing: 6) {
+                ForEach(PetCatalogTab.allCases) { tab in
+                    Button {
+                        selectedPetCatalogTab = tab
+                    } label: {
+                        Text(tab.title)
+                            .font(.system(
+                                size: 9,
+                                weight: selectedPetCatalogTab == tab
+                                    ? .semibold
+                                    : .regular
+                            ))
+                            .foregroundStyle(
+                                selectedPetCatalogTab == tab
+                                    ? .white
+                                    : .white.opacity(0.46)
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 27)
+                            .background(
+                                selectedPetCatalogTab == tab
+                                    ? mood.color.opacity(0.22)
+                                    : .white.opacity(0.045),
+                                in: RoundedRectangle(
+                                    cornerRadius: 8,
+                                    style: .continuous
+                                )
+                            )
                     }
                     .buttonStyle(.plain)
-                    .help("关闭调试")
                 }
-                .padding(.horizontal, 18)
-                .frame(height: 44)
+            }
+            .padding(.horizontal, 14)
 
-                ScrollView(showsIndicators: true) {
-                    VStack(spacing: 0) {
-                        debugPetStage
-                        appearancePicker
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 10)
-                        debugPanel
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 14)
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: true) {
+                    if filteredPetAppearances.isEmpty {
+                        VStack(spacing: 7) {
+                            Image(systemName: "square.grid.2x2")
+                                .font(.system(size: 22))
+                                .foregroundStyle(.white.opacity(0.28))
+                            Text("此分类暂无素材")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.42))
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 210)
+                    } else {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 8),
+                                GridItem(.flexible(), spacing: 8),
+                                GridItem(.flexible())
+                            ],
+                            spacing: 8
+                        ) {
+                            ForEach(filteredPetAppearances) { appearance in
+                                let isSelected = selectedAppearance == appearance
+                                Button {
+                                    selectAppearance(appearance)
+                                } label: {
+                                    VStack(spacing: 5) {
+                                        appearanceThumbnail(appearance)
+                                            .frame(width: 72, height: 72)
+                                            .clipped()
+
+                                        Text(appearance.name)
+                                            .font(.system(size: 9, weight: isSelected ? .semibold : .regular))
+                                            .foregroundStyle(isSelected ? .white : .white.opacity(0.48))
+                                            .lineLimit(1)
+
+                                        Capsule()
+                                            .fill(isSelected ? mood.color : .clear)
+                                            .frame(width: 24, height: 2)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        isSelected ? mood.color.opacity(0.12) : .clear,
+                                        in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .id(appearance.rawValue)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 4)
+                    }
+                }
+                .frame(height: 228)
+                .id(selectedPetCatalogTab)
+                .onAppear {
+                    if filteredPetAppearances.contains(selectedAppearance) {
+                        proxy.scrollTo(selectedAppearanceRaw, anchor: .center)
+                    }
+                }
+                .onChange(of: selectedAppearanceRaw) { _, appearanceRaw in
+                    if filteredPetAppearances.contains(selectedAppearance) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo(appearanceRaw, anchor: .center)
+                        }
                     }
                 }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.09)))
-        .shadow(color: .black.opacity(0.42), radius: 28, y: 14)
-    }
-
-    private var debugPetStage: some View {
-        VStack(spacing: 5) {
-            Spacer(minLength: 8)
-            AnimatedStockPet(
-                mood: mood,
-                returnRate: displayReturn,
-                isAlerting: alertPulse,
-                isHovered: hoveringPet,
-                appearance: selectedAppearance,
-                animationSettings: selectedAnimationSettings,
-                previewAction: debugState.previewAction
-            )
-            .frame(width: 150, height: 150)
-            .id(debugState.actionToken)
-            .onHover { hoveringPet = $0 }
-            Text(statusText).font(.system(size: 12)).foregroundStyle(.white.opacity(0.58))
-            Text(percent(displayReturn))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(mood.color)
-            Text("调节下方收益率，预览宠物状态和异动动作")
-                .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.32))
-            Spacer(minLength: 8)
-        }
-        .frame(maxWidth: .infinity, minHeight: 270)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .background(.black.opacity(0.12))
     }
 
     private var expandedView: some View {
@@ -3426,7 +4398,7 @@ struct ContentView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
                 if !usesPeekLayout {
-                    Text("\(store.positions.count) 只持仓 · 每 2 秒刷新")
+                    Text("\(store.positions.count) 只持仓 · 每 3 秒刷新")
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.34))
                 }
@@ -3523,7 +4495,7 @@ struct ContentView: View {
                 + indexHorizontalPadding * 2
             let indexStripWidth = max(proxy.size.width, indexStripContentWidth)
             let totalPositionValue = store.positions.reduce(0) { $0 + max(0, $1.value) }
-            let tableWidth = max(920, proxy.size.width)
+            let tableWidth = max(1_000, proxy.size.width)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -3586,6 +4558,7 @@ struct ContentView: View {
                             Text("仓位占比").frame(width: 72, alignment: .leading)
                             Text("最新价").frame(width: 84, alignment: .leading)
                             Text("当日涨跌").frame(width: 88, alignment: .leading)
+                            Text("价格监控").frame(width: 76, alignment: .center)
                         }
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.38))
@@ -3647,6 +4620,7 @@ struct ContentView: View {
             let horizontalPadding: CGFloat = availableWidth < 430 ? 10 : 14
             let priceWidth: CGFloat = availableWidth < 430 ? 58 : 68
             let changeWidth: CGFloat = availableWidth < 430 ? 64 : 68
+            let alertWidth: CGFloat = availableWidth < 430 ? 52 : 58
             let showsPositionColumns = availableWidth >= 600
             let nameWidth: CGFloat = showsPositionColumns ? max(130, min(170, availableWidth * 0.26)) : 0
             let positionValueWidth: CGFloat = 72
@@ -3694,6 +4668,7 @@ struct ContentView: View {
                         }
                         Text("最新").frame(width: priceWidth, alignment: .leading)
                         Text("涨跌").frame(width: changeWidth, alignment: .leading)
+                        Text("监控").frame(width: alertWidth, alignment: .center)
                     }
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.white.opacity(0.3))
@@ -3714,6 +4689,7 @@ struct ContentView: View {
                                     allocationWidth: allocationWidth,
                                     priceWidth: priceWidth,
                                     changeWidth: changeWidth,
+                                    alertWidth: alertWidth,
                                     horizontalPadding: horizontalPadding,
                                     totalPositionValue: totalPositionValue
                                 )
@@ -3747,6 +4723,7 @@ struct ContentView: View {
         allocationWidth: CGFloat,
         priceWidth: CGFloat,
         changeWidth: CGFloat,
+        alertWidth: CGFloat,
         horizontalPadding: CGFloat,
         totalPositionValue: Double
     ) -> some View {
@@ -3820,6 +4797,12 @@ struct ContentView: View {
                 backgroundOpacity: 0.13,
                 cornerRadius: 7,
                 pulsesByDeltaDirection: false
+            )
+
+            priceAlertButton(
+                for: position,
+                compact: true,
+                width: alertWidth
             )
         }
         .padding(.horizontal, horizontalPadding)
@@ -3905,9 +4888,52 @@ struct ContentView: View {
                 cornerRadius: 7,
                 pulsesByDeltaDirection: false
             )
+
+            priceAlertButton(for: position, width: 76)
         }
         .padding(.horizontal, 20)
         .frame(height: 82)
+    }
+
+    private func priceAlertButton(
+        for position: Position,
+        compact: Bool = false,
+        width: CGFloat
+    ) -> some View {
+        let rule = store.priceAlert(for: position.id)
+        let isActive = rule?.isEnabled == true
+        let hasPrice = (store.positionMarkets[position.id]?.currentPrice ?? 0) > 0
+        return Button {
+            priceAlertEditingPosition = position
+        } label: {
+            Label(
+                isActive ? (compact ? "已开" : "已监控") : "监控",
+                systemImage: isActive ? "bell.fill" : "bell"
+            )
+                .labelStyle(.titleAndIcon)
+                .font(.system(size: compact ? 8 : 9, weight: .bold))
+                .foregroundStyle(isActive ? Color.orange : Color.white.opacity(0.72))
+                .frame(width: width, height: compact ? 24 : 28)
+                .background(
+                    isActive ? Color.orange.opacity(0.16) : Color.white.opacity(0.07),
+                    in: RoundedRectangle(cornerRadius: compact ? 7 : 8)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: compact ? 7 : 8)
+                        .stroke(
+                            isActive ? Color.orange.opacity(0.55) : Color.white.opacity(0.12)
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!hasPrice)
+        .opacity(hasPrice ? 1 : 0.42)
+        .help(
+            hasPrice
+                ? (isActive ? "修改价格监控" : "设置价格监控")
+                : "等待最新价后可设置监控"
+        )
+        .accessibilityLabel(isActive ? "已开启价格监控" : "设置价格监控")
     }
 
     private func marketSessionTag(for position: Position, compact: Bool = false) -> some View {
@@ -3969,10 +4995,13 @@ struct ContentView: View {
                         isHovered: hoveringPet,
                         appearance: selectedAppearance,
                         animationSettings: selectedAnimationSettings,
-                        previewAction: debugState.previewAction
+                        returnAnimationEnabled: store.returnAnimationEnabled,
+                        returnAnimationIntervalSeconds: store.returnAnimationIntervalSeconds,
+                        showsReturnChangeBubble: shouldShowReturnChangeBubble,
+                        previewAction: activePetPreviewAction
                     )
                     .frame(width: 150, height: 150)
-                    .id(debugState.actionToken)
+                    .id(activePetViewID)
                 }
                 .frame(width: 160, height: 150)
                 .contentShape(Rectangle())
@@ -4138,7 +5167,7 @@ struct ContentView: View {
     private func appearanceThumbnail(_ appearance: PetAppearance) -> some View {
         if appearance == .robot {
             StockPetMascot(mood: .bull, returnRate: 2.2, blinking: false, actionActive: false)
-        } else if let image = NSImage(named: NSImage.Name(appearance.previewName)) {
+        } else if let image = appearance.image(named: appearance.previewName) {
             Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
         }
     }
@@ -4253,11 +5282,39 @@ struct ContentView: View {
                     Text("挑一只喜欢的伙伴陪你看盘 · 当前全部免费").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 Spacer()
+#if LOCAL_EXTENDED_SKINS
+                Button {
+                    choosePetImportFolder()
+                } label: {
+                    Label("导入素材", systemImage: "folder.badge.plus")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+#endif
                 Button { showingPetStore = false } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 18)).foregroundStyle(.secondary)
                 }.buttonStyle(.plain)
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, petImportMessage.isEmpty ? 20 : 8)
+
+#if LOCAL_EXTENDED_SKINS
+            if !petImportMessage.isEmpty {
+                Label(
+                    petImportMessage,
+                    systemImage: petImportFailed
+                        ? "exclamationmark.triangle.fill"
+                        : "checkmark.circle.fill"
+                )
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(petImportFailed ? .orange : .green)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+            }
+#endif
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -4269,11 +5326,21 @@ struct ContentView: View {
                                 isAlerting: false,
                                 isHovered: false,
                                 appearance: appearance,
-                                animationSettings: debugState.settings(for: appearance)
+                                animationSettings: debugState.settings(for: appearance),
+                                returnAnimationEnabled: false,
+                                showsReturnChangeBubble: false
                             )
                             .frame(height: 112)
                             Text(appearance.name).font(.system(size: 13, weight: .semibold))
                             Text(appearance.tagline).font(.system(size: 9)).foregroundStyle(.secondary)
+                            if appearance.isImported {
+                                Label(
+                                    "已识别 \(appearance.availableAnimationActions.count) 个动作",
+                                    systemImage: "sparkles"
+                                )
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(mood.color)
+                            }
                             Button(selectedAppearance == appearance ? "使用中" : "免费使用") {
                                 selectAppearance(appearance)
                             }
@@ -4305,6 +5372,58 @@ struct ContentView: View {
         }
         triggerPetMotion()
     }
+
+#if LOCAL_EXTENDED_SKINS
+    private func choosePetImportFolder() {
+        let panel = NSOpenPanel()
+        panel.title = "导入宠物素材"
+        panel.message = "请选择同时包含 pet.json 和 spritesheet.webp 的文件夹"
+        panel.prompt = "导入"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let directory = panel.url else { return }
+
+        let accessed = directory.startAccessingSecurityScopedResource()
+        defer {
+            if accessed {
+                directory.stopAccessingSecurityScopedResource()
+            }
+        }
+        do {
+            let imported = try importedPetLibrary.importFolder(directory)
+            let appearance = PetAppearance(rawValue: imported.id)
+            if let appearance {
+                selectAppearance(appearance)
+            }
+            let actionCount = appearance?.availableAnimationActions.count ?? 0
+            selectedPetCatalogTab = .all
+            showPetImportMessage(
+                "已导入“\(imported.name)”并识别 \(actionCount) 个动作",
+                failed: false
+            )
+        } catch {
+            showPetImportMessage(
+                "导入失败：\(error.localizedDescription)",
+                failed: true
+            )
+        }
+    }
+
+    private func showPetImportMessage(_ message: String, failed: Bool) {
+        let token = UUID()
+        petImportMessageToken = token
+        petImportFailed = failed
+        petImportMessage = message
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            guard petImportMessageToken == token else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                petImportMessage = ""
+            }
+        }
+    }
+#endif
 
     // MARK: - 晒收益分享卡
 
@@ -4633,10 +5752,10 @@ struct ContentView: View {
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 spacing: 6
             ) {
-                animationRoleSummary("主要动作", action: selectedAnimationSettings.primaryAction, icon: "star.fill")
+                animationRoleSummary("默认兜底", action: selectedAnimationSettings.primaryAction, icon: "star.fill")
                 animationRoleSummary("鼠标悬停", action: selectedAnimationSettings.hoverAction, icon: "cursorarrow.motionlines")
-                animationRoleSummary("收益为正", action: selectedAnimationSettings.positiveAction, icon: "arrow.up.right")
-                animationRoleSummary("收益为负", action: selectedAnimationSettings.negativeAction, icon: "arrow.down.right")
+                animationRoleSummary("周期收益上升", action: selectedAnimationSettings.positiveAction, icon: "arrow.up.right")
+                animationRoleSummary("周期收益下降", action: selectedAnimationSettings.negativeAction, icon: "arrow.down.right")
             }
 
             Text("把「\(selectedAction.label)」设置为")
@@ -4644,10 +5763,10 @@ struct ContentView: View {
                 .foregroundStyle(.white.opacity(0.48))
 
             HStack(spacing: 5) {
-                animationAssignmentButton("主要", icon: "star") { $0.primaryAction = selectedAction }
+                animationAssignmentButton("默认兜底", icon: "star") { $0.primaryAction = selectedAction }
                 animationAssignmentButton("悬停", icon: "cursorarrow") { $0.hoverAction = selectedAction }
-                animationAssignmentButton("开心", icon: "arrow.up") { $0.positiveAction = selectedAction }
-                animationAssignmentButton("难过", icon: "arrow.down") { $0.negativeAction = selectedAction }
+                animationAssignmentButton("周期上升", icon: "arrow.up") { $0.positiveAction = selectedAction }
+                animationAssignmentButton("周期下降", icon: "arrow.down") { $0.negativeAction = selectedAction }
             }
         }
         .padding(10)
@@ -5306,9 +6425,8 @@ struct ContentView: View {
 
     private func resetDebugState() {
         debugState.isMockingReturn = false
-        debugState.mockReturnRate = store.totalReturn
         debugState.previewAction = nil
-        debugState.actionToken = UUID()
+        debugState.mockReturnRate = store.totalReturn
     }
 
     private func applyMainPetWindowPresentation(bringToFront: Bool = false) {
@@ -5330,7 +6448,7 @@ struct ContentView: View {
         applyMainPetWindowPresentation(bringToFront: expandedWindowStaysOnTop)
     }
 
-    private func resizeCompactWindowForReturn(animated: Bool = true) {
+    private func resizeCompactWindow(animated: Bool = true) {
         guard !isExpanded,
               let window = mainPetWindow else { return }
 
@@ -5539,6 +6657,104 @@ struct PreferencesView: View {
                         )).labelsHidden().toggleStyle(.switch).tint(gain)
                     }
 
+                    block("宠物收益反馈") {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("宠物随着收益率播放特殊动画")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white)
+                                Text("关闭后收益变化不会打断默认轮播")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.white.opacity(0.4))
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { store.returnAnimationEnabled },
+                                set: {
+                                    store.returnAnimationEnabled = $0
+                                    store.savePreferences()
+                                }
+                            ))
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(gain)
+                        }
+
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text("收益动画统计周期")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.white.opacity(0.5))
+                            Picker("", selection: Binding(
+                                get: { store.returnAnimationIntervalSeconds },
+                                set: {
+                                    store.returnAnimationIntervalSeconds = $0
+                                    store.savePreferences()
+                                }
+                            )) {
+                                Text("最近 30 秒").tag(30)
+                                Text("最近 60 秒").tag(60)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("显示宠物头顶涨跌气泡")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white)
+                                Text("所选市场开盘时每 30 秒弹出一次")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.white.opacity(0.4))
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { store.returnChangeBubbleEnabled },
+                                set: {
+                                    store.returnChangeBubbleEnabled = $0
+                                    store.savePreferences()
+                                }
+                            ))
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(gain)
+                        }
+
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack {
+                                Text("气泡跟随市场")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.white.opacity(0.5))
+                                Spacer()
+                                Text(store.returnBubbleMarketStatusText)
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(
+                                        store.isReturnBubbleMarketOpen
+                                            ? gain
+                                            : Color.white.opacity(0.38)
+                                    )
+                            }
+                            Picker("", selection: Binding(
+                                get: { store.returnBubbleMarket },
+                                set: {
+                                    store.returnBubbleMarket = $0
+                                    store.savePreferences()
+                                }
+                            )) {
+                                ForEach(ReturnBubbleMarket.allCases) { market in
+                                    Text(market.label).tag(market)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+
+                        Text("气泡仅在所选市场正常交易时显示；盘前、午休、盘后和休市都会暂停。")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     block("美股夜盘源") {
                         Text(store.alpacaStatus).font(.system(size: 10)).foregroundStyle(.white.opacity(0.5))
                         Text("默认用新浪盘后收盘价；要真·隔夜逐笔行情，可在顶栏「月亮」图标里配置 Alpaca。")
@@ -5567,7 +6783,7 @@ struct PreferencesView: View {
                 .padding(16)
             }
         }
-        .frame(width: 400, height: 540)
+        .frame(width: 420, height: 650)
         .background(Color(red: 0.07, green: 0.08, blue: 0.10))
         .preferredColorScheme(.dark)
     }
@@ -5689,6 +6905,413 @@ struct IndexSettingsView: View {
             if Task.isCancelled { return }
             await store.searchStocks(q)
         }
+    }
+}
+
+private struct PriceAlertEditor: View {
+    let position: Position
+    let currentPrice: Double
+    let existingRule: PriceAlertRule?
+    let onSave: (Double, Double, Bool) -> Void
+    let onDelete: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var lowerPrice: Double
+    @State private var upperPrice: Double
+    @State private var isEnabled: Bool
+    private let sliderBounds: ClosedRange<Double>
+    private let priceStep: Double
+
+    init(
+        position: Position,
+        currentPrice: Double,
+        existingRule: PriceAlertRule?,
+        onSave: @escaping (Double, Double, Bool) -> Void,
+        onDelete: @escaping () -> Void
+    ) {
+        self.position = position
+        self.currentPrice = currentPrice
+        self.existingRule = existingRule
+        self.onSave = onSave
+        self.onDelete = onDelete
+
+        let current = max(0.001, currentPrice)
+        let step: Double
+        if current < 1 {
+            step = 0.001
+        } else if current < 10 {
+            step = 0.01
+        } else if current < 100 {
+            step = 0.05
+        } else if current < 1_000 {
+            step = 0.1
+        } else {
+            step = 1
+        }
+        priceStep = step
+
+        let defaultLower = Self.snapped(current * 0.97, step: step)
+        let defaultUpper = Self.snapped(current * 1.03, step: step)
+        let initialLower = existingRule?.lowerPrice ?? defaultLower
+        let initialUpper = existingRule?.upperPrice ?? defaultUpper
+        _lowerPrice = State(initialValue: min(initialLower, initialUpper))
+        _upperPrice = State(initialValue: max(initialLower, initialUpper))
+        _isEnabled = State(initialValue: existingRule?.isEnabled ?? true)
+
+        let rangeLower = max(
+            step,
+            min(current * 0.8, min(initialLower, initialUpper) * 0.9)
+        )
+        let rangeUpper = max(
+            rangeLower + step * 10,
+            max(current * 1.2, max(initialLower, initialUpper) * 1.1)
+        )
+        sliderBounds = rangeLower...rangeUpper
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 38, height: 38)
+                    .background(.orange.opacity(0.13), in: RoundedRectangle(cornerRadius: 11))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("价格监控")
+                        .font(.system(size: 16, weight: .bold))
+                    Text("\(position.name) · \(position.symbol?.uppercased() ?? "未设置代码")")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.42))
+                }
+                Spacer()
+                Toggle("", isOn: $isEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.orange)
+            }
+            .padding(22)
+
+            Divider().overlay(.white.opacity(0.08))
+
+            VStack(spacing: 22) {
+                VStack(spacing: 5) {
+                    Text("当前最新价")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.38))
+                    Text(formattedPrice(currentPrice))
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                }
+
+                PriceRangeSlider(
+                    lowerValue: $lowerPrice,
+                    upperValue: $upperPrice,
+                    bounds: sliderBounds,
+                    step: priceStep,
+                    currentValue: currentPrice
+                )
+                .frame(height: 56)
+
+                HStack(spacing: 10) {
+                    priceBox(
+                        title: "跌到提醒",
+                        value: $lowerPrice,
+                        color: Color(red: 0.20, green: 1.0, blue: 0.56)
+                    )
+                    priceBox(
+                        title: "涨到提醒",
+                        value: $upperPrice,
+                        color: Color(red: 1.0, green: 0.28, blue: 0.30)
+                    )
+                }
+
+                if lowerPrice <= 0 || upperPrice <= 0 || lowerPrice >= upperPrice {
+                    Label(
+                        "提醒价格必须大于 0，且跌到价格必须低于涨到价格",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Button {
+                    lowerPrice = Self.snapped(currentPrice * 0.97, step: priceStep)
+                    upperPrice = Self.snapped(currentPrice * 1.03, step: priceStep)
+                } label: {
+                    Label("以当前价重设 ±3% 区间", systemImage: "scope")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 20)
+
+            Divider().overlay(.white.opacity(0.08))
+
+            HStack(spacing: 10) {
+                if existingRule != nil {
+                    Button("删除监控", role: .destructive) {
+                        onDelete()
+                        dismiss()
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.red.opacity(0.86))
+                }
+                Spacer()
+                Button("取消") { dismiss() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white.opacity(0.52))
+                Button {
+                    onSave(lowerPrice, upperPrice, isEnabled)
+                    dismiss()
+                } label: {
+                    Text("保存监控")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 32)
+                        .background(.orange, in: RoundedRectangle(cornerRadius: 9))
+                }
+                .buttonStyle(.plain)
+                .disabled(
+                    currentPrice <= 0
+                        || lowerPrice <= 0
+                        || upperPrice <= 0
+                        || lowerPrice >= upperPrice
+                )
+            }
+            .padding(18)
+        }
+        .frame(width: 500)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.075, green: 0.08, blue: 0.12),
+                    Color(red: 0.035, green: 0.04, blue: 0.065)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .preferredColorScheme(.dark)
+    }
+
+    private func priceBox(
+        title: String,
+        value: Binding<Double>,
+        color: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.38))
+                Spacer()
+                Text(percentFromCurrent(value.wrappedValue))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(color)
+                    .monospacedDigit()
+            }
+            HStack(spacing: 6) {
+                TextField(
+                    "输入价格",
+                    value: value,
+                    format: .number.precision(.fractionLength(0...3))
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+                .monospacedDigit()
+                .accessibilityLabel(title)
+                Image(systemName: "pencil.line")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(color.opacity(0.7))
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 30)
+            .background(
+                .black.opacity(0.2),
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(color.opacity(0.26), lineWidth: 1)
+            )
+        }
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.18)))
+    }
+
+    private func formattedPrice(_ value: Double) -> String {
+        if value >= 1_000 { return String(format: "%.1f", value) }
+        if value >= 10 { return String(format: "%.2f", value) }
+        return String(format: "%.3f", value)
+    }
+
+    private func percentFromCurrent(_ value: Double) -> String {
+        guard currentPrice > 0 else { return "--" }
+        let change = (value / currentPrice - 1) * 100
+        return String(format: "%+.2f%%", change)
+    }
+
+    private static func snapped(_ value: Double, step: Double) -> Double {
+        max(step, (value / step).rounded() * step)
+    }
+}
+
+private struct PriceRangeSlider: View {
+    @Binding var lowerValue: Double
+    @Binding var upperValue: Double
+    let bounds: ClosedRange<Double>
+    let step: Double
+    let currentValue: Double
+
+    private let thumbSize: CGFloat = 18
+    @State private var isDraggingLower = false
+    @State private var isDraggingUpper = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(1, proxy.size.width - thumbSize)
+            let lowerX = xPosition(for: lowerValue, width: width)
+            let upperX = xPosition(for: upperValue, width: width)
+            let currentX = xPosition(for: currentValue, width: width)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.09))
+                    .frame(height: 5)
+                    .padding(.horizontal, thumbSize / 2)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.20, green: 1.0, blue: 0.56),
+                                .orange,
+                                Color(red: 1.0, green: 0.28, blue: 0.30)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(2, upperX - lowerX), height: 5)
+                    .offset(x: lowerX + thumbSize / 2)
+
+                Rectangle()
+                    .fill(.white.opacity(0.72))
+                    .frame(width: 1, height: 18)
+                    .offset(x: currentX + thumbSize / 2)
+
+                sliderThumb(
+                    color: Color(red: 0.20, green: 1.0, blue: 0.56),
+                    percentage: percentFromCurrent(lowerValue),
+                    isDragging: isDraggingLower
+                )
+                    .offset(x: lowerX)
+                    .gesture(
+                        DragGesture(
+                            minimumDistance: 0,
+                            coordinateSpace: .named("price-range-slider")
+                        )
+                            .onChanged { gesture in
+                                isDraggingLower = true
+                                lowerValue = min(
+                                    upperValue - step,
+                                    value(at: gesture.location.x, width: width)
+                                )
+                            }
+                            .onEnded { _ in
+                                isDraggingLower = false
+                            }
+                    )
+
+                sliderThumb(
+                    color: Color(red: 1.0, green: 0.28, blue: 0.30),
+                    percentage: percentFromCurrent(upperValue),
+                    isDragging: isDraggingUpper
+                )
+                    .offset(x: upperX)
+                    .gesture(
+                        DragGesture(
+                            minimumDistance: 0,
+                            coordinateSpace: .named("price-range-slider")
+                        )
+                            .onChanged { gesture in
+                                isDraggingUpper = true
+                                upperValue = max(
+                                    lowerValue + step,
+                                    value(at: gesture.location.x, width: width)
+                                )
+                            }
+                            .onEnded { _ in
+                                isDraggingUpper = false
+                            }
+                    )
+            }
+            .frame(height: proxy.size.height)
+            .coordinateSpace(name: "price-range-slider")
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("价格监控区间")
+        .accessibilityValue("\(lowerValue) 到 \(upperValue)")
+    }
+
+    private func sliderThumb(
+        color: Color,
+        percentage: String,
+        isDragging: Bool
+    ) -> some View {
+        Circle()
+            .fill(Color(red: 0.08, green: 0.085, blue: 0.11))
+            .frame(width: thumbSize, height: thumbSize)
+            .overlay(Circle().stroke(color, lineWidth: 3))
+            .shadow(color: color.opacity(0.35), radius: 5)
+            .overlay(alignment: .top) {
+                if isDragging {
+                    Text(percentage)
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                        .fixedSize()
+                        .padding(.horizontal, 7)
+                        .frame(height: 22)
+                        .background(
+                            Color(red: 0.08, green: 0.085, blue: 0.11),
+                            in: Capsule()
+                        )
+                        .overlay(Capsule().stroke(color.opacity(0.6)))
+                        .shadow(color: .black.opacity(0.45), radius: 6, y: 3)
+                        .offset(y: -31)
+                }
+            }
+    }
+
+    private func xPosition(for value: Double, width: CGFloat) -> CGFloat {
+        let clamped = min(bounds.upperBound, max(bounds.lowerBound, value))
+        let progress = (clamped - bounds.lowerBound)
+            / max(0.000_001, bounds.upperBound - bounds.lowerBound)
+        return CGFloat(progress) * width
+    }
+
+    private func value(at x: CGFloat, width: CGFloat) -> Double {
+        let clampedX = min(width, max(0, x - thumbSize / 2))
+        let raw = bounds.lowerBound
+            + Double(clampedX / max(1, width))
+                * (bounds.upperBound - bounds.lowerBound)
+        let snapped = (raw / step).rounded() * step
+        return min(bounds.upperBound, max(bounds.lowerBound, snapped))
+    }
+
+    private func percentFromCurrent(_ value: Double) -> String {
+        guard currentValue > 0 else { return "--" }
+        let change = (value / currentValue - 1) * 100
+        return String(format: "%+.2f%%", change)
     }
 }
 
@@ -5864,6 +7487,54 @@ enum BullHappiness: Int, Equatable {
     }
 }
 
+private struct PetReturnBubbleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let tailHeight = min(11, rect.height * 0.2)
+        let bodyBottom = rect.maxY - tailHeight
+        let radius = min(19, min(rect.width, bodyBottom) / 2)
+        let tailCenter = min(
+            rect.maxX - radius - 7,
+            max(rect.minX + radius + 7, rect.minX + rect.width * 0.74)
+        )
+        let tailHalfWidth: CGFloat = 8
+        let tailTipX = tailCenter + 4
+
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + radius, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY + radius),
+            control: CGPoint(x: rect.maxX, y: rect.minY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: bodyBottom - radius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - radius, y: bodyBottom),
+            control: CGPoint(x: rect.maxX, y: bodyBottom)
+        )
+        path.addLine(to: CGPoint(x: tailCenter + tailHalfWidth, y: bodyBottom))
+        path.addQuadCurve(
+            to: CGPoint(x: tailTipX, y: rect.maxY),
+            control: CGPoint(x: tailCenter + 5, y: bodyBottom + 5)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: tailCenter - tailHalfWidth, y: bodyBottom),
+            control: CGPoint(x: tailCenter - 2, y: bodyBottom + 5)
+        )
+        path.addLine(to: CGPoint(x: rect.minX + radius, y: bodyBottom))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: bodyBottom - radius),
+            control: CGPoint(x: rect.minX, y: bodyBottom)
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + radius, y: rect.minY),
+            control: CGPoint(x: rect.minX, y: rect.minY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct AnimatedStockPet: View {
     let mood: PetMood
     let returnRate: Double
@@ -5871,6 +7542,9 @@ struct AnimatedStockPet: View {
     let isHovered: Bool
     let appearance: PetAppearance
     var animationSettings: PetAnimationSettings = .default
+    var returnAnimationEnabled = true
+    var returnAnimationIntervalSeconds = 30
+    var showsReturnChangeBubble = true
     var previewAction: PetAnimationAction? = nil
     /// 拖拽方向：-1 向左走，1 向右走，0 正常状态
     var walkDirection: Int = 0
@@ -5878,34 +7552,232 @@ struct AnimatedStockPet: View {
     @State private var hoverStartedAt = Date.distantPast
     @State private var alertStartedAt = Date.distantPast
     @State private var actionStartedAt = Date()
+    @State private var defaultSequenceStartedAt = Date()
+    @State private var comparisonBaselineReturn: Double?
+    @State private var comparisonWindowStartedAt = Date()
+    @State private var bubbleBaselineReturn: Double?
+    @State private var bubbleWindowStartedAt = Date()
+    @State private var latestWindowChange: Double?
+    @State private var returnBubbleToken = UUID()
+    @State private var sampledChangeAction: PetAnimationAction?
+    @State private var sampledChangeStartedAt = Date.distantPast
 
-    private var displayedAction: PetAnimationAction {
-        // 调试预览优先级最高：用户点了哪个动作就播哪个，不被悬停/异动打断
-        if let previewAction {
-            return previewAction
-        }
-        if isHovered || isAlerting {
-            return animationSettings.hoverAction
-        }
-        if returnRate > 0.001 {
-            return animationSettings.positiveAction
-        }
-        if returnRate < -0.001 {
-            return animationSettings.negativeAction
-        }
-        return animationSettings.primaryAction
+    private static let returnSampleTimer = Timer.publish(
+        every: 3,
+        on: .main,
+        in: .common
+    ).autoconnect()
+
+    private struct PlaybackStep {
+        let action: PetAnimationAction
+        let time: TimeInterval
     }
 
-    private var displayedMood: PetMood {
-        switch displayedAction {
+    private var comparisonWindow: TimeInterval {
+        returnAnimationIntervalSeconds == 60 ? 60 : 30
+    }
+
+    private let bubbleComparisonWindow: TimeInterval = 30
+
+    private func actionDuration(_ action: PetAnimationAction) -> TimeInterval {
+        let frameCount = max(1, appearance.animationFrameCount(for: action))
+        let effectiveSpeed = max(
+            0.1,
+            action.playbackSpeed * PetAnimTuning.speedMultiplier
+        )
+        return max(0.55, Double(frameCount) / effectiveSpeed)
+    }
+
+    private func neutralPlayback(at elapsed: TimeInterval) -> PlaybackStep {
+        let available = Set(appearance.availableAnimationActions)
+        let fallback = available.contains(animationSettings.primaryAction)
+            ? animationSettings.primaryAction
+            : .idle
+        let sequence = PetAnimationSettings.defaultIdleSequence.map { action in
+            available.contains(action) ? action : fallback
+        }
+        let durations = sequence.map(actionDuration)
+        let cycleDuration = max(0.55, durations.reduce(0, +))
+        var position = elapsed.truncatingRemainder(dividingBy: cycleDuration)
+        for (index, action) in sequence.enumerated() {
+            let duration = durations[index]
+            if position < duration {
+                return PlaybackStep(action: action, time: position)
+            }
+            position -= duration
+        }
+        return PlaybackStep(action: sequence[0], time: 0)
+    }
+
+    private func displayedPlayback(at date: Date) -> PlaybackStep {
+        let actionElapsed = max(0, date.timeIntervalSince(actionStartedAt))
+        // 调试预览优先级最高：用户点了哪个动作就播哪个，不被悬停/异动打断
+        if let previewAction {
+            return PlaybackStep(action: previewAction, time: actionElapsed)
+        }
+        if returnAnimationEnabled, let sampledChangeAction {
+            let sampledElapsed = max(
+                0,
+                date.timeIntervalSince(sampledChangeStartedAt)
+            )
+            if sampledElapsed < actionDuration(sampledChangeAction) {
+                return PlaybackStep(
+                    action: sampledChangeAction,
+                    time: sampledElapsed
+                )
+            }
+        }
+        if isHovered || isAlerting {
+            return PlaybackStep(
+                action: animationSettings.hoverAction,
+                time: actionElapsed
+            )
+        }
+        return neutralPlayback(
+            at: max(0, date.timeIntervalSince(defaultSequenceStartedAt))
+        )
+    }
+
+    private func sampleReturnChange(at date: Date) {
+        sampleReturnBubble(at: date)
+        sampleReturnAnimation(at: date)
+    }
+
+    private func sampleReturnBubble(at date: Date) {
+        guard let bubbleBaselineReturn else {
+            self.bubbleBaselineReturn = returnRate
+            bubbleWindowStartedAt = date
+            return
+        }
+        guard date.timeIntervalSince(bubbleWindowStartedAt)
+                >= bubbleComparisonWindow else { return }
+
+        let difference = returnRate - bubbleBaselineReturn
+        self.bubbleBaselineReturn = returnRate
+        bubbleWindowStartedAt = date
+
+        if showsReturnChangeBubble {
+            presentReturnChangeBubble(difference)
+        } else {
+            latestWindowChange = nil
+        }
+    }
+
+    private func sampleReturnAnimation(at date: Date) {
+        guard let comparisonBaselineReturn else {
+            self.comparisonBaselineReturn = returnRate
+            comparisonWindowStartedAt = date
+            return
+        }
+        guard date.timeIntervalSince(comparisonWindowStartedAt)
+                >= comparisonWindow else { return }
+
+        let difference = returnRate - comparisonBaselineReturn
+        self.comparisonBaselineReturn = returnRate
+        comparisonWindowStartedAt = date
+        sampledChangeAction = nil
+
+        guard returnAnimationEnabled, abs(difference) > 0.0001 else {
+            return
+        }
+
+        let available = Set(appearance.availableAnimationActions)
+        let configuredAction = difference > 0
+            ? animationSettings.positiveAction
+            : animationSettings.negativeAction
+        let expectedAction: PetAnimationAction = difference > 0
+            ? .jump
+            : .failed
+        let action: PetAnimationAction
+        if available.contains(configuredAction) {
+            action = configuredAction
+        } else if available.contains(expectedAction) {
+            action = expectedAction
+        } else if available.contains(animationSettings.primaryAction) {
+            action = animationSettings.primaryAction
+        } else {
+            action = .idle
+        }
+
+        sampledChangeAction = action
+        sampledChangeStartedAt = date
+        defaultSequenceStartedAt = date.addingTimeInterval(
+            actionDuration(action)
+        )
+    }
+
+    private func presentReturnChangeBubble(_ change: Double) {
+        let token = UUID()
+        returnBubbleToken = token
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+            latestWindowChange = change
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.2) {
+            guard returnBubbleToken == token else { return }
+            withAnimation(.easeOut(duration: 0.22)) {
+                latestWindowChange = nil
+            }
+        }
+    }
+
+    private func returnChangeBubble(change: Double) -> some View {
+        let seconds = Int(bubbleComparisonWindow)
+        let changeText: String
+        let title: String
+        if change > 0.0001 {
+            changeText = String(format: "+%.2f%%", change)
+            title = "收益上涨"
+        } else if change < -0.0001 {
+            changeText = String(format: "%.2f%%", change)
+            title = "收益回落"
+        } else {
+            changeText = "0.00%"
+            title = "收益稳定"
+        }
+
+        return Text("\(title)  \(changeText)")
+            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+            .foregroundStyle(.black.opacity(0.78))
+            .monospacedDigit()
+            .lineLimit(1)
+            .frame(width: 138, height: 35, alignment: .center)
+            .padding(.bottom, 9)
+            .background {
+                ZStack {
+                    PetReturnBubbleShape()
+                        .fill(.ultraThinMaterial)
+                    PetReturnBubbleShape()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.88),
+                                    Color.white.opacity(0.66)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .overlay {
+                PetReturnBubbleShape()
+                    .stroke(.white.opacity(0.96), lineWidth: 0.9)
+            }
+            .allowsHitTesting(false)
+            .accessibilityLabel("\(title)，最近\(seconds)秒收益变化\(changeText)")
+    }
+
+    private func displayedMood(for action: PetAnimationAction) -> PetMood {
+        switch action {
         case .sad, .hurt, .crash, .failed: return .bear
         case .happy, .jump, .attack, .shoot, .waving: return .bull
         default: return mood
         }
     }
 
-    private var displayedReturnRate: Double {
-        switch displayedAction {
+    private func displayedReturnRate(for action: PetAnimationAction) -> Double {
+        switch action {
         case .sad, .hurt, .crash, .failed: return min(-1, returnRate)
         case .happy, .jump, .attack, .shoot, .waving: return max(2, returnRate)
         default: return returnRate
@@ -5916,8 +7788,29 @@ struct AnimatedStockPet: View {
         GeometryReader { proxy in
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let time = timeline.date.timeIntervalSinceReferenceDate
-                let actionTime = max(0, timeline.date.timeIntervalSince(actionStartedAt))
+                let playback = displayedPlayback(at: timeline.date)
+                let displayedAction = playback.action
+                let playbackMood = displayedMood(for: displayedAction)
+                let playbackReturnRate = displayedReturnRate(
+                    for: displayedAction
+                )
                 let side = min(proxy.size.width, proxy.size.height)
+                let runningActionActive: Bool = {
+                    switch displayedAction {
+                    case .run, .runleft, .runright: return true
+                    default: return false
+                    }
+                }()
+                let runningWave = sin(time * 10)
+                let runningStride = runningActionActive
+                    ? CGFloat(runningWave) * side * 0.045
+                    : 0
+                let runningLift = runningActionActive
+                    ? abs(CGFloat(runningWave)) * side * 0.035
+                    : 0
+                let runningTilt = runningActionActive
+                    ? Angle.degrees(runningWave * 4.5)
+                    : .zero
                 let positiveReturn = max(0, returnRate)
                 let happinessStrength = min(1, positiveReturn / 5)
 
@@ -5937,23 +7830,14 @@ struct AnimatedStockPet: View {
                     ? CGFloat(sin(alertProgress * .pi)) * side * CGFloat(0.10 + happinessStrength * 0.14)
                     : 0
 
-                let repeatInterval = max(7.0, 12.6 - happinessStrength * 5.4)
-                let automaticElapsed = time.truncatingRemainder(dividingBy: repeatInterval)
-                let automaticDuration = 0.72
-                let automaticActive = mood == .bull && positiveReturn >= 2 && automaticElapsed < automaticDuration
-                let automaticProgress = min(1, automaticElapsed / automaticDuration)
-                let automaticHeight = automaticActive
-                    ? CGFloat(sin(automaticProgress * .pi)) * side * CGFloat(0.025 + happinessStrength * 0.07)
-                    : 0
-
-                let jumpHeight = max(hoverHeight, alertHeight, automaticHeight)
+                let jumpHeight = max(hoverHeight, alertHeight)
                 let floatFrequency = 0.8 + happinessStrength * 0.4
                 let floatAmplitude = side * CGFloat(0.006 + happinessStrength * 0.024)
                 let idleLift = CGFloat(sin(time * floatFrequency)) * floatAmplitude
-                let bullActionActive = hoverActive || alertActive || automaticActive
+                let bullActionActive = hoverActive || alertActive
 
                 let bearActionWindow = time.truncatingRemainder(dividingBy: 3.2) < 1.05
-                let bearActionActive = mood == .bear && (isAlerting || returnRate <= -3) && bearActionWindow
+                let bearActionActive = mood == .bear && isAlerting && bearActionWindow
                 let shake = bearActionActive ? CGFloat(sin(time * 10)) * side * 0.014 : 0
 
                 let breathAmount = mood == .bull
@@ -5970,16 +7854,16 @@ struct AnimatedStockPet: View {
                     Group {
                         if appearance == .robot {
                             StockPetMascot(
-                                mood: displayedMood,
-                                returnRate: displayedReturnRate,
+                                mood: playbackMood,
+                                returnRate: playbackReturnRate,
                                 blinking: time.truncatingRemainder(dividingBy: 4.1) > 3.88,
                                 actionActive: bullActionActive || bearActionActive
                             )
                         } else {
                             OpenPetsMascot(
-                                mood: displayedMood,
-                                returnRate: displayedReturnRate,
-                                time: actionTime,
+                                mood: playbackMood,
+                                returnRate: playbackReturnRate,
+                                time: playback.time,
                                 actionActive: bullActionActive || bearActionActive,
                                 appearance: appearance,
                                 animationAction: displayedAction,
@@ -5989,29 +7873,86 @@ struct AnimatedStockPet: View {
                     }
                     .scaleEffect(x: breath, y: 2 - breath, anchor: .bottom)
                     .scaleEffect(CGFloat(animationSettings.scale), anchor: .bottom)
-                    .offset(x: shake, y: idleLift - jumpHeight)
+                    .rotationEffect(runningTilt, anchor: .bottom)
+                    .offset(
+                        x: shake + runningStride,
+                        y: idleLift - jumpHeight - runningLift
+                    )
+
+                    if showsReturnChangeBubble,
+                       let latestWindowChange {
+                        returnChangeBubble(change: latestWindowChange)
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity,
+                                alignment: .top
+                            )
+                            .offset(x: -28, y: -50)
+                            .transition(
+                                .scale(scale: 0.9, anchor: .bottom)
+                                    .combined(with: .opacity)
+                            )
+                            .zIndex(5)
+                    }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
             }
         }
+        .onAppear {
+            comparisonBaselineReturn = returnRate
+            comparisonWindowStartedAt = Date()
+            bubbleBaselineReturn = returnRate
+            bubbleWindowStartedAt = Date()
+            defaultSequenceStartedAt = Date()
+        }
+        .onReceive(Self.returnSampleTimer) { date in
+            sampleReturnChange(at: date)
+        }
         .onChange(of: isHovered) { wasHovered, hovering in
-            guard hovering && !wasHovered else { return }
-            hoverStartedAt = Date()
+            if hovering && !wasHovered {
+                hoverStartedAt = Date()
+            }
             actionStartedAt = Date()
+            if !hovering {
+                defaultSequenceStartedAt = Date()
+            }
         }
         .onChange(of: isAlerting) { wasAlerting, alerting in
-            guard alerting && !wasAlerting else { return }
-            alertStartedAt = Date()
+            if alerting && !wasAlerting {
+                alertStartedAt = Date()
+            }
             actionStartedAt = Date()
+            if !alerting {
+                defaultSequenceStartedAt = Date()
+            }
         }
-        .onChange(of: previewAction) { _, _ in
+        .onChange(of: previewAction) { _, action in
             actionStartedAt = Date()
+            if action == nil {
+                defaultSequenceStartedAt = Date()
+            }
         }
         .onChange(of: animationSettings) { _, _ in
             actionStartedAt = Date()
+            defaultSequenceStartedAt = Date()
+            sampledChangeAction = nil
+            comparisonBaselineReturn = returnRate
+            comparisonWindowStartedAt = Date()
         }
-        .onChange(of: returnRate >= 0) { _, _ in
-            actionStartedAt = Date()
+        .onChange(of: returnAnimationEnabled) { _, isEnabled in
+            sampledChangeAction = nil
+            comparisonBaselineReturn = returnRate
+            comparisonWindowStartedAt = Date()
+            if !isEnabled {
+                defaultSequenceStartedAt = Date()
+            }
+        }
+        .onChange(of: returnAnimationIntervalSeconds) { _, _ in
+            sampledChangeAction = nil
+            latestWindowChange = nil
+            comparisonBaselineReturn = returnRate
+            comparisonWindowStartedAt = Date()
+            defaultSequenceStartedAt = Date()
         }
         .accessibilityHidden(true)
     }
@@ -6199,24 +8140,24 @@ struct OpenPetsMascot: View {
     var body: some View {
         Group {
             if let frame = configuredFrameName,
-               let image = NSImage(named: NSImage.Name(frame)) {
+               let image = appearance.image(named: frame) {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
             } else if let frame = currentSkinFrame,
-               let image = NSImage(named: NSImage.Name(frame)) {
+               let image = appearance.image(named: frame) {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
             } else if let assetName = appearance.assetName,
-               let image = NSImage(named: NSImage.Name(assetName)) {
+               let image = appearance.image(named: assetName) {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
-            } else if let image = NSImage(named: NSImage.Name(frameName)) {
+            } else if let image = appearance.image(named: frameName) {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
@@ -6533,7 +8474,7 @@ struct ShareCardView: View {
                 Group {
                     if appearance == .robot {
                         StockPetMascot(mood: mood, returnRate: returnRate, blinking: false, actionActive: true)
-                    } else if let image = NSImage(named: NSImage.Name(petFrameName)) {
+                    } else if let image = appearance.image(named: petFrameName) {
                         Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
                     }
                 }

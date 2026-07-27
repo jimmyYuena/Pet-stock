@@ -40,11 +40,9 @@ App Store Connect 隐私问卷仍需由账号持有人根据最终行情供应�
 
 ## 4. 素材与行情授权
 
-商店构建脚本仅复制明确列入 `packaging/public-pet-skins.zsh` 的资源：
+商店构建脚本仅复制脚本内明确列出的公开资源：
 
 - 原创 SwiftUI 行情机器人；
-- `skin_mech_*`（CC0）；
-- `skin_polar_*`（CC0）；
 - 项目所有者确认可公开商用的 GPT娘及 2026-07-24 二创角色批次。
 
 不要向商店版本加入未进入公开清单、或在 `THIRD_PARTY_NOTICES.md`

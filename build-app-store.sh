@@ -3,7 +3,7 @@ set -euo pipefail
 
 if (( $# != 2 )); then
   echo "用法: ./build-app-store.sh <版本号> <构建号>"
-  echo "示例: ./build-app-store.sh 0.4.2 11"
+  echo "示例: ./build-app-store.sh 0.4.3 12"
   exit 64
 fi
 
@@ -15,7 +15,6 @@ APP="$OUTPUT/持仓宠物.app"
 PKG="$OUTPUT/StockPet-v${VERSION}-build${BUILD_NUMBER}.pkg"
 PROFILE_PLIST="$OUTPUT/profile.plist"
 BUNDLE_ID="com.stockpet.desktop"
-source "$ROOT/packaging/public-pet-skins.zsh"
 
 : "${APP_STORE_APP_IDENTITY:?请设置 APP_STORE_APP_IDENTITY（Mac App Distribution/Apple Distribution 证书名称）}"
 : "${APP_STORE_INSTALLER_IDENTITY:?请设置 APP_STORE_INSTALLER_IDENTITY（Mac Installer Distribution 证书名称）}"
@@ -55,9 +54,8 @@ plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP/Contents/Info.plis
 
 cp "$ROOT/native/Resources/StockPet.icns" "$APP/Contents/Resources/StockPet.icns"
 cp "$ROOT/native/PrivacyInfo.xcprivacy" "$APP/Contents/Resources/PrivacyInfo.xcprivacy"
-copy_public_pet_skins \
-  "$ROOT/native/Resources/OpenPets" \
-  "$APP/Contents/Resources"
+cp "$ROOT/native/Resources/OpenPets/"skin_{gptniang,pikachu,gian,suneo,shizuka,shinchan,maruko,atom,sailormoon,kagome,kaitokid,heimerdinger,yantianzong,cubaibai,sakiko,nimbus,yamada,maidlet,mikan,ricklet,totoro,trump,white_muse_realistic}_*.png \
+  "$APP/Contents/Resources/"
 
 cp "$APP_STORE_PROVISIONING_PROFILE" "$APP/Contents/embedded.provisionprofile"
 security cms -D -i "$APP_STORE_PROVISIONING_PROFILE" > "$PROFILE_PLIST"
