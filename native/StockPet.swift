@@ -2234,6 +2234,13 @@ final class PetStore: ObservableObject {
 private let mainPetWindowTitle = "持仓宠物"
 private let mainPetWindowExpandedKey = "stockPet.window.isExpanded.current.v1"
 private let expandedWindowStaysOnTopKey = "stockPet.expandedWindow.staysOnTop.v1"
+private let compactPetBaseSide: CGFloat = 116
+private let compactWindowExtraWidth: CGFloat = 92
+private let compactWindowExtraHeight: CGFloat = 104
+private let defaultCompactWindowContentSize = NSSize(
+    width: compactPetBaseSide + compactWindowExtraWidth,
+    height: compactPetBaseSide + compactWindowExtraHeight
+)
 
 private func configureMainPetWindowPresentation(_ window: NSWindow, isExpanded: Bool, expandedStaysOnTop: Bool) {
     let shouldFloatAboveApps = !isExpanded || expandedStaysOnTop
@@ -2261,12 +2268,25 @@ private func configureMainPetWindowPresentationFromDefaults(_ window: NSWindow) 
 private func defaultCompactWindowFrame(for window: NSWindow) -> NSRect {
     let size = window.frame.size
     let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
-    let margin: CGFloat = 24
+    let trailingMargin: CGFloat = 34
+    let bottomMargin: CGFloat = 44
     return NSRect(
-        x: visible.maxX - size.width - margin,
-        y: visible.minY + margin,
+        x: visible.maxX - size.width - trailingMargin,
+        y: visible.minY + bottomMargin,
         width: size.width,
         height: size.height
+    )
+}
+
+private func startupCompactWindowContentSize(from currentSize: NSSize) -> NSSize {
+    let maximumCompactDimension: CGFloat = 360
+    return NSSize(
+        width: currentSize.width >= defaultCompactWindowContentSize.width && currentSize.width <= maximumCompactDimension
+            ? currentSize.width
+            : defaultCompactWindowContentSize.width,
+        height: currentSize.height >= defaultCompactWindowContentSize.height && currentSize.height <= maximumCompactDimension
+            ? currentSize.height
+            : defaultCompactWindowContentSize.height
     )
 }
 
@@ -2334,7 +2354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             UserDefaults.standard.set(false, forKey: mainPetWindowExpandedKey)
             configureMainPetWindowPresentation(window, isExpanded: false, expandedStaysOnTop: false)
             window.hasShadow = false
-            window.setContentSize(NSSize(width: 150, height: 165))
+            window.setContentSize(startupCompactWindowContentSize(from: window.frame.size))
             window.setFrame(defaultCompactWindowFrame(for: window), display: true)
         }
     }
@@ -3790,12 +3810,12 @@ struct ContentView: View {
         displayReturn >= 0 ? .bull : .bear
     }
 
-    private let compactPetSide: CGFloat = 116
+    private let compactPetSide: CGFloat = compactPetBaseSide
 
     private var compactWindowSize: NSSize {
         // 侧边和顶部多留白：跑动/跳跃姿势会甩出精灵图中心区域，避免被窗口边裁切
         let visualSide = compactPetSide * CGFloat(selectedAnimationSettings.scale)
-        return NSSize(width: visualSide + 92, height: visualSide + 104)
+        return NSSize(width: visualSide + compactWindowExtraWidth, height: visualSide + compactWindowExtraHeight)
     }
 
     private var expandedWindowHeight: CGFloat {
@@ -4037,6 +4057,27 @@ struct ContentView: View {
                     .allowsWindowActivationEvents()
                     .accessibilityLabel("设置")
                     .help("设置")
+                    .zIndex(10)
+                }
+                HStack {
+                    Spacer()
+                    Button {
+                        NSApp.terminate(nil)
+                    } label: {
+                        Circle()
+                            .fill(.black.opacity(0.62))
+                            .frame(width: 25, height: 25)
+                            .overlay(Circle().stroke(Color.red.opacity(0.35)))
+                            .overlay(
+                                Image(systemName: "power")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Color.red.opacity(0.95))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .allowsWindowActivationEvents()
+                    .accessibilityLabel("一键退出")
+                    .help("一键退出应用")
                     .zIndex(10)
                 }
                 Spacer()
