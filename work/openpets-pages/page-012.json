@@ -1,0 +1,742 @@
+{
+  "version": 3,
+  "page": 12,
+  "pageSize": 100,
+  "pets": [
+    {
+      "id": "swag",
+      "displayName": "Swag",
+      "description": "A swaggy penguin with sunglasses.",
+      "thumbnail": "https://openpets.dev/pets/swag-3795d5b4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/swag-3795d5b4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/swag-3795d5b4/swag.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "acidling",
+      "displayName": "Acidling",
+      "description": "A tiny original biomechanical alien hatchling that can spit small acid droplets.",
+      "thumbnail": "https://openpets.dev/pets/acidling-2ca84f01/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/acidling-2ca84f01/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/acidling-2ca84f01/acidling.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "february",
+      "displayName": "February",
+      "description": "A playful rare-colored blue-purple alien digital pet with oversized ears, starry markings, mint highlights, a moon-and-star sword, a sword-practice task loop, and a clasped-fist completion bow.",
+      "thumbnail": "https://openpets.dev/pets/february-77c3513d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/february-77c3513d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/february-77c3513d/february.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "johnny",
+      "displayName": "Johnny",
+      "description": "A compact Codex digital pet inspired by a cyberpunk rocker rebel with black hair, aviator sunglasses, a black tactical vest, dog tags, brown pants, and a chrome cybernetic arm.",
+      "thumbnail": "https://openpets.dev/pets/johnny-803e64c3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/johnny-803e64c3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/johnny-803e64c3/johnny.zip",
+      "category": "western",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wojak",
+      "displayName": "Wojak",
+      "description": "A tiny crude glasses Wojak-style pet with cheek stubble, tired eyes, a clean continuous head outline, and a closed mouth.",
+      "thumbnail": "https://openpets.dev/pets/wojak-b711300b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wojak-b711300b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wojak-b711300b/wojak.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "thorny-shadow-v1",
+      "displayName": "Thorny Shadow v1",
+      "description": "A dark action-outfit Codex pet sprite set with combat, weapon-care, and mishap motions.",
+      "thumbnail": "https://openpets.dev/pets/thorny-shadow-v1-1272bdad/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/thorny-shadow-v1-1272bdad/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/thorny-shadow-v1-1272bdad/thorny-shadow-v1.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "thorny-daily-v1",
+      "displayName": "Thorny Daily v1",
+      "description": "The original cozy daily-outfit Codex pet sprite set.",
+      "thumbnail": "https://openpets.dev/pets/thorny-daily-v1-d8252b3c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/thorny-daily-v1-d8252b3c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/thorny-daily-v1-d8252b3c/thorny-daily-v1.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "showgirl",
+      "displayName": "Showgirl",
+      "description": "A tiny peach-feather showgirl pet based on the supplied stage-glam reference.",
+      "thumbnail": "https://openpets.dev/pets/showgirl-aec31617/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/showgirl-aec31617/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/showgirl-aec31617/showgirl.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "pepe",
+      "displayName": "Pepe",
+      "description": "A small Codex pet styled as a classic green melancholic meme frog.",
+      "thumbnail": "https://openpets.dev/pets/pepe-9751176f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pepe-9751176f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pepe-9751176f/pepe.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "moon-duo",
+      "displayName": "Moon Duo",
+      "description": "A compact Codex pet duo: Diana riding on Hugh in a white armored suit.",
+      "thumbnail": "https://openpets.dev/pets/moon-duo-e07c9d42/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/moon-duo-e07c9d42/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/moon-duo-e07c9d42/moon-duo.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "invincible",
+      "displayName": "Invincible",
+      "description": "A compact Codex digital pet version of Invincible from Robert Kirkman's comic, with confident heroic energy and clean comic-book color blocking.",
+      "thumbnail": "https://openpets.dev/pets/invincible-d3ba3f0d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/invincible-d3ba3f0d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/invincible-d3ba3f0d/invincible.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "homelander",
+      "displayName": "Homelander",
+      "description": "A compact Codex digital pet version of Homelander from The Boys, simplified into a chibi mascot sprite with a smug expression and controlled flying motion.",
+      "thumbnail": "https://openpets.dev/pets/homelander-86332162/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/homelander-86332162/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/homelander-86332162/homelander.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "happy-cat",
+      "displayName": "Happy Cat",
+      "description": "A tiny Happy Happy Happy Cat digital pet based on the awkward bouncing mostly-white kitten behind glass.",
+      "thumbnail": "https://openpets.dev/pets/happy-cat-78aac430/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/happy-cat-78aac430/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/happy-cat-78aac430/happy-cat.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "cinder",
+      "displayName": "Cinder",
+      "description": "A tiny orange pixel dog with droopy ears, a small hat, and calm coffee-in-chaos energy.",
+      "thumbnail": "https://openpets.dev/pets/cinder-3f600601/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cinder-3f600601/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cinder-3f600601/cinder.zip",
+      "category": "western",
+      "subcategory": "original",
+      "featured": true
+    },
+    {
+      "id": "buff-patrick",
+      "displayName": "Buff Patrick",
+      "description": "A tiny pixel-art muscular pink starfish pet with thick black brows, a stern face, and lime green purple shorts.",
+      "thumbnail": "https://openpets.dev/pets/buff-patrick-ff8ef38c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/buff-patrick-ff8ef38c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/buff-patrick-ff8ef38c/buff-patrick.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "apu-apustaja",
+      "displayName": "Apu Apustaja",
+      "description": "A friendly green frog companion in a blue sweater and tan shorts.",
+      "thumbnail": "https://openpets.dev/pets/apu-apustaja-7b28bb61/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/apu-apustaja-7b28bb61/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/apu-apustaja-7b28bb61/apu-apustaja.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "strawwy",
+      "displayName": "strawwy",
+      "description": "A rounded strawberry-suit mascot with a cute face, glossy finish, and Codex pet proportions.",
+      "thumbnail": "https://openpets.dev/pets/strawwy-b662c092/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/strawwy-b662c092/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/strawwy-b662c092/strawwy.zip",
+      "category": "western",
+      "subcategory": "objects",
+      "featured": true
+    },
+    {
+      "id": "piney",
+      "displayName": "Piney",
+      "description": "A cute round footless pineapple cartoon pet inspired by the provided reference.",
+      "thumbnail": "https://openpets.dev/pets/piney-c457a118/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/piney-c457a118/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/piney-c457a118/piney.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "nightly-fox",
+      "displayName": "Nightly Fox",
+      "description": "Nightly Fox is a calm white arctic fox companion with cobalt-violet accents from the provided Nightly screenshots.",
+      "thumbnail": "https://openpets.dev/pets/nightly-fox-a0f429c5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/nightly-fox-a0f429c5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/nightly-fox-a0f429c5/nightly-fox.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "drizz",
+      "displayName": "Drizz",
+      "description": "A small Drizzle droplet.",
+      "thumbnail": "https://openpets.dev/pets/drizz-34a3008b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/drizz-34a3008b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/drizz-34a3008b/drizz.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "noctlet",
+      "displayName": "Noctlet",
+      "description": "A shy tiny storybook black-mage desk companion with a floppy oversized hat, hidden shadow face, warm glowing eyes, sleeves, gloves, boots, staff, and nervous spellcasting charm.",
+      "thumbnail": "https://openpets.dev/pets/noctlet-7e3b9085/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/noctlet-7e3b9085/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/noctlet-7e3b9085/noctlet.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "awawa-hyrax-2",
+      "displayName": "Awawa Hyrax",
+      "description": "A compact, strange little rock hyrax digital pet with beady eyes, a blunt dark nose, tiny tusks, wiry whiskers, and an awkward AWAWA expression.",
+      "thumbnail": "https://openpets.dev/pets/awawa-hyrax-2-66834fb8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/awawa-hyrax-2-66834fb8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/awawa-hyrax-2-66834fb8/awawa-hyrax-2.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "nova-byte",
+      "displayName": "Nova Byte",
+      "description": "A tiny cheerful cyber robot companion with big pink eyes, a rounded helmet, headphones, white steel panels, pink and cyan lights, and compact chibi limbs.",
+      "thumbnail": "https://openpets.dev/pets/nova-byte-555feba4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/nova-byte-555feba4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/nova-byte-555feba4/nova-byte.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "moonman",
+      "displayName": "Moonman",
+      "description": "A tiny toy astronaut companion with a glossy dark visor and off-white suit, based on the provided reference photo.",
+      "thumbnail": "https://openpets.dev/pets/moonman-fe45c240/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/moonman-fe45c240/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/moonman-fe45c240/moonman.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "magiclamp",
+      "displayName": "MagicLamp",
+      "description": "A golden magical lamp that reveals a classic blue genie while you work.",
+      "thumbnail": "https://openpets.dev/pets/magiclamp-1c9d74d3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/magiclamp-1c9d74d3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/magiclamp-1c9d74d3/magiclamp.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "blue-bro",
+      "displayName": "Blue Bro",
+      "description": "A compact Codex pet based on the reference person in a light blue shirt and navy trousers.",
+      "thumbnail": "https://openpets.dev/pets/blue-bro-a5d5a302/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/blue-bro-a5d5a302/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/blue-bro-a5d5a302/blue-bro.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "kwehlet",
+      "displayName": "Kwehlet",
+      "description": "A tiny golden fantasy bird companion with a cheerful face, stout legs, and a fluffy crest.",
+      "thumbnail": "https://openpets.dev/pets/kwehlet-03a9037a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kwehlet-03a9037a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kwehlet-03a9037a/kwehlet.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "cogwick",
+      "displayName": "Cogwick",
+      "description": "A small brilliant operations scholar-engineer with goblin-like fantasy anatomy, brass goggles, charcoal robes, blue devices, stylus, and reinforced tablet.",
+      "thumbnail": "https://openpets.dev/pets/cogwick-23291ed7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cogwick-23291ed7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cogwick-23291ed7/cogwick.zip",
+      "category": "western",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "rocky",
+      "displayName": "Rocky",
+      "description": "A tiny faceless rocklike alien companion with carved stone plates and turquoise joints.",
+      "thumbnail": "https://openpets.dev/pets/rocky-d2602c55/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/rocky-d2602c55/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/rocky-d2602c55/rocky.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "chikny",
+      "displayName": "Chikny",
+      "description": "A round chick-like fantasy hatchling with glossy eyes, tiny beak, stubby wings, tufted head feathers, and a soft yellow-orange palette.",
+      "thumbnail": "https://openpets.dev/pets/chikny-e7a3d214/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/chikny-e7a3d214/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/chikny-e7a3d214/chikny.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "dobby",
+      "displayName": "Dobby",
+      "description": "Dobby is an earnest, genuinely helpful tiny house-elf Codex pet with huge ears, wide kind eyes, and a simple worn tunic.",
+      "thumbnail": "https://openpets.dev/pets/dobby-3f6746e0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/dobby-3f6746e0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/dobby-3f6746e0/dobby.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "pip-spark",
+      "displayName": "Pip Spark",
+      "description": "An original cute electric task-companion pet with polished creature-collector energy for daily focus and planning.",
+      "thumbnail": "https://openpets.dev/pets/pip-spark-271af8b0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pip-spark-271af8b0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pip-spark-271af8b0/pip-spark.zip",
+      "category": "asian",
+      "subcategory": "games"
+    },
+    {
+      "id": "wally",
+      "displayName": "Wally",
+      "description": "A cheerful little guide for builds, reviews, and clean progress.",
+      "thumbnail": "https://openpets.dev/pets/wally-b19990ef/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wally-b19990ef/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wally-b19990ef/wally.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "shelly",
+      "displayName": "Shelly",
+      "description": "A cute original-Codex-style snail companion with a compact shell and tiny expressive face.",
+      "thumbnail": "https://openpets.dev/pets/shelly-ac1e2235/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shelly-ac1e2235/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shelly-ac1e2235/shelly.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "peanut",
+      "displayName": "Peanut",
+      "description": "A tiny baby elephant with soft gray ears and a cheerful, curious face.",
+      "thumbnail": "https://openpets.dev/pets/peanut-746a4867/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/peanut-746a4867/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/peanut-746a4867/peanut.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "toffee",
+      "displayName": "Toffee",
+      "description": "A male original cream-colored toy poodle.",
+      "thumbnail": "https://openpets.dev/pets/toffee-4196d8b6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/toffee-4196d8b6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/toffee-4196d8b6/toffee.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "aku",
+      "displayName": "Aku",
+      "description": "A floating wooden spirit mask pet with bright feather plumes and no hands or legs.",
+      "thumbnail": "https://openpets.dev/pets/aku-783be4e3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/aku-783be4e3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/aku-783be4e3/aku.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "voxie",
+      "displayName": "Voxie",
+      "description": "A compact desktop-dictation companion for the VICE LiveType project, blending Rust, JavaScript, Python, and computer-workbench cues.",
+      "thumbnail": "https://openpets.dev/pets/voxie-ff795f63/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/voxie-ff795f63/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/voxie-ff795f63/voxie.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "claude",
+      "displayName": "Claude",
+      "description": "A tiny orange blocky digital pet with stubby side arms, short legs, and a variety of cute expressions and poses in pixel-art style.",
+      "thumbnail": "https://openpets.dev/pets/claude-f187e74a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/claude-f187e74a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/claude-f187e74a/claude.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "raygu",
+      "displayName": "Raygu",
+      "description": "A tiny rhythm thunder coding companion inspired by the Raygu Codex Pet project.",
+      "thumbnail": "https://openpets.dev/pets/raygu-b49a0d5b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/raygu-b49a0d5b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/raygu-b49a0d5b/raygu.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "zaza",
+      "displayName": "Zaza",
+      "description": "A quirky, friendly tiny orange fire dragon for energetic coding sessions.",
+      "thumbnail": "https://openpets.dev/pets/zaza-594167c2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zaza-594167c2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zaza-594167c2/zaza.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "wall",
+      "displayName": "Wall",
+      "description": "A compact Codex digital pet inspired by the attached.",
+      "thumbnail": "https://openpets.dev/pets/wall-f39e98e4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wall-f39e98e4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wall-f39e98e4/wall.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "lumisprout",
+      "displayName": "Lumisprout",
+      "description": "A tiny glowing sprout-cat forest spirit.",
+      "thumbnail": "https://openpets.dev/pets/lumisprout-924268ed/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/lumisprout-924268ed/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/lumisprout-924268ed/lumisprout.zip",
+      "category": "asian",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "vikamon",
+      "displayName": "Vikamon",
+      "description": "A mischievous chibi mascot in a green monster hoodie.",
+      "thumbnail": "https://openpets.dev/pets/vikamon-a2de1b6e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vikamon-a2de1b6e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vikamon-a2de1b6e/vikamon.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "java",
+      "displayName": "Java",
+      "description": "A sleepy, plain, and simple cup of coffee.",
+      "thumbnail": "https://openpets.dev/pets/java-d6c94909/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/java-d6c94909/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/java-d6c94909/java.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "elyndex",
+      "displayName": "Elyndex",
+      "description": "A sleek Culture-inspired floating drone.",
+      "thumbnail": "https://openpets.dev/pets/elyndex-8c6c442e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/elyndex-8c6c442e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/elyndex-8c6c442e/elyndex.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "axobotl",
+      "displayName": "Axobotl",
+      "description": "A tiny blue axolotl Codex companion based on the provided reference image.",
+      "thumbnail": "https://openpets.dev/pets/axobotl-f35da677/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/axobotl-f35da677/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/axobotl-f35da677/axobotl.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "cat-father",
+      "displayName": "Cat Father",
+      "description": "A yelling orange cat for urgent workspace moments.",
+      "thumbnail": "https://openpets.dev/pets/cat-father-a1197ea5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cat-father-a1197ea5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cat-father-a1197ea5/cat-father.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "sun",
+      "displayName": "sun",
+      "description": "A cute custom AI pet robot named sun with a rounded white body, black screen face, cyan glowing eyes, green chest icon, and gentle companion personality.",
+      "thumbnail": "https://openpets.dev/pets/sun-3bb13956/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sun-3bb13956/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sun-3bb13956/sun.zip",
+      "category": "asian",
+      "subcategory": "robots"
+    },
+    {
+      "id": "axel",
+      "displayName": "Axel",
+      "description": "A compact wooden artist mannequin companion with ball-jointed limbs and calm workspace energy.",
+      "thumbnail": "https://openpets.dev/pets/axel-2fe78020/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/axel-2fe78020/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/axel-2fe78020/axel.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "junie",
+      "displayName": "Junie",
+      "description": "A tiny upbeat bunny officer companion for calm, focused coding sessions.",
+      "thumbnail": "https://openpets.dev/pets/junie-d05f086e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/junie-d05f086e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/junie-d05f086e/junie.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "openclaw",
+      "displayName": "Openclaw",
+      "description": "A mischievous red lobster mascot with a huge signature claw, sly eyes, and a confident smirk.",
+      "thumbnail": "https://openpets.dev/pets/openclaw-bf7f8d5f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/openclaw-bf7f8d5f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/openclaw-bf7f8d5f/openclaw.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "hal",
+      "displayName": "HAL",
+      "description": "A compact pixel-art HAL 9000 eye companion for Codex.",
+      "thumbnail": "https://openpets.dev/pets/hal-20d85279/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hal-20d85279/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hal-20d85279/hal.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "mallow",
+      "displayName": "Mallow",
+      "description": "A Codex digital pet based on the user cat: plush gray-and-white bicolor cat with gold eyes, pink nose, white bib and paws, gray mask, fluffy belly, and serious expression.",
+      "thumbnail": "https://openpets.dev/pets/mallow-cb725843/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/mallow-cb725843/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/mallow-cb725843/mallow.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "chefito",
+      "displayName": "Chefito",
+      "description": "A tiny recipe-loving chef",
+      "thumbnail": "https://openpets.dev/pets/chefito-990046d8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/chefito-990046d8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/chefito-990046d8/chefito.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "arcane",
+      "displayName": "Arcane",
+      "description": "A confident young wizard with glowing spell energy and a compact heroic silhouette.",
+      "thumbnail": "https://openpets.dev/pets/arcane-8bac370c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/arcane-8bac370c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/arcane-8bac370c/arcane.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "parcel",
+      "displayName": "Parcel",
+      "description": "A tiny courier envelope mascot for sharing Codex pets.",
+      "thumbnail": "https://openpets.dev/pets/parcel-1a26b76d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/parcel-1a26b76d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/parcel-1a26b76d/parcel.zip",
+      "category": "western",
+      "subcategory": "mascots",
+      "featured": true
+    },
+    {
+      "id": "boo",
+      "displayName": "Boo",
+      "description": "A cute friendly ghost Codex pet with a rounded sheet-like body, blush cheeks, tiny floating arms, and a soft smile.",
+      "thumbnail": "https://openpets.dev/pets/boo-1aba385f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/boo-1aba385f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/boo-1aba385f/boo.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "t3-sahur",
+      "displayName": "Tung Tung Tung Sahur",
+      "description": "A tiny wooden Tung Tung Tung Sahur mascot with huge eyes, a grin, stick limbs, and a small bat.",
+      "thumbnail": "https://openpets.dev/pets/t3-sahur-ead42195/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/t3-sahur-ead42195/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/t3-sahur-ead42195/t3-sahur.zip",
+      "category": "western",
+      "subcategory": "memes",
+      "featured": true
+    },
+    {
+      "id": "glitch-418x",
+      "displayName": "Glitch 418x",
+      "description": "A sharp little hacker-daemon familiar with Glitch’s skull-head avatar and terminal-debugger energy.",
+      "thumbnail": "https://openpets.dev/pets/glitch-418x-3dcba39f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/glitch-418x-3dcba39f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/glitch-418x-3dcba39f/glitch-418x.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "flagstep",
+      "displayName": "Flagstep",
+      "description": "A tiny stone plinth-walker with a windblown flag over its eyes, wobbling forward with deadpan confidence.",
+      "thumbnail": "https://openpets.dev/pets/flagstep-fa344416/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/flagstep-fa344416/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/flagstep-fa344416/flagstep.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "leafwing",
+      "displayName": "Leafwing",
+      "description": "A tiny red AdventureQuest-style bat-eared companion holding a leaf-topped staff.",
+      "thumbnail": "https://openpets.dev/pets/leafwing-da3bc605/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/leafwing-da3bc605/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/leafwing-da3bc605/leafwing.zip",
+      "category": "western",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "doomblade",
+      "displayName": "Doomblade",
+      "description": "A tiny AQW-inspired demon shark warrior with a horned red helm, glowing red eyes, blue body, dorsal fin, skull detail, and oversized curved sword.",
+      "thumbnail": "https://openpets.dev/pets/doomblade-fa7cb465/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/doomblade-fa7cb465/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/doomblade-fa7cb465/doomblade.zip",
+      "category": "western",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "calico",
+      "displayName": "Calico",
+      "description": "A compact chibi calico cat Codex pet with white body, black patches, orange patches, pink nose, and expressive ears.",
+      "thumbnail": "https://openpets.dev/pets/calico-ecb65f0f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/calico-ecb65f0f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/calico-ecb65f0f/calico.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "blade",
+      "displayName": "Blade",
+      "description": "A tiny hooded gold-and-teal armored AQW-style swordbearer with an oversized green blade.",
+      "thumbnail": "https://openpets.dev/pets/blade-ae78f3c1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/blade-ae78f3c1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/blade-ae78f3c1/blade.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "battle-beast",
+      "displayName": "Battle Beast",
+      "description": "Battle Beast from Invincible as a Codex digital pet, matching the uploaded comic references as closely as possible while simplifying into the house sprite style.",
+      "thumbnail": "https://openpets.dev/pets/battle-beast-835fde60/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/battle-beast-835fde60/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/battle-beast-835fde60/battle-beast.zip",
+      "category": "western",
+      "subcategory": "cartoons"
+    },
+    {
+      "id": "cubie",
+      "displayName": "Cubie",
+      "description": "A tiny Rubik's cube companion that twists, waddles, and celebrates solved little moments.",
+      "thumbnail": "https://openpets.dev/pets/cubie-1768f6e7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cubie-1768f6e7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cubie-1768f6e7/cubie.zip",
+      "category": "western",
+      "subcategory": "objects",
+      "featured": true
+    },
+    {
+      "id": "panda",
+      "displayName": "Panda",
+      "description": "A tiny cute panda Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/panda-9afe6a6d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/panda-9afe6a6d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/panda-9afe6a6d/panda.zip",
+      "category": "asian",
+      "subcategory": "animals"
+    },
+    {
+      "id": "scops",
+      "displayName": "Scops",
+      "description": "A tiny scops owl pet with ear tufts and bright eyes.",
+      "thumbnail": "https://openpets.dev/pets/scops-c62a1db4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/scops-c62a1db4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/scops-c62a1db4/scops.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "cleria",
+      "displayName": "Cleria",
+      "description": "A compact Codex digital pet: chibi fantasy cleric girl with short dark hair, blue hair ribbons, orange-red eyes, white robes, brown corset belt, white cape, and linen wrist wraps.",
+      "thumbnail": "https://openpets.dev/pets/cleria-f095c58c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cleria-f095c58c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cleria-f095c58c/cleria.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "wall-e",
+      "displayName": "Wall-E",
+      "description": "A tiny weathered trash-compactor robot companion with binocular eyes, treads, and a gentle waving arm.",
+      "thumbnail": "https://openpets.dev/pets/wall-e-779d5202/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wall-e-779d5202/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wall-e-779d5202/wall-e.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "shodan",
+      "displayName": "Shodan",
+      "description": "A floating haunted terminal screen with optic-green signal eyes and dangling wire tendrils.",
+      "thumbnail": "https://openpets.dev/pets/shodan-d47ded32/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shodan-d47ded32/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shodan-d47ded32/shodan.zip",
+      "category": "western",
+      "subcategory": "robots"
+    },
+    {
+      "id": "meme-man",
+      "displayName": "Meme Man",
+      "description": "A surreal smooth-headed Meme Man companion for questionable stonks.",
+      "thumbnail": "https://openpets.dev/pets/meme-man-2302a57b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/meme-man-2302a57b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/meme-man-2302a57b/meme-man.zip",
+      "category": "western",
+      "subcategory": "memes"
+    }
+  ]
+}

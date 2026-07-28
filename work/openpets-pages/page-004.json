@@ -1,0 +1,1007 @@
+{
+  "version": 3,
+  "page": 4,
+  "pageSize": 100,
+  "pets": [
+    {
+      "id": "sunflora",
+      "displayName": "Sunflora",
+      "description": "It gets energy from warm sunlight and is known for its habit of moving in pursuit of it.",
+      "thumbnail": "https://openpets.dev/pets/sunflora-f8e42146/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sunflora-f8e42146/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sunflora-f8e42146/sunflora.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "sudowoodo",
+      "displayName": "Sudowoodo",
+      "description": "To avoid being attacked, it does nothing but mimic a tree. It hates water and flees from rain.",
+      "thumbnail": "https://openpets.dev/pets/sudowoodo-3523a1d1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sudowoodo-3523a1d1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sudowoodo-3523a1d1/sudowoodo.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wapuu",
+      "displayName": "Wapuu",
+      "description": "The original GPL Wapuu mascot as a Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/wapuu-885f0828/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wapuu-885f0828/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wapuu-885f0828/wapuu.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "shaka",
+      "displayName": "Shaka",
+      "description": "A tiny golden-armored meditating Virgo pet with calm cosmic power.",
+      "thumbnail": "https://openpets.dev/pets/shaka-5857a525/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shaka-5857a525/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shaka-5857a525/shaka.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hoichan",
+      "displayName": "ほいちゃん",
+      "description": "A cute classic fluffy light apricot toy poodle Codex pet with bright eyes and playful open-mouth tongue expressions.",
+      "thumbnail": "https://openpets.dev/pets/hoichan-8038f150/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hoichan-8038f150/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hoichan-8038f150/hoichan.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "zweilous",
+      "displayName": "Zweilous",
+      "description": "After it has eaten up all the food in its territory, it moves to another area. Its two heads do not get along.",
+      "thumbnail": "https://openpets.dev/pets/zweilous-d8c074a7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zweilous-d8c074a7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zweilous-d8c074a7/zweilous.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zubat",
+      "displayName": "Zubat",
+      "description": "It checks its surroundings and location using reflections of the ultrasonic waves from its mouth.",
+      "thumbnail": "https://openpets.dev/pets/zubat-a760db73/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zubat-a760db73/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zubat-a760db73/zubat.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zorua",
+      "displayName": "Zorua",
+      "description": "It changes into the forms of others to surprise them. Apparently, it often transforms into a silent child.",
+      "thumbnail": "https://openpets.dev/pets/zorua-4b694bfb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zorua-4b694bfb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zorua-4b694bfb/zorua.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zoroark",
+      "displayName": "Zoroark",
+      "description": "Bonds between these Pokémon are very strong. It protects the safety of its pack by tricking its opponents.",
+      "thumbnail": "https://openpets.dev/pets/zoroark-57524c95/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zoroark-57524c95/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zoroark-57524c95/zoroark.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zigzagoon",
+      "displayName": "Zigzagoon",
+      "description": "It walks in zigzag fashion. It is good at finding items in the grass and even in the ground.",
+      "thumbnail": "https://openpets.dev/pets/zigzagoon-4173ccdb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zigzagoon-4173ccdb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zigzagoon-4173ccdb/zigzagoon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zekrom",
+      "displayName": "Zekrom",
+      "description": "Concealing itself in lightning clouds, it flies throughout the Unova region. It creates electricity in its tail.",
+      "thumbnail": "https://openpets.dev/pets/zekrom-f4af200e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zekrom-f4af200e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zekrom-f4af200e/zekrom.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zebstrika",
+      "displayName": "Zebstrika",
+      "description": "They have lightning-like movements. When Zebstrika run at full speed, the sound of thunder reverberates.",
+      "thumbnail": "https://openpets.dev/pets/zebstrika-89752c45/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zebstrika-89752c45/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zebstrika-89752c45/zebstrika.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zapdos",
+      "displayName": "Zapdos",
+      "description": "A legendary Pokémon that is said to live in thunderclouds. It freely controls lightning bolts.",
+      "thumbnail": "https://openpets.dev/pets/zapdos-69c00632/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zapdos-69c00632/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zapdos-69c00632/zapdos.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "zangoose",
+      "displayName": "Zangoose",
+      "description": "It has feuded with Seviper for many generations. Its sharp claws are its biggest weapons.",
+      "thumbnail": "https://openpets.dev/pets/zangoose-25791e98/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zangoose-25791e98/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zangoose-25791e98/zangoose.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "yanmega",
+      "displayName": "Yanmega",
+      "description": "Its jaw power is incredible. It is adept at biting apart foes while flying by at high speed.",
+      "thumbnail": "https://openpets.dev/pets/yanmega-8cbee22a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yanmega-8cbee22a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yanmega-8cbee22a/yanmega.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "yanma",
+      "displayName": "Yanma",
+      "description": "It can hover in one spot by flapping its wings at high speed. It flits about to guard its territory.",
+      "thumbnail": "https://openpets.dev/pets/yanma-4b64d594/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yanma-4b64d594/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yanma-4b64d594/yanma.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "yamask",
+      "displayName": "Yamask",
+      "description": "Each of them carries a mask that used to be its face when it was human. Sometimes they look at it and cry.",
+      "thumbnail": "https://openpets.dev/pets/yamask-bf111958/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yamask-bf111958/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yamask-bf111958/yamask.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "xatu",
+      "displayName": "Xatu",
+      "description": "This odd Pokémon can see both the past and the future. It eyes the sun’s movement all day.",
+      "thumbnail": "https://openpets.dev/pets/xatu-1a81173f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/xatu-1a81173f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/xatu-1a81173f/xatu.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wynaut",
+      "displayName": "Wynaut",
+      "description": "It grows strong by pushing up against others en masse. It loves eating sweet fruit.",
+      "thumbnail": "https://openpets.dev/pets/wynaut-9325ad00/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wynaut-9325ad00/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wynaut-9325ad00/wynaut.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wurmple",
+      "displayName": "Wurmple",
+      "description": "Often targeted by bird Pokémon, it desperately resists by releasing poison from its tail spikes.",
+      "thumbnail": "https://openpets.dev/pets/wurmple-e8b7ea3e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wurmple-e8b7ea3e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wurmple-e8b7ea3e/wurmple.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wormadam",
+      "displayName": "Wormadam",
+      "description": "When evolving, its body takes in surrounding materials. As a result, there are many body variations.",
+      "thumbnail": "https://openpets.dev/pets/wormadam-6b499068/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wormadam-6b499068/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wormadam-6b499068/wormadam.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wormadam-trash",
+      "displayName": "Trash Cloak Wormadam",
+      "description": "A Wormadam wearing armor cobbled from urban detritus.",
+      "thumbnail": "https://openpets.dev/pets/wormadam-trash-47d1c45c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wormadam-trash-47d1c45c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wormadam-trash-47d1c45c/wormadam-trash.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wormadam-sandy",
+      "displayName": "Sandy Cloak Wormadam",
+      "description": "A Wormadam wearing armor woven from sand.",
+      "thumbnail": "https://openpets.dev/pets/wormadam-sandy-137265c5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wormadam-sandy-137265c5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wormadam-sandy-137265c5/wormadam-sandy.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wooper",
+      "displayName": "Wooper",
+      "description": "When walking on land, it covers its body with a poisonous film that keeps its skin from dehydrating.",
+      "thumbnail": "https://openpets.dev/pets/wooper-320e3d8a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wooper-320e3d8a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wooper-320e3d8a/wooper.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "woobat",
+      "displayName": "Woobat",
+      "description": "Its habitat is dark forests and caves. It emits ultrasonic waves from its nose to learn about its surroundings.",
+      "thumbnail": "https://openpets.dev/pets/woobat-c54f8bc8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/woobat-c54f8bc8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/woobat-c54f8bc8/woobat.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wobbuffet",
+      "displayName": "Wobbuffet",
+      "description": "It desperately tries to keep its black tail hidden. It is said to be proof the tail hides a secret.",
+      "thumbnail": "https://openpets.dev/pets/wobbuffet-829cf4b4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wobbuffet-829cf4b4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wobbuffet-829cf4b4/wobbuffet.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wingull",
+      "displayName": "Wingull",
+      "description": "It soars high in the sky, riding on updrafts like a glider. It carries food tucked in its bill.",
+      "thumbnail": "https://openpets.dev/pets/wingull-027fd0bb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wingull-027fd0bb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wingull-027fd0bb/wingull.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wigglytuff",
+      "displayName": "Wigglytuff",
+      "description": "Its fine fur feels sublime to the touch. It can expand its body by inhaling air.",
+      "thumbnail": "https://openpets.dev/pets/wigglytuff-1fa72b49/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wigglytuff-1fa72b49/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wigglytuff-1fa72b49/wigglytuff.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "whismur",
+      "displayName": "Whismur",
+      "description": "Usually, its cries are like quiet murmurs. If frightened, it shrieks at the same volume as a jet plane.",
+      "thumbnail": "https://openpets.dev/pets/whismur-00f7dfd4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/whismur-00f7dfd4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/whismur-00f7dfd4/whismur.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "whiscash",
+      "displayName": "Whiscash",
+      "description": "It is extremely protective of its territory. If any foe approaches, it attacks using vicious tremors.",
+      "thumbnail": "https://openpets.dev/pets/whiscash-36e7b8cd/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/whiscash-36e7b8cd/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/whiscash-36e7b8cd/whiscash.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "whirlipede",
+      "displayName": "Whirlipede",
+      "description": "Protected by a hard shell, it spins its body like a wheel and crashes furiously into its enemies.",
+      "thumbnail": "https://openpets.dev/pets/whirlipede-8d5e0bdc/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/whirlipede-8d5e0bdc/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/whirlipede-8d5e0bdc/whirlipede.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "whimsicott",
+      "displayName": "Whimsicott",
+      "description": "Like the wind, it can slip through any gap, no matter how small. It leaves balls of white fluff behind.",
+      "thumbnail": "https://openpets.dev/pets/whimsicott-cc2a1a1c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/whimsicott-cc2a1a1c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/whimsicott-cc2a1a1c/whimsicott.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "weezing",
+      "displayName": "Weezing",
+      "description": "It grows by feeding on gases released by garbage. Though very rare, triplets have been found.",
+      "thumbnail": "https://openpets.dev/pets/weezing-a5945009/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/weezing-a5945009/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/weezing-a5945009/weezing.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "weepinbell",
+      "displayName": "Weepinbell",
+      "description": "A Pokémon that appears to be a plant. It captures unwary prey by dousing them with a toxic powder.",
+      "thumbnail": "https://openpets.dev/pets/weepinbell-dfc8df75/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/weepinbell-dfc8df75/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/weepinbell-dfc8df75/weepinbell.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "weedle",
+      "displayName": "Weedle",
+      "description": "It eats its weight in leaves every day. It fends off attackers with the needle on its head.",
+      "thumbnail": "https://openpets.dev/pets/weedle-93e54ddb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/weedle-93e54ddb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/weedle-93e54ddb/weedle.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "weavile",
+      "displayName": "Weavile",
+      "description": "Evolution made it even more devious. It communicates by clawing signs in boulders.",
+      "thumbnail": "https://openpets.dev/pets/weavile-f41b3561/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/weavile-f41b3561/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/weavile-f41b3561/weavile.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "watchog",
+      "displayName": "Watchog",
+      "description": "When they see an enemy, their tails stand high, and they spit the seeds of berries stored in their cheek pouches.",
+      "thumbnail": "https://openpets.dev/pets/watchog-23a102e4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/watchog-23a102e4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/watchog-23a102e4/watchog.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wartortle",
+      "displayName": "Wartortle",
+      "description": "It is said to live 10,000 years. Its furry tail is popular as a symbol of longevity.",
+      "thumbnail": "https://openpets.dev/pets/wartortle-14ba5e4b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wartortle-14ba5e4b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wartortle-14ba5e4b/wartortle.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "walrein",
+      "displayName": "Walrein",
+      "description": "It shatters ice with its big tusks. Its thick blubber repels not only the cold, but also enemy attacks.",
+      "thumbnail": "https://openpets.dev/pets/walrein-aa56a2e3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/walrein-aa56a2e3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/walrein-aa56a2e3/walrein.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wailord",
+      "displayName": "Wailord",
+      "description": "The biggest of all Pokémon. It can dive to a depth of almost 10,000 feet on only one breath.",
+      "thumbnail": "https://openpets.dev/pets/wailord-30242054/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wailord-30242054/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wailord-30242054/wailord.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wailmer",
+      "displayName": "Wailmer",
+      "description": "On sunny days, it lands on beaches to bounce like a ball and play. It spouts water from its nose.",
+      "thumbnail": "https://openpets.dev/pets/wailmer-dc8a6450/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wailmer-dc8a6450/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wailmer-dc8a6450/wailmer.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vulpix",
+      "displayName": "Vulpix",
+      "description": "It controls balls of fire. As it grows, its six tails split from their tips to make more tails.",
+      "thumbnail": "https://openpets.dev/pets/vulpix-df85e837/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vulpix-df85e837/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vulpix-df85e837/vulpix.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vullaby",
+      "displayName": "Vullaby",
+      "description": "Its wings are too tiny to allow it to fly. As the time approaches for it to evolve, it discards the bones it was wearing.",
+      "thumbnail": "https://openpets.dev/pets/vullaby-748030c6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vullaby-748030c6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vullaby-748030c6/vullaby.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "voltorb",
+      "displayName": "Voltorb",
+      "description": "It looks just like a Poké Ball. It is dangerous because it may electrocute or explode on touch.",
+      "thumbnail": "https://openpets.dev/pets/voltorb-4eebac2d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/voltorb-4eebac2d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/voltorb-4eebac2d/voltorb.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "volcarona",
+      "displayName": "Volcarona",
+      "description": "When volcanic ash darkened the atmosphere, it is said that Volcarona’s fire provided a replacement for the sun.",
+      "thumbnail": "https://openpets.dev/pets/volcarona-b30c0d2f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/volcarona-b30c0d2f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/volcarona-b30c0d2f/volcarona.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "volbeat",
+      "displayName": "Volbeat",
+      "description": "It communicates with others by lighting up its rear at night. It loves Illumise’s sweet aroma.",
+      "thumbnail": "https://openpets.dev/pets/volbeat-9a984106/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/volbeat-9a984106/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/volbeat-9a984106/volbeat.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "virizion",
+      "displayName": "Virizion",
+      "description": "This Pokémon fought humans in order to protect its friends. Legends about it continue to be passed down.",
+      "thumbnail": "https://openpets.dev/pets/virizion-9bd36b06/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/virizion-9bd36b06/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/virizion-9bd36b06/virizion.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vileplume",
+      "displayName": "Vileplume",
+      "description": "Its petals are the largest in the world. As it walks, it scatters extremely allergenic pollen.",
+      "thumbnail": "https://openpets.dev/pets/vileplume-c8bc6010/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vileplume-c8bc6010/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vileplume-c8bc6010/vileplume.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vigoroth",
+      "displayName": "Vigoroth",
+      "description": "Its heart beats at a tenfold tempo, so it cannot sit still for even a moment.",
+      "thumbnail": "https://openpets.dev/pets/vigoroth-e2370858/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vigoroth-e2370858/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vigoroth-e2370858/vigoroth.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "victreebel",
+      "displayName": "Victreebel",
+      "description": "It pools in its mouth a fluid with a honeylike scent, which is really an acid that dissolves anything.",
+      "thumbnail": "https://openpets.dev/pets/victreebel-d8864bf9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/victreebel-d8864bf9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/victreebel-d8864bf9/victreebel.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "victini",
+      "displayName": "Victini",
+      "description": "This Pokémon brings victory. It is said that Trainers with Victini always win, regardless of the type of encounter.",
+      "thumbnail": "https://openpets.dev/pets/victini-f041d155/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/victini-f041d155/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/victini-f041d155/victini.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vibrava",
+      "displayName": "Vibrava",
+      "description": "It violently shudders its wings, generating ultrasonic waves to induce headaches in people.",
+      "thumbnail": "https://openpets.dev/pets/vibrava-e6b02773/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vibrava-e6b02773/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vibrava-e6b02773/vibrava.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vespiquen",
+      "displayName": "Vespiquen",
+      "description": "It releases various pheromones to make the grubs in its body do its bidding while fighting foes.",
+      "thumbnail": "https://openpets.dev/pets/vespiquen-42de28ae/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vespiquen-42de28ae/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vespiquen-42de28ae/vespiquen.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "venusaur",
+      "displayName": "Venusaur",
+      "description": "After a rainy day, the flower on its back smells stronger. The scent attracts other Pokémon.",
+      "thumbnail": "https://openpets.dev/pets/venusaur-7fd4b370/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/venusaur-7fd4b370/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/venusaur-7fd4b370/venusaur.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "venonat",
+      "displayName": "Venonat",
+      "description": "Its big eyes are actually clusters of tiny eyes. At night, its kind is drawn by light.",
+      "thumbnail": "https://openpets.dev/pets/venonat-e8f9b160/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/venonat-e8f9b160/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/venonat-e8f9b160/venonat.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "venomoth",
+      "displayName": "Venomoth",
+      "description": "It flutters its wings to scatter dustlike scales. The scales leach toxins if they contact skin.",
+      "thumbnail": "https://openpets.dev/pets/venomoth-9d35dcbe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/venomoth-9d35dcbe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/venomoth-9d35dcbe/venomoth.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "venipede",
+      "displayName": "Venipede",
+      "description": "Its bite injects a potent poison, enough to paralyze large bird Pokémon that try to prey on it.",
+      "thumbnail": "https://openpets.dev/pets/venipede-7eb0a73a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/venipede-7eb0a73a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/venipede-7eb0a73a/venipede.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vaporeon",
+      "displayName": "Vaporeon",
+      "description": "Its cell composition is similar to water molecules. As a result, it can melt away into water.",
+      "thumbnail": "https://openpets.dev/pets/vaporeon-fe497c7a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vaporeon-fe497c7a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vaporeon-fe497c7a/vaporeon.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vanilluxe",
+      "displayName": "Vanilluxe",
+      "description": "Swallowing large amounts of water, they make snow clouds inside their bodies and attack their foes with violent blizzards.",
+      "thumbnail": "https://openpets.dev/pets/vanilluxe-68a039b2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vanilluxe-68a039b2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vanilluxe-68a039b2/vanilluxe.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vanillite",
+      "displayName": "Vanillite",
+      "description": "The temperature of their breath is -58° F. They create snow crystals and make snow fall in the areas around them.",
+      "thumbnail": "https://openpets.dev/pets/vanillite-c099036d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vanillite-c099036d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vanillite-c099036d/vanillite.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "vanillish",
+      "displayName": "Vanillish",
+      "description": "Snowy mountains are this Pokémon’s habitat. During an ancient ice age, they moved to southern areas.",
+      "thumbnail": "https://openpets.dev/pets/vanillish-a147af27/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/vanillish-a147af27/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/vanillish-a147af27/vanillish.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "uxie",
+      "displayName": "Uxie",
+      "description": "When Uxie flew, people gained the ability to solve problems. It was the birth of knowledge.",
+      "thumbnail": "https://openpets.dev/pets/uxie-4d1914b3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/uxie-4d1914b3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/uxie-4d1914b3/uxie.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "ursaring",
+      "displayName": "Ursaring",
+      "description": "In its territory, it leaves scratches on trees that bear delicious berries or fruits.",
+      "thumbnail": "https://openpets.dev/pets/ursaring-5a826f58/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ursaring-5a826f58/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ursaring-5a826f58/ursaring.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "unown",
+      "displayName": "Unown",
+      "description": "When alone, nothing happens. However, if there are two or more, an odd power is said to emerge.",
+      "thumbnail": "https://openpets.dev/pets/unown-05a61faa/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/unown-05a61faa/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/unown-05a61faa/unown.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "kenshin-himura",
+      "displayName": "Kenshin Himura",
+      "description": "A chibi wandering swordsman-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kenshin-himura-e6e1db2f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kenshin-himura-e6e1db2f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kenshin-himura-e6e1db2f/kenshin-himura.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kemusan-dancer",
+      "displayName": "Kemusan Dancer",
+      "description": "A chibi Chinese/Douyin kemusan dancer office-worker Codex pet with viral dance energy.",
+      "thumbnail": "https://openpets.dev/pets/kemusan-dancer-72a54a21/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kemusan-dancer-72a54a21/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kemusan-dancer-72a54a21/kemusan-dancer.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "keigo-atobe",
+      "displayName": "Keigo Atobe",
+      "description": "A chibi Keigo Atobe-style tennis Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/keigo-atobe-cf3c01d3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/keigo-atobe-cf3c01d3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/keigo-atobe-cf3c01d3/keigo-atobe.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kazuma-satou",
+      "displayName": "Kazuma Satou",
+      "description": "A chibi Kazuma Satou-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kazuma-satou-44190f4c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kazuma-satou-44190f4c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kazuma-satou-44190f4c/kazuma-satou.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kazuma-kuwabara",
+      "displayName": "Kazuma Kuwabara",
+      "description": "A chibi spirit sword fighter-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kazuma-kuwabara-83d1feef/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kazuma-kuwabara-83d1feef/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kazuma-kuwabara-83d1feef/kazuma-kuwabara.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kaoru-kamiya",
+      "displayName": "Kaoru Kamiya",
+      "description": "A chibi Kaoru Kamiya-style kendo dojo pet.",
+      "thumbnail": "https://openpets.dev/pets/kaoru-kamiya-2dc469eb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kaoru-kamiya-2dc469eb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kaoru-kamiya-2dc469eb/kaoru-kamiya.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kaori-miyazono",
+      "displayName": "Kaori Miyazono",
+      "description": "A chibi Kaori Miyazono-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kaori-miyazono-7ae4f9e1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kaori-miyazono-7ae4f9e1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kaori-miyazono-7ae4f9e1/kaori-miyazono.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kamina",
+      "displayName": "Kamina",
+      "description": "A chibi Kamina-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kamina-27a843f9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kamina-27a843f9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kamina-27a843f9/kamina.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kakashi",
+      "displayName": "Kakashi",
+      "description": "A cute chibi pixel-art masked ninja teacher Codex pet with spiky silver hair, forehead protector, green vest, and calm book-reading energy.",
+      "thumbnail": "https://openpets.dev/pets/kakashi-691e89f6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kakashi-691e89f6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kakashi-691e89f6/kakashi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kaito-kid",
+      "displayName": "Kaito Kid",
+      "description": "A chibi Kaito Kid-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kaito-kid-596a5de5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kaito-kid-596a5de5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kaito-kid-596a5de5/kaito-kid.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kagome-higurashi",
+      "displayName": "Kagome Higurashi",
+      "description": "A chibi Kagome Higurashi-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kagome-higurashi-11dad78b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kagome-higurashi-11dad78b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kagome-higurashi-11dad78b/kagome-higurashi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kaede-rukawa",
+      "displayName": "Kaede Rukawa",
+      "description": "A chibi Kaede Rukawa-style basketball Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kaede-rukawa-20809cff/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kaede-rukawa-20809cff/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kaede-rukawa-20809cff/kaede-rukawa.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "jrpg-hero",
+      "displayName": "JRPG Hero",
+      "description": "A retro chibi JRPG hero programmer Codex pet with a cursor sword, tiny shield, and excessive victory poses.",
+      "thumbnail": "https://openpets.dev/pets/jrpg-hero-4e90c552/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/jrpg-hero-4e90c552/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/jrpg-hero-4e90c552/jrpg-hero.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "jotaro-kujo",
+      "displayName": "Jotaro Kujo",
+      "description": "A chibi Jotaro Kujo-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/jotaro-kujo-36cda485/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/jotaro-kujo-36cda485/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/jotaro-kujo-36cda485/jotaro-kujo.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "joseph-joestar",
+      "displayName": "Joseph Joestar",
+      "description": "A chibi Joseph Joestar-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/joseph-joestar-b8fce751/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/joseph-joestar-b8fce751/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/joseph-joestar-b8fce751/joseph-joestar.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "izuku-midoriya",
+      "displayName": "Izuku Midoriya",
+      "description": "A chibi Izuku Midoriya-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/izuku-midoriya-02922599/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/izuku-midoriya-02922599/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/izuku-midoriya-02922599/izuku-midoriya.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "izaya-orihara",
+      "displayName": "Izaya Orihara",
+      "description": "A chibi black-coat Codex pet inspired by Izaya Orihara.",
+      "thumbnail": "https://openpets.dev/pets/izaya-orihara-26ee57e2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/izaya-orihara-26ee57e2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/izaya-orihara-26ee57e2/izaya-orihara.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "itachi-uchiha",
+      "displayName": "Itachi Uchiha",
+      "description": "A chibi Itachi Uchiha-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/itachi-uchiha-c5f6cc17/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/itachi-uchiha-c5f6cc17/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/itachi-uchiha-c5f6cc17/itachi-uchiha.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "inuyasha",
+      "displayName": "Inuyasha",
+      "description": "A chibi Inuyasha-style half-demon swordsman pet.",
+      "thumbnail": "https://openpets.dev/pets/inuyasha-06f4707f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/inuyasha-06f4707f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/inuyasha-06f4707f/inuyasha.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "ikkyu",
+      "displayName": "Ikkyu",
+      "description": "A chibi Ikkyu-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/ikkyu-ec62cd25/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ikkyu-ec62cd25/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ikkyu-ec62cd25/ikkyu.zip",
+      "category": "asian",
+      "subcategory": "historical"
+    },
+    {
+      "id": "ichigo-kurosaki",
+      "displayName": "Ichigo Kurosaki",
+      "description": "A chibi Ichigo Kurosaki Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/ichigo-kurosaki-f0e0f734/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ichigo-kurosaki-f0e0f734/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ichigo-kurosaki-f0e0f734/ichigo-kurosaki.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "homura-akemi",
+      "displayName": "Homura Akemi",
+      "description": "A chibi Homura Akemi-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/homura-akemi-deb09254/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/homura-akemi-deb09254/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/homura-akemi-deb09254/homura-akemi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "holo",
+      "displayName": "Holo",
+      "description": "A chibi Holo-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/holo-3431f0d3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/holo-3431f0d3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/holo-3431f0d3/holo.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hitagi-senjougahara",
+      "displayName": "Hitagi Senjougahara",
+      "description": "A chibi Hitagi Senjougahara-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hitagi-senjougahara-3257f035/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hitagi-senjougahara-3257f035/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hitagi-senjougahara-3257f035/hitagi-senjougahara.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hisoka-morow",
+      "displayName": "Hisoka Morow",
+      "description": "A chibi magician-fighter inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hisoka-morow-17a36788/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hisoka-morow-17a36788/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hisoka-morow-17a36788/hisoka-morow.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hisashi-mitsui",
+      "displayName": "Hisashi Mitsui",
+      "description": "A chibi Hisashi Mitsui-style basketball shooter Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hisashi-mitsui-d9d6aeb6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hisashi-mitsui-d9d6aeb6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hisashi-mitsui-d9d6aeb6/hisashi-mitsui.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hirono",
+      "displayName": "Hirono",
+      "description": "A melancholic wanderer-doll Codex pet with tousled hair, shy walking loops, soft sitting moods, and quiet art-toy charm.",
+      "thumbnail": "https://openpets.dev/pets/hirono-5edf3827/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hirono-5edf3827/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hirono-5edf3827/hirono.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "hikaru-shindo",
+      "displayName": "Hikaru Shindo",
+      "description": "A chibi Hikaru Shindo-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hikaru-shindo-b45a56fe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hikaru-shindo-b45a56fe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hikaru-shindo-b45a56fe/hikaru-shindo.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hiei",
+      "displayName": "Hiei",
+      "description": "A chibi dark swordsman-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hiei-01ce5a44/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hiei-01ce5a44/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hiei-01ce5a44/hiei.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "heiji-hattori",
+      "displayName": "Heiji Hattori",
+      "description": "A chibi Heiji Hattori-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/heiji-hattori-eff25f3c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/heiji-hattori-eff25f3c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/heiji-hattori-eff25f3c/heiji-hattori.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "happy-happy-cat",
+      "displayName": "Happy Happy Cat",
+      "description": "A bright chibi cat bouncing with pure happy-happy-happy loop energy.",
+      "thumbnail": "https://openpets.dev/pets/happy-happy-cat-e9ea0776/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/happy-happy-cat-e9ea0776/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/happy-happy-cat-e9ea0776/happy-happy-cat.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "hanamichi-sakuragi",
+      "displayName": "Hanamichi Sakuragi",
+      "description": "A chibi Hanamichi Sakuragi-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hanamichi-sakuragi-3dc9e22a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hanamichi-sakuragi-3dc9e22a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hanamichi-sakuragi-3dc9e22a/hanamichi-sakuragi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hacipupu",
+      "displayName": "Hacipupu",
+      "description": "An original dreamy baby-elf art-toy Codex pet with lavender pajamas, a sleepy star bonnet, and soft blind-box charm.",
+      "thumbnail": "https://openpets.dev/pets/hacipupu-b95263dd/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hacipupu-b95263dd/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hacipupu-b95263dd/hacipupu.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "hachiware",
+      "displayName": "Hachiware",
+      "description": "A blue-and-white kitten Codex pet with shy helper energy, running loops, cozy naps, and cheerful tiny celebrations.",
+      "thumbnail": "https://openpets.dev/pets/hachiware-22ce98b8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hachiware-22ce98b8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hachiware-22ce98b8/hachiware.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "hachiman-hikigaya",
+      "displayName": "Hachiman Hikigaya",
+      "description": "A sleepy deadpan chibi Hachiman Hikigaya-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hachiman-hikigaya-06674724/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hachiman-hikigaya-06674724/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hachiman-hikigaya-06674724/hachiman-hikigaya.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "gween-bean",
+      "displayName": "Gween Bean",
+      "description": "A minty bean-sprout Codex pet with tiny rolling poses, shy smiles, cozy naps, and soft viral-bean charm.",
+      "thumbnail": "https://openpets.dev/pets/gween-bean-7d8b5b26/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/gween-bean-7d8b5b26/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/gween-bean-7d8b5b26/gween-bean.zip",
+      "category": "western",
+      "subcategory": "objects"
+    }
+  ]
+}

@@ -1,0 +1,1008 @@
+{
+  "version": 3,
+  "page": 6,
+  "pageSize": 100,
+  "pets": [
+    {
+      "id": "kohaku",
+      "displayName": "Kohaku",
+      "description": "Codex pet version of Kohaku.",
+      "thumbnail": "https://openpets.dev/pets/kohaku-70b0758e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kohaku-70b0758e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kohaku-70b0758e/kohaku.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "azunyan",
+      "displayName": "Azunyan",
+      "description": "A tiny cat-eared twin-tail school-club chibi pet with shy bright eyes and a neat red ribbon.",
+      "thumbnail": "https://openpets.dev/pets/azunyan-c6b6c76e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/azunyan-c6b6c76e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/azunyan-c6b6c76e/azunyan.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "cream-cat",
+      "displayName": "Cream Cat",
+      "description": "A tiny cream pixel-art cat with a heart bubble for happy moments.",
+      "thumbnail": "https://openpets.dev/pets/cream-cat-f05d7268/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cream-cat-f05d7268/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cream-cat-f05d7268/cream-cat.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "sapling",
+      "displayName": "Sapling",
+      "description": "A cute tiny tree companion with a friendly face and little root feet.",
+      "thumbnail": "https://openpets.dev/pets/sapling-d67e5fe0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sapling-d67e5fe0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sapling-d67e5fe0/sapling.zip",
+      "category": "western",
+      "subcategory": "original",
+      "featured": true
+    },
+    {
+      "id": "carrot",
+      "displayName": "Carrot",
+      "description": "A cute carrot companion with leafy green hair and tiny limbs.",
+      "thumbnail": "https://openpets.dev/pets/carrot-90203086/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/carrot-90203086/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/carrot-90203086/carrot.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "bandit",
+      "displayName": "Bandit",
+      "description": "A cute raccoon Codex companion with a tiny striped tail and bright curious eyes.",
+      "thumbnail": "https://openpets.dev/pets/bandit-572d54a2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/bandit-572d54a2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/bandit-572d54a2/bandit.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "plaid-listener",
+      "displayName": "Plaid Listener",
+      "description": "A cozy headphone listener with simple thoughtful motions.",
+      "thumbnail": "https://openpets.dev/pets/plaid-listener-fba63419/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/plaid-listener-fba63419/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/plaid-listener-fba63419/plaid-listener.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "star-sailor-nana",
+      "displayName": "Star Sailor Nana",
+      "description": "A tiny chibi star sailor swordswoman with blonde bob hair, blue eyes, a blue sailor jacket, white dress, brown gloves, and a small waist sword.",
+      "thumbnail": "https://openpets.dev/pets/star-sailor-nana-65461655/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/star-sailor-nana-65461655/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/star-sailor-nana-65461655/star-sailor-nana.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "mashiro-shiina",
+      "displayName": "Mashiro Shiina",
+      "description": "A chibi Mashiro Shiina-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/mashiro-shiina-cc433c9b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/mashiro-shiina-cc433c9b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/mashiro-shiina-cc433c9b/mashiro-shiina.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "maomao",
+      "displayName": "Maomao",
+      "description": "A chibi Maomao-style apothecary Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/maomao-a5b7693e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/maomao-a5b7693e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/maomao-a5b7693e/maomao.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "johan-liebert",
+      "displayName": "Johan Liebert",
+      "description": "A chibi Johan Liebert-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/johan-liebert-18febdd6/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/johan-liebert-18febdd6/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/johan-liebert-18febdd6/johan-liebert.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "itsuki-nakano",
+      "displayName": "Itsuki Nakano",
+      "description": "A chibi red-haired schoolgirl Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/itsuki-nakano-ccc60f36/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/itsuki-nakano-ccc60f36/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/itsuki-nakano-ccc60f36/itsuki-nakano.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hei",
+      "displayName": "Hei",
+      "description": "A chibi Hei-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hei-4e34605e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hei-4e34605e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hei-4e34605e/hei.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "hange-zoe",
+      "displayName": "Hange Zoe",
+      "description": "A chibi Hange Zoe-style scientist Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/hange-zoe-2fe4ac8b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hange-zoe-2fe4ac8b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hange-zoe-2fe4ac8b/hange-zoe.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "erza-scarlet",
+      "displayName": "Erza Scarlet",
+      "description": "A chibi scarlet-haired swordswoman Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/erza-scarlet-15e37f3b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/erza-scarlet-15e37f3b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/erza-scarlet-15e37f3b/erza-scarlet.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "armin-arlert",
+      "displayName": "Armin Arlert",
+      "description": "A chibi blond strategist Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/armin-arlert-7efe7a8b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/armin-arlert-7efe7a8b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/armin-arlert-7efe7a8b/armin-arlert.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "firefly-neko",
+      "displayName": "Firefly Neko",
+      "description": "A tiny chibi Firefly-inspired cat companion for Codex.",
+      "thumbnail": "https://openpets.dev/pets/firefly-neko-b6c6ff5a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/firefly-neko-b6c6ff5a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/firefly-neko-b6c6ff5a/firefly-neko.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "kiritani-haruka",
+      "displayName": "Kiritani Haruka",
+      "description": "A compact pixel-art Codex pet inspired by Kiritani Haruka, wearing the cozy penguin-themed outfit from card 1057.",
+      "thumbnail": "https://openpets.dev/pets/kiritani-haruka-7a1364c2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kiritani-haruka-7a1364c2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kiritani-haruka-7a1364c2/kiritani-haruka.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "revy",
+      "displayName": "Revy",
+      "description": "A chibi Revy-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/revy-f6ac33fe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/revy-f6ac33fe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/revy-f6ac33fe/revy.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kusuo-saiki",
+      "displayName": "Kusuo Saiki",
+      "description": "A chibi Kusuo Saiki-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kusuo-saiki-9c900112/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kusuo-saiki-9c900112/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kusuo-saiki-9c900112/kusuo-saiki.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kurapika",
+      "displayName": "Kurapika",
+      "description": "A chibi Kurapika-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kurapika-04976b99/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kurapika-04976b99/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kurapika-04976b99/kurapika.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "kaguya-shinomiya",
+      "displayName": "Kaguya Shinomiya",
+      "description": "A chibi Kaguya Shinomiya-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/kaguya-shinomiya-16e09c93/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/kaguya-shinomiya-16e09c93/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/kaguya-shinomiya-16e09c93/kaguya-shinomiya.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "lucky",
+      "displayName": "Lucky",
+      "description": "Lucky is a happy black-and-white border collie digital pet.",
+      "thumbnail": "https://openpets.dev/pets/lucky-0a572488/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/lucky-0a572488/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/lucky-0a572488/lucky.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "infernape",
+      "displayName": "Infernape",
+      "description": "A bead-pattern pixel-art Infernape Codex pet rebuilt from the supplied 62 by 68 pattern PNG.",
+      "thumbnail": "https://openpets.dev/pets/infernape-e4c3b13d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/infernape-e4c3b13d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/infernape-e4c3b13d/infernape.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "yukino-yukinoshita",
+      "displayName": "Yukino Yukinoshita",
+      "description": "A chibi Yukino Yukinoshita-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/yukino-yukinoshita-66c31309/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yukino-yukinoshita-66c31309/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yukino-yukinoshita-66c31309/yukino-yukinoshita.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "pikachu",
+      "displayName": "Pikachu",
+      "description": "A chibi Pikachu-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/pikachu-30d57afb/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/pikachu-30d57afb/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/pikachu-30d57afb/pikachu.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "chika-fujiwara",
+      "displayName": "Chika Fujiwara",
+      "description": "A chibi Chika Fujiwara-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/chika-fujiwara-0adeecba/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/chika-fujiwara-0adeecba/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/chika-fujiwara-0adeecba/chika-fujiwara.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "handsome-crc",
+      "displayName": "Handsome Crc",
+      "description": "A chibi Codex pet with tousled black hair, black square glasses, a calm focused face, and a black outfit with a white split collar.",
+      "thumbnail": "https://openpets.dev/pets/handsome-crc-35b87a14/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/handsome-crc-35b87a14/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/handsome-crc-35b87a14/handsome-crc.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "datachan-extended",
+      "displayName": "Datachan Extended",
+      "description": "Experimental Datachan variant with extra filled idle and jumping atlas cells.",
+      "thumbnail": "https://openpets.dev/pets/datachan-extended-2d2312b1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/datachan-extended-2d2312b1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/datachan-extended-2d2312b1/datachan-extended.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "shiny-hatbud",
+      "displayName": "Shiny Hatbud",
+      "description": "A compact Codex digital pet based on the shiny Daermaodou, a fluffy white long-eared ice rabbit spirit.",
+      "thumbnail": "https://openpets.dev/pets/shiny-hatbud-99064e17/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shiny-hatbud-99064e17/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shiny-hatbud-99064e17/shiny-hatbud.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shiny-daermaodou",
+      "displayName": "Shiny Daermaodou",
+      "description": "A fan-made Codex pet based on shiny Daermaodou / 大耳帽兜, the long-eared ice rabbit spirit from Roco Kingdom.",
+      "thumbnail": "https://openpets.dev/pets/shiny-daermaodou-c5d7dc6c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shiny-daermaodou-c5d7dc6c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shiny-daermaodou-c5d7dc6c/shiny-daermaodou.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "oiioi",
+      "displayName": "oiioi",
+      "description": "A Codex digital pet based on the OIIA/OIIAI spinning cat meme.",
+      "thumbnail": "https://openpets.dev/pets/oiioi-72f42d4c/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/oiioi-72f42d4c/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/oiioi-72f42d4c/oiioi.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "yoyo",
+      "displayName": "yoyo",
+      "description": "A calm Garfield-like kitten who quietly keeps you company while you code.",
+      "thumbnail": "https://openpets.dev/pets/yoyo-09063936/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yoyo-09063936/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yoyo-09063936/yoyo.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "hollow-knight",
+      "displayName": "Hollow Knight",
+      "description": "A tiny friendly cute Hollow Knight style pet.",
+      "thumbnail": "https://openpets.dev/pets/hollow-knight-954fce0e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hollow-knight-954fce0e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hollow-knight-954fce0e/hollow-knight.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "silver-frost",
+      "displayName": "Silver Frost",
+      "description": "银霜是一只银渐层小猫，安静、圆脸、浅银毛尖，像 Codex 桌面小伙伴。.",
+      "thumbnail": "https://openpets.dev/pets/silver-frost-db4dbb5e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/silver-frost-db4dbb5e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/silver-frost-db4dbb5e/silver-frost.zip",
+      "category": "asian",
+      "subcategory": "animals"
+    },
+    {
+      "id": "keqing",
+      "displayName": "Keqing",
+      "description": "A Codex pet inspired by a chibi purple twin-tail Keqing-like character; default form is calm, activated form panics while floating with >< cartoon eyes.",
+      "thumbnail": "https://openpets.dev/pets/keqing-447b853b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/keqing-447b853b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/keqing-447b853b/keqing.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "late",
+      "displayName": "Late",
+      "description": "A compact chibi cat-like boxing pet with a dark navy helmet head, orange striped ears, pink-yellow eyes, deep navy boxing gloves, a white body, and tiny white pointed feet.",
+      "thumbnail": "https://openpets.dev/pets/late-575c9223/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/late-575c9223/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/late-575c9223/late.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "nuan-nuan",
+      "displayName": "暖暖",
+      "description": "A warm white mochi pig-fantasy plush desktop pet with blue-rimmed glossy eyes, red heart blush, flower crown, fin-like arms, frilly skirt, and a rose tied to one fin.",
+      "thumbnail": "https://openpets.dev/pets/nuan-nuan-bf110943/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/nuan-nuan-bf110943/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/nuan-nuan-bf110943/nuan-nuan.zip",
+      "category": "asian",
+      "subcategory": "original"
+    },
+    {
+      "id": "maeng",
+      "displayName": "Maeng",
+      "description": "A calm and cute round-faced Codex pet inspired by a quiet childlike mascot, with a sleepy nose-bubble charm.",
+      "thumbnail": "https://openpets.dev/pets/maeng-1ba938fe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/maeng-1ba938fe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/maeng-1ba938fe/maeng.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "apu",
+      "displayName": "小阿噗",
+      "description": "戴着小帽子的蓝黄色 Codex 工作伙伴。",
+      "thumbnail": "https://openpets.dev/pets/apu-e097dc52/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/apu-e097dc52/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/apu-e097dc52/apu.zip",
+      "category": "asian",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "jokebear",
+      "displayName": "Joke Bear",
+      "description": "An original self-mocking white bear digital pet for Codex.",
+      "thumbnail": "https://openpets.dev/pets/jokebear-dcc3f892/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/jokebear-dcc3f892/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/jokebear-dcc3f892/jokebear.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "hana",
+      "displayName": "Hana",
+      "description": "A tiny chibi yukata companion with blonde curls, cream hair bows, blue eyes, a black floral kimono, and a red obi bow.",
+      "thumbnail": "https://openpets.dev/pets/hana-9c355af3/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/hana-9c355af3/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/hana-9c355af3/hana.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "poro",
+      "displayName": "Poro",
+      "description": "A tiny League of Legends Poro-inspired fluffy desktop pet.",
+      "thumbnail": "https://openpets.dev/pets/poro-4ed1e141/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/poro-4ed1e141/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/poro-4ed1e141/poro.zip",
+      "category": "western",
+      "subcategory": "games"
+    },
+    {
+      "id": "bjorninton",
+      "displayName": "Bjorninton",
+      "description": "A tiny swaggering bear helper pet with shades, a cartoon smoke, and no weapons.",
+      "thumbnail": "https://openpets.dev/pets/bjorninton-7ba2c3ff/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/bjorninton-7ba2c3ff/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/bjorninton-7ba2c3ff/bjorninton.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "shiny-demon-wolf",
+      "displayName": "异色恶魔狼",
+      "description": "A compact shiny Demon Wolf companion in Codex digital pet sprite style.",
+      "thumbnail": "https://openpets.dev/pets/shiny-demon-wolf-937fb37b/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shiny-demon-wolf-937fb37b/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shiny-demon-wolf-937fb37b/shiny-demon-wolf.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "maodou-wawa",
+      "displayName": "Maodou Wawa",
+      "description": "帽兜娃娃：a tiny chibi digital pet inspired by the hooded doll creature from Rock Kingdom World, with a white hood, long pink-tipped ears, pink hair, blue eyes, and a plush tail.",
+      "thumbnail": "https://openpets.dev/pets/maodou-wawa-13a48324/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/maodou-wawa-13a48324/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/maodou-wawa-13a48324/maodou-wawa.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "dimo",
+      "displayName": "Dimo",
+      "description": "A Codex desktop pet inspired by Dimo from Roco Kingdom World.",
+      "thumbnail": "https://openpets.dev/pets/dimo-64075815/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/dimo-64075815/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/dimo-64075815/dimo.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "crescent-snow-bear",
+      "displayName": "Crescent Snow Bear",
+      "description": "A compact blue and white crescent snow bear desktop pet inspired by Rock Kingdom Yueya Snow Bear, with its eyes hidden under blue top fur.",
+      "thumbnail": "https://openpets.dev/pets/crescent-snow-bear-436e1249/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/crescent-snow-bear-436e1249/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/crescent-snow-bear-436e1249/crescent-snow-bear.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "aemeath",
+      "displayName": "AEMEATH",
+      "description": "A tiny pink-haired chibi angel companion with white flapping wings and a cyan crystal headpiece.",
+      "thumbnail": "https://openpets.dev/pets/aemeath-396144e8/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/aemeath-396144e8/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/aemeath-396144e8/aemeath.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "moomoo",
+      "displayName": "哞哞",
+      "description": "一只黑白花纹、浓眉大眼、表情倔强的 Q 版奶牛 Codex 数字宠物。",
+      "thumbnail": "https://openpets.dev/pets/moomoo-fd97d62f/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/moomoo-fd97d62f/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/moomoo-fd97d62f/moomoo.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "curry",
+      "displayName": "Curry",
+      "description": "A tiny chibi basketball shooter pet inspired by Stephen Curry, built for Codex workspace companionship.",
+      "thumbnail": "https://openpets.dev/pets/curry-bd1ae5ad/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/curry-bd1ae5ad/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/curry-bd1ae5ad/curry.zip",
+      "category": "western",
+      "subcategory": "mascots"
+    },
+    {
+      "id": "aemeath-mini",
+      "displayName": "Aemeath Mini",
+      "description": "Q版像素爱弥斯桌宠 v4：在 v3 基础上对换 jumping 与 waving 素材。",
+      "thumbnail": "https://openpets.dev/pets/aemeath-mini-7cfd07c1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/aemeath-mini-7cfd07c1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/aemeath-mini-7cfd07c1/aemeath-mini.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "haengseongi",
+      "displayName": "행성이",
+      "description": "A tiny hand-drawn planet companion for coding, waiting, review, celebration, and tired moments.",
+      "thumbnail": "https://openpets.dev/pets/haengseongi-386e3ee9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/haengseongi-386e3ee9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/haengseongi-386e3ee9/haengseongi.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "xiutai",
+      "displayName": "秀太",
+      "description": "A compact Codex digital pet based on a Jian San Xiu Tai swordsman with calm, elegant, slightly cold presence.",
+      "thumbnail": "https://openpets.dev/pets/xiutai-ba628852/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/xiutai-ba628852/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/xiutai-ba628852/xiutai.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "wanhua",
+      "displayName": "Wanhua",
+      "description": "A tiny Codex pet inspired by a Jianwang 3 Wanhua healer-scholar, carrying a brush pen weapon.",
+      "thumbnail": "https://openpets.dev/pets/wanhua-8081a417/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/wanhua-8081a417/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/wanhua-8081a417/wanhua.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "shaling",
+      "displayName": "纱铃",
+      "description": "A tiny chibi girl pet inspired by a silver twin-tail young mage in a white and lavender layered dress holding a golden magic ring.",
+      "thumbnail": "https://openpets.dev/pets/shaling-93e14228/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shaling-93e14228/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shaling-93e14228/shaling.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "mingyue-shi",
+      "displayName": "明月使",
+      "description": "A chibi Codex pet based on a Jian Wang 3 Mingjiao girl in blue-white robes with paired black-red Blood Moon scimitars carried on her back.",
+      "thumbnail": "https://openpets.dev/pets/mingyue-shi-061d3bc4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/mingyue-shi-061d3bc4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/mingyue-shi-061d3bc4/mingyue-shi.zip",
+      "category": "asian",
+      "subcategory": "game-characters"
+    },
+    {
+      "id": "open-pets-codex",
+      "displayName": "Open Pets Codex",
+      "description": "A Codex-compatible open-pets companion.",
+      "thumbnail": "https://openpets.dev/pets/open-pets-codex-f4d68794/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/open-pets-codex-f4d68794/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/open-pets-codex-f4d68794/open-pets-codex.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "taro",
+      "displayName": "Taro",
+      "description": "Taro is a cheerful West Highland white terrier in a red sweater.",
+      "thumbnail": "https://openpets.dev/pets/taro-7ef2f682/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/taro-7ef2f682/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/taro-7ef2f682/taro.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "puffy",
+      "displayName": "Puffy",
+      "description": "A cream Cockapoo digital pet with curly white fur, warm tan muzzle and ears, dark round eyes, and a tiny button nose.",
+      "thumbnail": "https://openpets.dev/pets/puffy-90c4da41/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/puffy-90c4da41/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/puffy-90c4da41/puffy.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "cyberdeck",
+      "displayName": "Cyberdeck",
+      "description": "A tiny retro-futuristic cyberdeck computer with a friendly screen face.",
+      "thumbnail": "https://openpets.dev/pets/cyberdeck-a7955eab/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/cyberdeck-a7955eab/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/cyberdeck-a7955eab/cyberdeck.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "blobbit",
+      "displayName": "Blobbit",
+      "description": "A small original digital jelly life made from data and emotion.",
+      "thumbnail": "https://openpets.dev/pets/blobbit-0a3e7c29/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/blobbit-0a3e7c29/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/blobbit-0a3e7c29/blobbit.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "corgi-companion",
+      "displayName": "Corgi Companion",
+      "description": "A cheerful corgi digital pet with a laptop-working running state.",
+      "thumbnail": "https://openpets.dev/pets/corgi-companion-8e093898/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/corgi-companion-8e093898/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/corgi-companion-8e093898/corgi-companion.zip",
+      "category": "western",
+      "subcategory": "animals"
+    },
+    {
+      "id": "yellow-thinker",
+      "displayName": "Yellow Thinker",
+      "description": "A cute minimalist yellow creature with big green eyes and a thoughtful pose.",
+      "thumbnail": "https://openpets.dev/pets/yellow-thinker-edb71c00/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yellow-thinker-edb71c00/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yellow-thinker-edb71c00/yellow-thinker.zip",
+      "category": "western",
+      "subcategory": "original"
+    },
+    {
+      "id": "ayumu",
+      "displayName": "Ayumu",
+      "description": "A tiny Codex-style chibi digital pet of Ayumu with coral-pink hair, green eyes, and a simplified white-and-black frilled witch-maid idol outfit.",
+      "thumbnail": "https://openpets.dev/pets/ayumu-79d3ddf4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/ayumu-79d3ddf4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/ayumu-79d3ddf4/ayumu.zip",
+      "category": "asian",
+      "subcategory": "chibi"
+    },
+    {
+      "id": "zhubajie",
+      "displayName": "Zhu Bajie",
+      "description": "A cute chibi anime Zhu Bajie Codex pet wearing a monk robe and carrying a tiny nine-tooth rake.",
+      "thumbnail": "https://openpets.dev/pets/zhubajie-3476f3b4/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/zhubajie-3476f3b4/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/zhubajie-3476f3b4/zhubajie.zip",
+      "category": "asian",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "yusuke-urameshi",
+      "displayName": "Yusuke Urameshi",
+      "description": "A chibi spirit detective-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/yusuke-urameshi-c3da2294/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yusuke-urameshi-c3da2294/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yusuke-urameshi-c3da2294/yusuke-urameshi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "yuno-gasai",
+      "displayName": "Yuno Gasai",
+      "description": "A chibi Yuno Gasai-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/yuno-gasai-1341c00d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yuno-gasai-1341c00d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yuno-gasai-1341c00d/yuno-gasai.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "yato",
+      "displayName": "Yato",
+      "description": "A chibi Yato-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/yato-084c5c3d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/yato-084c5c3d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/yato-084c5c3d/yato.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "violet-evergarden",
+      "displayName": "Violet Evergarden",
+      "description": "A chibi Violet Evergarden-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/violet-evergarden-b701b0ef/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/violet-evergarden-b701b0ef/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/violet-evergarden-b701b0ef/violet-evergarden.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "villain-coder",
+      "displayName": "Villain Coder",
+      "description": "A smug chibi villain-executive programmer Codex pet with cape, headset, and dramatic bug-report energy.",
+      "thumbnail": "https://openpets.dev/pets/villain-coder-2fbe777d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/villain-coder-2fbe777d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/villain-coder-2fbe777d/villain-coder.zip",
+      "category": "western",
+      "subcategory": "tech"
+    },
+    {
+      "id": "usopp",
+      "displayName": "Usopp",
+      "description": "A cute chibi pixel-art sniper Codex pet with a long nose, yellow goggles, a compact slingshot, and nervous-brave energy.",
+      "thumbnail": "https://openpets.dev/pets/usopp-b79f6558/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/usopp-b79f6558/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/usopp-b79f6558/usopp.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "usagi-tsukino",
+      "displayName": "Usagi Tsukino",
+      "description": "A chibi Usagi Tsukino-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/usagi-tsukino-5c6e21fe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/usagi-tsukino-5c6e21fe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/usagi-tsukino-5c6e21fe/usagi-tsukino.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tomoyo-daidoji",
+      "displayName": "Tomoyo Daidoji",
+      "description": "A chibi Tomoyo Daidoji-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/tomoyo-daidoji-f2b1911e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tomoyo-daidoji-f2b1911e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tomoyo-daidoji-f2b1911e/tomoyo-daidoji.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tiga",
+      "displayName": "Tiga",
+      "description": "A chibi Ultraman Tiga-style Codex pet with a tiny color timer.",
+      "thumbnail": "https://openpets.dev/pets/tiga-5f7fc2e1/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tiga-5f7fc2e1/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tiga-5f7fc2e1/tiga.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tetsuwan-atom",
+      "displayName": "Tetsuwan Atom",
+      "description": "A cute chibi Tetsuwan Atom-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/tetsuwan-atom-1438c0f5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tetsuwan-atom-1438c0f5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tetsuwan-atom-1438c0f5/tetsuwan-atom.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tatsuya-shiba",
+      "displayName": "Tatsuya Shiba",
+      "description": "A chibi Tatsuya Shiba-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/tatsuya-shiba-854ffd6d/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tatsuya-shiba-854ffd6d/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tatsuya-shiba-854ffd6d/tatsuya-shiba.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "tanjiro-kamado",
+      "displayName": "Tanjiro Kamado",
+      "description": "A chibi Tanjiro Kamado-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/tanjiro-kamado-2211a75e/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/tanjiro-kamado-2211a75e/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/tanjiro-kamado-2211a75e/tanjiro-kamado.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "takumi-usui",
+      "displayName": "Takumi Usui",
+      "description": "A chibi Takumi Usui-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/takumi-usui-6deeba5a/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/takumi-usui-6deeba5a/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/takumi-usui-6deeba5a/takumi-usui.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "takenori-akagi",
+      "displayName": "Takenori Akagi",
+      "description": "A chibi Takenori Akagi-style basketball captain Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/takenori-akagi-d97d3cd9/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/takenori-akagi-d97d3cd9/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/takenori-akagi-d97d3cd9/takenori-akagi.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "taiga-aisaka",
+      "displayName": "Taiga Aisaka",
+      "description": "A chibi Taiga Aisaka-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/taiga-aisaka-3f52f267/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/taiga-aisaka-3f52f267/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/taiga-aisaka-3f52f267/taiga-aisaka.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "syaoran-li",
+      "displayName": "Syaoran Li",
+      "description": "A chibi Syaoran Li-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/syaoran-li-9d2b39d5/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/syaoran-li-9d2b39d5/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/syaoran-li-9d2b39d5/syaoran-li.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "sword-shield-bibilabu-cat",
+      "displayName": "Sword Shield Bibilabu Cat",
+      "description": "A chaotic chibi cat with toy sword, tiny shield, and bouncy nonsense-sound skit energy.",
+      "thumbnail": "https://openpets.dev/pets/sword-shield-bibilabu-cat-56223023/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sword-shield-bibilabu-cat-56223023/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sword-shield-bibilabu-cat-56223023/sword-shield-bibilabu-cat.zip",
+      "category": "western",
+      "subcategory": "memes"
+    },
+    {
+      "id": "sweet-bean",
+      "displayName": "Sweet Bean",
+      "description": "A Sweet Bean-style Codex pet with a soft beige sleep cap, tiny dot eyes, dessert charms, and gentle blind-box sweetness.",
+      "thumbnail": "https://openpets.dev/pets/sweet-bean-a89cea75/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sweet-bean-a89cea75/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sweet-bean-a89cea75/sweet-bean.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "sunwukong",
+      "displayName": "Sun Wukong",
+      "description": "A cute chibi anime Sun Wukong Codex pet wearing a golden headband and wielding a tiny golden staff.",
+      "thumbnail": "https://openpets.dev/pets/sunwukong-fc247377/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sunwukong-fc247377/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sunwukong-fc247377/sunwukong.zip",
+      "category": "asian",
+      "subcategory": "mythology"
+    },
+    {
+      "id": "suneo-honekawa",
+      "displayName": "Suneo Honekawa",
+      "description": "A chibi Suneo Honekawa-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/suneo-honekawa-990fe4b0/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/suneo-honekawa-990fe4b0/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/suneo-honekawa-990fe4b0/suneo-honekawa.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "spike-spiegel",
+      "displayName": "Spike Spiegel",
+      "description": "A lanky chibi Spike Spiegel-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/spike-spiegel-370d6504/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/spike-spiegel-370d6504/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/spike-spiegel-370d6504/spike-spiegel.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "sosuke-aizen",
+      "displayName": "Sosuke Aizen",
+      "description": "A chibi Sosuke Aizen-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/sosuke-aizen-037e4c97/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sosuke-aizen-037e4c97/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sosuke-aizen-037e4c97/sosuke-aizen.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "sonny-angel",
+      "displayName": "Sonny Angel",
+      "description": "A tiny cherub doll Codex pet with soft wings, innocent smiles, sleepy cloud poses, and playful costume hats.",
+      "thumbnail": "https://openpets.dev/pets/sonny-angel-83c19153/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sonny-angel-83c19153/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sonny-angel-83c19153/sonny-angel.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "smiski",
+      "displayName": "Smiski",
+      "description": "A shy glow-spirit Codex pet with quiet peeking poses, soft mint light, tiny naps, and bashful corner-hiding charm.",
+      "thumbnail": "https://openpets.dev/pets/smiski-846af7c2/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/smiski-846af7c2/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/smiski-846af7c2/smiski.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "skullpanda",
+      "displayName": "Skullpanda",
+      "description": "A gothic panda-doll Codex pet with skull face paint, spooky-cute moods, starry naps, and mischievous dark charm.",
+      "thumbnail": "https://openpets.dev/pets/skullpanda-280dcffe/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/skullpanda-280dcffe/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/skullpanda-280dcffe/skullpanda.zip",
+      "category": "western",
+      "subcategory": "objects"
+    },
+    {
+      "id": "shusuke-fuji",
+      "displayName": "Shusuke Fuji",
+      "description": "A chibi Shusuke Fuji-style tennis Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shusuke-fuji-a41e1434/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shusuke-fuji-a41e1434/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shusuke-fuji-a41e1434/shusuke-fuji.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shizuka-minamoto",
+      "displayName": "Shizuka Minamoto",
+      "description": "A chibi Shizuka Minamoto-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shizuka-minamoto-8c301429/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shizuka-minamoto-8c301429/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shizuka-minamoto-8c301429/shizuka-minamoto.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shinobu-oshino",
+      "displayName": "Shinobu Oshino",
+      "description": "A chibi Shinobu Oshino-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shinobu-oshino-f9da1c12/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shinobu-oshino-f9da1c12/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shinobu-oshino-f9da1c12/shinobu-oshino.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shinji-ikari",
+      "displayName": "Shinji Ikari",
+      "description": "A cute chibi Shinji Ikari-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shinji-ikari-32199882/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shinji-ikari-32199882/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shinji-ikari-32199882/shinji-ikari.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shinichi-kudo",
+      "displayName": "Shinichi Kudo",
+      "description": "A chibi Shinichi Kudo-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shinichi-kudo-0a3ea5c7/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shinichi-kudo-0a3ea5c7/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shinichi-kudo-0a3ea5c7/shinichi-kudo.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "shigeo-kageyama",
+      "displayName": "Shigeo Kageyama",
+      "description": "A chibi Shigeo Kageyama-inspired Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/shigeo-kageyama-4e0dbe99/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/shigeo-kageyama-4e0dbe99/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/shigeo-kageyama-4e0dbe99/shigeo-kageyama.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "sesshomaru",
+      "displayName": "Sesshomaru",
+      "description": "A chibi Sesshomaru-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/sesshomaru-4db8a7ea/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sesshomaru-4db8a7ea/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sesshomaru-4db8a7ea/sesshomaru.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "seiichi-yukimura",
+      "displayName": "Seiichi Yukimura",
+      "description": "A chibi Seiichi Yukimura-style tennis Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/seiichi-yukimura-273af077/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/seiichi-yukimura-273af077/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/seiichi-yukimura-273af077/seiichi-yukimura.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    },
+    {
+      "id": "sebastian-michaelis",
+      "displayName": "Sebastian Michaelis",
+      "description": "A chibi Sebastian Michaelis-style Codex pet.",
+      "thumbnail": "https://openpets.dev/pets/sebastian-michaelis-4532ca49/thumb.webp",
+      "spritesheet": "https://openpets.dev/pets/sebastian-michaelis-4532ca49/spritesheet.webp",
+      "zip": "https://zip.openpets.dev/pets/sebastian-michaelis-4532ca49/sebastian-michaelis.zip",
+      "category": "asian",
+      "subcategory": "anime"
+    }
+  ]
+}

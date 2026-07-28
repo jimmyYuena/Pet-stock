@@ -1,0 +1,6 @@
+{
+  "id": "desk-otter",
+  "displayName": "Desk Otter",
+  "description": "A bespectacled desk-worker otter mascot in a blue shirt, animated for Codex task states.",
+  "spritesheetPath": "spritesheet.webp"
+}
