@@ -62,6 +62,137 @@ struct Position: Identifiable, Codable, Equatable {
     var symbol: String? = nil
 }
 
+enum PriceColorStyle: String, CaseIterable, Codable, Identifiable {
+    case redUpGreenDown
+    case greenUpRedDown
+
+    static let defaultsKey = "stockPet.priceColorStyle.v1"
+
+    static var saved: PriceColorStyle {
+        guard let rawValue = UserDefaults.standard.string(forKey: defaultsKey),
+              let style = PriceColorStyle(rawValue: rawValue) else {
+            return .redUpGreenDown
+        }
+        return style
+    }
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .redUpGreenDown: return "红涨绿跌"
+        case .greenUpRedDown: return "绿涨红跌"
+        }
+    }
+
+    var gainColor: Color {
+        switch self {
+        case .redUpGreenDown:
+            return Color(red: 1.0, green: 0.28, blue: 0.30)
+        case .greenUpRedDown:
+            return Color(red: 0.20, green: 1.0, blue: 0.56)
+        }
+    }
+
+    var lossColor: Color {
+        switch self {
+        case .redUpGreenDown:
+            return Color(red: 0.20, green: 1.0, blue: 0.56)
+        case .greenUpRedDown:
+            return Color(red: 1.0, green: 0.28, blue: 0.30)
+        }
+    }
+
+    var gainAccentEndColor: Color {
+        switch self {
+        case .redUpGreenDown:
+            return Color(red: 0.78, green: 0.08, blue: 0.13)
+        case .greenUpRedDown:
+            return Color(red: 0.06, green: 0.46, blue: 0.23)
+        }
+    }
+
+    func color(for mood: PetMood) -> Color {
+        mood == .bull ? gainColor : lossColor
+    }
+}
+
+enum TradeRecordType: String, CaseIterable, Codable, Identifiable {
+    case buy
+    case sell
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .buy: return "买入"
+        case .sell: return "卖出"
+        }
+    }
+}
+
+enum MarketCurrency: String {
+    case cny = "CNY"
+    case usd = "USD"
+    case hkd = "HKD"
+
+    static func forSymbol(_ symbol: String) -> MarketCurrency {
+        let normalized = symbol
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if normalized.hasPrefix("us") { return .usd }
+        if normalized.hasPrefix("hk") { return .hkd }
+        if normalized.hasPrefix("sh") || normalized.hasPrefix("sz") || normalized.hasPrefix("bj") {
+            return .cny
+        }
+        return .cny
+    }
+
+    func format(_ value: Double) -> String {
+        "\(Self.compactNumber(value)) \(rawValue)"
+    }
+
+    func formatSigned(_ value: Double) -> String {
+        if value == 0 { return format(0) }
+        return "\(value > 0 ? "+" : "-")\(format(abs(value)))"
+    }
+
+    private static func compactNumber(_ value: Double) -> String {
+        let units: [(Double, String)] = [
+            (1_000_000_000, "B"),
+            (1_000_000, "M"),
+            (1_000, "K")
+        ]
+        for (threshold, suffix) in units where value >= threshold {
+            return trimmed(value / threshold, maxFractionDigits: 2) + suffix
+        }
+        return trimmed(value, maxFractionDigits: 2)
+    }
+
+    private static func trimmed(_ value: Double, maxFractionDigits: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = maxFractionDigits
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+    }
+}
+
+struct TradeRecord: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var date: Date
+    var type: TradeRecordType
+    var name: String
+    var symbol: String
+    var price: Double
+    var buyPrice: Double? = nil
+    var sellPrice: Double? = nil
+    var quantity: Double
+    var amount: Double
+    var note: String
+}
+
 enum PriceAlertBoundary: String, Codable {
     case lower
     case upper
@@ -755,6 +886,9 @@ final class PetStore: ObservableObject {
     }
     @Published var screenshot: NSImage?
     @Published var importedPositions: [Position] = []
+    @Published var tradeRecords: [TradeRecord] = [] {
+        didSet { persistTradeRecords() }
+    }
     @Published var isRecognizingScreenshot = false
     @Published var isResolvingImportedSymbols = false
     @Published var screenshotImportMessage: String?
@@ -782,11 +916,13 @@ final class PetStore: ObservableObject {
     @Published var returnAnimationIntervalSeconds = 30
     @Published var returnChangeBubbleEnabled = true
     @Published var returnBubbleMarket: ReturnBubbleMarket = .mainlandChina
+    @Published var priceColorStyle: PriceColorStyle = .redUpGreenDown
     @Published private(set) var priceAlerts: [UUID: PriceAlertRule] = [:]
     @Published private(set) var isPriceAlertAnimating = false
     @Published private(set) var priceAlertAnimationToken = UUID()
 
     private let key = "stockPet.positions.v1"
+    private let tradeRecordsKey = "stockPet.tradeRecords.v1"
     private let watchIndicesKey = "stockPet.watchIndices.v1"
     private let includeUSInReturnKey = "stockPet.includeUSInReturn.v1"
     private let newsHoldingsOnlyKey = "stockPet.newsHoldingsOnly.v1"
@@ -795,6 +931,7 @@ final class PetStore: ObservableObject {
     private let returnAnimationIntervalKey = "stockPet.returnAnimation.interval.v1"
     private let returnChangeBubbleEnabledKey = "stockPet.returnAnimation.bubbleEnabled.v1"
     private let returnBubbleMarketKey = "stockPet.returnAnimation.bubbleMarket.v1"
+    private let priceColorStyleKey = PriceColorStyle.defaultsKey
     private let hiddenNewsKey = "stockPet.hiddenNews.v1"
     private static let notificationsEnabledKey = "stockPet.notifications.enabled.v1"
     private static let notifiedNewsKey = "stockPet.news.notifiedIDs.v1"
@@ -827,6 +964,10 @@ final class PetStore: ObservableObject {
             positions = saved
         } else {
             positions = Self.defaultPositions
+        }
+        if let data = UserDefaults.standard.data(forKey: tradeRecordsKey),
+           let saved = try? JSONDecoder().decode([TradeRecord].self, from: data) {
+            tradeRecords = saved.sorted { $0.date > $1.date }
         }
         if let data = UserDefaults.standard.data(forKey: Self.priceAlertsKey),
            let saved = try? JSONDecoder().decode([PriceAlertRule].self, from: data) {
@@ -861,6 +1002,10 @@ final class PetStore: ObservableObject {
            let savedMarket = ReturnBubbleMarket(rawValue: rawValue) {
             returnBubbleMarket = savedMarket
         }
+        if let rawValue = prefs.string(forKey: priceColorStyleKey),
+           let savedStyle = PriceColorStyle(rawValue: rawValue) {
+            priceColorStyle = savedStyle
+        }
         isRestoringPositions = false
         hiddenNewsIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenNewsKey) ?? [])
         notifiedNewsIDs = Set(UserDefaults.standard.stringArray(forKey: Self.notifiedNewsKey) ?? [])
@@ -894,6 +1039,25 @@ final class PetStore: ObservableObject {
         alpacaAPIKey = ""
         alpacaAPISecret = ""
         alpacaStatus = "已停用 Alpaca 夜盘行情"
+    }
+
+    func addTradeRecord(_ record: TradeRecord) {
+        tradeRecords.insert(record, at: 0)
+        tradeRecords.sort { $0.date > $1.date }
+    }
+
+    func updateTradeRecord(_ record: TradeRecord) {
+        if let index = tradeRecords.firstIndex(where: { $0.id == record.id }) {
+            tradeRecords[index] = record
+        } else {
+            tradeRecords.insert(record, at: 0)
+        }
+        tradeRecords.sort { $0.date > $1.date }
+    }
+
+    private func persistTradeRecords() {
+        guard let data = try? JSONEncoder().encode(tradeRecords) else { return }
+        UserDefaults.standard.set(data, forKey: tradeRecordsKey)
     }
 
     func importPositionScreenshot(_ image: NSImage) {
@@ -1178,6 +1342,7 @@ final class PetStore: ObservableObject {
         d.set(returnAnimationIntervalSeconds, forKey: returnAnimationIntervalKey)
         d.set(returnChangeBubbleEnabled, forKey: returnChangeBubbleEnabledKey)
         d.set(returnBubbleMarket.rawValue, forKey: returnBubbleMarketKey)
+        d.set(priceColorStyle.rawValue, forKey: priceColorStyleKey)
         // 新闻范围改变时立即重拉资讯（总收益是实时计算的，无需刷新行情）
         Task { await refreshNews() }
     }
@@ -3244,11 +3409,11 @@ enum PetMood: Equatable {
     case bull, bear
 
     var accessibilityName: String {
-        switch self { case .bull: "红色牛宠物"; case .bear: "绿色熊宠物" }
+        switch self { case .bull: "上涨宠物"; case .bear: "下跌宠物" }
     }
 
     var color: Color {
-        switch self { case .bull: Color(red: 0.96, green: 0.13, blue: 0.16); case .bear: Color(red: 0.14, green: 0.76, blue: 0.39) }
+        PriceColorStyle.saved.color(for: self)
     }
 }
 
@@ -3661,6 +3826,27 @@ private enum PetCatalogTab: String, CaseIterable, Identifiable {
     }
 }
 
+private enum DashboardTab: String, CaseIterable, Identifiable {
+    case market
+    case trades
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .market: return "持仓行情"
+        case .trades: return "交易记录"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .market: return "chart.line.uptrend.xyaxis"
+        case .trades: return "doc.text.fill"
+        }
+    }
+}
+
 struct ContentView: View {
     @ObservedObject var store: PetStore
     @ObservedObject var debugState: PetDebugState
@@ -3691,6 +3877,9 @@ struct ContentView: View {
     @State private var showingAlpacaSettings = false
     @State private var showingIndexSettings = false
     @State private var showingPreferences = false
+    @State private var selectedDashboardTab: DashboardTab = .market
+    @State private var showingTradeRecordEditor = false
+    @State private var editingTradeRecord: TradeRecord?
     @State private var priceAlertEditingPosition: Position?
     @State private var shareIncludePositions = false
     @State private var shareFeedback = ""
@@ -3701,8 +3890,9 @@ struct ContentView: View {
     @State private var stockSearchQuery = ""
     @State private var stockSearchTask: Task<Void, Never>?
     @FocusState private var stockSearchFocused: Bool
-    private let gainColor = Color(red: 1.0, green: 0.28, blue: 0.30)
-    private let lossColor = Color(red: 0.20, green: 1.0, blue: 0.56)
+    private var gainColor: Color { store.priceColorStyle.gainColor }
+    private var lossColor: Color { store.priceColorStyle.lossColor }
+    private let tradeActionGreen = Color(red: 0.20, green: 1.0, blue: 0.56)
     private let popoverBackground = Color(red: 0.035, green: 0.05, blue: 0.08)
     private let expandedWindowWidthKey = "stockPet.expandedWindow.width.v1"
     private let expandedWindowHeightKey = "stockPet.expandedWindow.height.v1"
@@ -3911,11 +4101,29 @@ struct ContentView: View {
         .sheet(isPresented: $showingPreferences) {
             PreferencesView(store: store)
         }
+        .sheet(isPresented: $showingTradeRecordEditor) {
+            TradeRecordEditorView(
+                positions: store.positions,
+                colorStyle: store.priceColorStyle
+            ) { record in
+                store.addTradeRecord(record)
+            }
+        }
+        .sheet(item: $editingTradeRecord) { record in
+            TradeRecordEditorView(
+                positions: store.positions,
+                colorStyle: store.priceColorStyle,
+                record: record
+            ) { updatedRecord in
+                store.updateTradeRecord(updatedRecord)
+            }
+        }
         .sheet(item: $priceAlertEditingPosition) { position in
             PriceAlertEditor(
                 position: position,
                 currentPrice: store.positionMarkets[position.id]?.currentPrice ?? 0,
                 existingRule: store.priceAlert(for: position.id),
+                colorStyle: store.priceColorStyle,
                 onSave: { lowerPrice, upperPrice, isEnabled in
                     store.setPriceAlert(
                         for: position.id,
@@ -4418,7 +4626,12 @@ struct ContentView: View {
                     if usesPeekLayout {
                         peekMarketDashboard
                     } else {
-                        marketDashboard
+                        dashboardTabs
+                        if selectedDashboardTab == .market {
+                            marketDashboard
+                        } else {
+                            tradeRecordsDashboard
+                        }
                     }
                 }
             }
@@ -4435,11 +4648,11 @@ struct ContentView: View {
                 .frame(width: 8, height: 8)
                 .shadow(color: mood.color, radius: 6)
             VStack(alignment: .leading, spacing: 1) {
-                Text(usesPeekLayout ? "股票偷看" : "持仓行情")
+                Text(usesPeekLayout ? "股票偷看" : selectedDashboardTab.title)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
                 if !usesPeekLayout {
-                    Text("\(store.positions.count) 只持仓 · 每 3 秒刷新")
+                    Text(selectedDashboardTab == .market ? "\(store.positions.count) 只持仓 · 每 3 秒刷新" : "本地记录 · 手动维护")
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.34))
                 }
@@ -4467,7 +4680,7 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                         .background(
                             LinearGradient(
-                                colors: [gainColor, Color(red: 0.78, green: 0.08, blue: 0.13)],
+                                colors: [gainColor, store.priceColorStyle.gainAccentEndColor],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
@@ -4511,6 +4724,41 @@ struct ContentView: View {
         .help(help)
     }
 
+    private var dashboardTabs: some View {
+        HStack(spacing: 6) {
+            ForEach(DashboardTab.allCases) { tab in
+                let selected = selectedDashboardTab == tab
+                Button {
+                    selectedDashboardTab = tab
+                } label: {
+                    Label(tab.title, systemImage: tab.icon)
+                        .labelStyle(.titleAndIcon)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(selected ? .white : .white.opacity(0.46))
+                        .padding(.horizontal, 12)
+                        .frame(height: 28)
+                        .background(
+                            selected ? tradeActionGreen.opacity(0.22) : .white.opacity(0.045),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(selected ? tradeActionGreen.opacity(0.42) : .white.opacity(0.055))
+                        )
+                }
+                .buttonStyle(.plain)
+                .help(tab.title)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 38)
+        .background(.black.opacity(0.1))
+        .overlay(alignment: .bottom) {
+            Divider().overlay(.white.opacity(0.045))
+        }
+    }
+
     private var displayedIndices: [MarketIndexSnapshot] {
         if !store.marketIndices.isEmpty { return store.marketIndices }
         return [
@@ -4520,6 +4768,138 @@ struct ContentView: View {
             MarketIndexSnapshot(id: "sh000688", name: "科创50", price: 1924.27, change: 0, changePercent: 0),
             MarketIndexSnapshot(id: "sh000300", name: "沪深300", price: 4786.78, change: 0, changePercent: 0)
         ]
+    }
+
+    private var tradeRecordsDashboard: some View {
+        VStack(spacing: 0) {
+            tradeRecordActionBar
+            tradeRecordTableHeader
+
+            if store.tradeRecords.isEmpty {
+                tradeRecordsEmptyState
+            } else {
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 0) {
+                        ForEach(store.tradeRecords) { record in
+                            tradeRecordRow(record)
+                            Divider().overlay(.white.opacity(0.06)).padding(.horizontal, 28)
+                        }
+                    }
+                }
+            }
+        }
+        .background(.black.opacity(0.12))
+    }
+
+    private var tradeRecordActionBar: some View {
+        HStack {
+            Spacer()
+
+            Button {
+                showingTradeRecordEditor = true
+            } label: {
+                Label("添加交易记录", systemImage: "plus")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 13)
+                    .frame(height: 30)
+                    .background(tradeActionGreen.opacity(0.24), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(tradeActionGreen.opacity(0.48)))
+            }
+            .buttonStyle(.plain)
+            .help("添加交易记录")
+        }
+        .padding(.horizontal, 28)
+        .frame(height: 48)
+        .background(.black.opacity(0.08))
+        .overlay(alignment: .bottom) {
+            Divider().overlay(.white.opacity(0.045))
+        }
+    }
+
+    private var tradeRecordTableHeader: some View {
+        HStack(spacing: 12) {
+            Text("日期").frame(width: 110, alignment: .leading)
+            Text("类型").frame(width: 70, alignment: .leading)
+            Text("名称 / 代码").frame(width: 180, alignment: .leading)
+            Text("买入价").frame(width: 82, alignment: .leading)
+            Text("卖出价").frame(width: 82, alignment: .leading)
+            Text("数量").frame(width: 76, alignment: .leading)
+            Text("参考盈亏").frame(width: 112, alignment: .leading)
+            Text("备注").frame(maxWidth: .infinity, alignment: .leading)
+            Text("操作").frame(width: 64, alignment: .center)
+        }
+        .font(.system(size: 10, weight: .medium))
+        .foregroundStyle(.white.opacity(0.38))
+        .padding(.horizontal, 28)
+        .frame(height: 42)
+        .background(.black.opacity(0.14))
+    }
+
+    private var tradeRecordsEmptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.text.fill")
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(mood.color.opacity(0.72))
+            VStack(spacing: 5) {
+                Text("暂无交易记录")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("买入价、卖出价和参考盈亏会在这里汇总")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.36))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func tradeRecordRow(_ record: TradeRecord) -> some View {
+        let buyPrice = tradeBuyPrice(record)
+        let sellPrice = tradeSellPrice(record)
+        let profit = tradeReferenceProfit(record)
+        return HStack(spacing: 12) {
+            Text(tradeRecordDate(record.date))
+                .frame(width: 110, alignment: .leading)
+            Text(record.type.label)
+                .foregroundStyle(record.type == .buy ? gainColor : lossColor)
+                .frame(width: 70, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(record.name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.86))
+                if !record.symbol.isEmpty {
+                    Text(record.symbol.uppercased())
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.34))
+                }
+            }
+            .frame(width: 180, alignment: .leading)
+            Text(optionalPrice(buyPrice)).frame(width: 82, alignment: .leading)
+            Text(optionalPrice(sellPrice)).frame(width: 82, alignment: .leading)
+            Text(quantity(record.quantity)).frame(width: 76, alignment: .leading)
+            Text(optionalProfit(profit, symbol: record.symbol))
+                .foregroundStyle(profitColor(profit))
+                .frame(width: 112, alignment: .leading)
+            Text(record.note.isEmpty ? "-" : record.note)
+                .foregroundStyle(.white.opacity(record.note.isEmpty ? 0.28 : 0.64))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                editingTradeRecord = record
+            } label: {
+                Label("编辑", systemImage: "pencil")
+                    .labelStyle(.titleAndIcon)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .frame(width: 56, height: 28)
+                    .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.075)))
+            }
+            .buttonStyle(.plain)
+            .help("编辑交易记录")
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(.white.opacity(0.68))
+        .padding(.horizontal, 28)
+        .frame(height: 58)
     }
 
     private var marketDashboard: some View {
@@ -5017,6 +5397,46 @@ struct ContentView: View {
         if value >= 100_000_000 { return String(format: "¥%.2f亿", value / 100_000_000) }
         if value >= 10_000 { return String(format: "¥%.2f万", value / 10_000) }
         return String(format: "¥%.0f", value)
+    }
+
+    private func quantity(_ value: Double) -> String {
+        value.rounded() == value ? String(format: "%.0f", value) : String(format: "%.2f", value)
+    }
+
+    private func tradeRecordDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func tradeBuyPrice(_ record: TradeRecord) -> Double? {
+        record.buyPrice ?? (record.type == .buy ? record.price : nil)
+    }
+
+    private func tradeSellPrice(_ record: TradeRecord) -> Double? {
+        record.sellPrice ?? (record.type == .sell ? record.price : nil)
+    }
+
+    private func tradeReferenceProfit(_ record: TradeRecord) -> Double? {
+        guard let buyPrice = tradeBuyPrice(record),
+              let sellPrice = tradeSellPrice(record),
+              record.quantity > 0 else { return nil }
+        return (sellPrice - buyPrice) * record.quantity
+    }
+
+    private func optionalPrice(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        return price(value)
+    }
+
+    private func optionalProfit(_ value: Double?, symbol: String) -> String {
+        guard let value else { return "--" }
+        return MarketCurrency.forSymbol(symbol).formatSigned(value)
+    }
+
+    private func profitColor(_ value: Double?) -> Color {
+        guard let value else { return .white.opacity(0.32) }
+        return value >= 0 ? gainColor : lossColor
     }
 
     private func positionAllocation(_ value: Double, total: Double) -> String {
@@ -6628,11 +7048,299 @@ struct PetField: TextFieldStyle {
     }
 }
 
+struct TradeRecordEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let positions: [Position]
+    let colorStyle: PriceColorStyle
+    let record: TradeRecord?
+    let onSave: (TradeRecord) -> Void
+
+    @State private var date = Date()
+    @State private var type: TradeRecordType = .buy
+    @State private var name = ""
+    @State private var symbol = ""
+    @State private var buyPrice = ""
+    @State private var sellPrice = ""
+    @State private var quantity = ""
+    @State private var note = ""
+
+    private var buyColor: Color { colorStyle.gainColor }
+    private var sellColor: Color { colorStyle.lossColor }
+
+    init(
+        positions: [Position],
+        colorStyle: PriceColorStyle,
+        record: TradeRecord? = nil,
+        onSave: @escaping (TradeRecord) -> Void
+    ) {
+        self.positions = positions
+        self.colorStyle = colorStyle
+        self.record = record
+        self.onSave = onSave
+        _date = State(initialValue: record?.date ?? Date())
+        _type = State(initialValue: record?.type ?? .buy)
+        _name = State(initialValue: record?.name ?? "")
+        _symbol = State(initialValue: record?.symbol ?? "")
+        _buyPrice = State(initialValue: Self.inputText(record.flatMap(Self.buyPrice)))
+        _sellPrice = State(initialValue: Self.inputText(record.flatMap(Self.sellPrice)))
+        _quantity = State(initialValue: Self.inputText(record?.quantity))
+        _note = State(initialValue: record?.note ?? "")
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(record == nil ? "添加交易记录" : "编辑交易记录")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("本地保存")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.36))
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(20)
+
+            Divider().overlay(.white.opacity(0.08))
+
+            VStack(alignment: .leading, spacing: 13) {
+                HStack(spacing: 10) {
+                    fieldLabel("日期")
+                    DatePicker("", selection: $date, displayedComponents: [.date])
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    fieldLabel("类型")
+                    Picker("", selection: $type) {
+                        ForEach(TradeRecordType.allCases) { item in
+                            Text(item.label).tag(item)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .tint(type == .buy ? buyColor : sellColor)
+                }
+
+                if !positions.isEmpty {
+                    Menu {
+                        ForEach(positions) { position in
+                            Button {
+                                name = position.name
+                                symbol = position.symbol ?? ""
+                            } label: {
+                                Text(position.symbol?.isEmpty == false ? "\(position.name) · \(position.symbol ?? "")" : position.name)
+                            }
+                        }
+                    } label: {
+                        Label("从持仓填入", systemImage: "list.bullet")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.64))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 30)
+                            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                HStack(spacing: 10) {
+                    textField("名称", text: $name, placeholder: "英特尔")
+                    textField("代码", text: $symbol, placeholder: "USINTC")
+                }
+
+                HStack(spacing: 10) {
+                    textField("买入价", text: $buyPrice, placeholder: "105.45")
+                    textField("卖出价", text: $sellPrice, placeholder: "112.80")
+                }
+
+                HStack(spacing: 10) {
+                    textField("数量", text: $quantity, placeholder: "100")
+                }
+
+                textField("备注", text: $note, placeholder: "可选")
+
+                HStack {
+                    Text("参考盈亏")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.38))
+                    Spacer()
+                    Text(profitText)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(profitTextColor)
+                }
+                .padding(.horizontal, 12)
+                .frame(height: 42)
+                .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08)))
+            }
+            .padding(20)
+
+            Divider().overlay(.white.opacity(0.08))
+
+            HStack(spacing: 10) {
+                Spacer()
+                Button("取消") { dismiss() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white.opacity(0.52))
+                Button {
+                    save()
+                } label: {
+                    Label("保存记录", systemImage: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 32)
+                        .background(type == .buy ? buyColor : sellColor, in: RoundedRectangle(cornerRadius: 9))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSave)
+            }
+            .padding(18)
+        }
+        .frame(width: 460)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.075, green: 0.08, blue: 0.12),
+                    Color(red: 0.035, green: 0.04, blue: 0.065)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .preferredColorScheme(.dark)
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedSymbol: String {
+        symbol.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var parsedBuyPrice: Double? {
+        number(from: buyPrice)
+    }
+
+    private var parsedSellPrice: Double? {
+        number(from: sellPrice)
+    }
+
+    private var parsedQuantity: Double? {
+        number(from: quantity)
+    }
+
+    private var transactionPrice: Double? {
+        type == .buy ? parsedBuyPrice : parsedSellPrice
+    }
+
+    private var referenceProfit: Double? {
+        guard let parsedBuyPrice,
+              let parsedSellPrice,
+              let parsedQuantity,
+              parsedBuyPrice > 0,
+              parsedSellPrice > 0,
+              parsedQuantity > 0 else { return nil }
+        return (parsedSellPrice - parsedBuyPrice) * parsedQuantity
+    }
+
+    private var canSave: Bool {
+        guard !trimmedName.isEmpty,
+              let transactionPrice,
+              let parsedQuantity else { return false }
+        return transactionPrice > 0 && parsedQuantity > 0
+    }
+
+    private var profitText: String {
+        guard let referenceProfit else { return "--" }
+        return MarketCurrency.forSymbol(trimmedSymbol).formatSigned(referenceProfit)
+    }
+
+    private var profitTextColor: Color {
+        guard let referenceProfit else { return .white.opacity(0.28) }
+        return referenceProfit >= 0 ? buyColor : sellColor
+    }
+
+    private func fieldLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.38))
+    }
+
+    private func textField(_ title: String, text: Binding<String>, placeholder: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            fieldLabel(title)
+            TextField(placeholder, text: text)
+                .textFieldStyle(PetField())
+        }
+    }
+
+    private func number(from text: String) -> Double? {
+        let normalized = text
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Double(normalized)
+    }
+
+    private static func buyPrice(_ record: TradeRecord) -> Double? {
+        record.buyPrice ?? (record.type == .buy ? record.price : nil)
+    }
+
+    private static func sellPrice(_ record: TradeRecord) -> Double? {
+        record.sellPrice ?? (record.type == .sell ? record.price : nil)
+    }
+
+    private static func inputText(_ value: Double?) -> String {
+        guard let value, value > 0 else { return "" }
+        var text = String(format: "%.4f", value)
+        while text.last == "0" { text.removeLast() }
+        if text.last == "." { text.removeLast() }
+        return text
+    }
+
+    private func save() {
+        guard canSave,
+              let transactionPrice,
+              let parsedQuantity,
+              parsedQuantity > 0 else { return }
+        let transactionAmount = transactionPrice * parsedQuantity
+        var savedRecord = TradeRecord(
+            date: date,
+            type: type,
+            name: trimmedName,
+            symbol: trimmedSymbol,
+            price: transactionPrice,
+            buyPrice: parsedBuyPrice.flatMap { $0 > 0 ? $0 : nil },
+            sellPrice: parsedSellPrice.flatMap { $0 > 0 ? $0 : nil },
+            quantity: parsedQuantity,
+            amount: transactionAmount,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        if let record {
+            savedRecord.id = record.id
+        }
+        onSave(savedRecord)
+        dismiss()
+    }
+}
+
 struct PreferencesView: View {
     @ObservedObject var store: PetStore
     @Environment(\.dismiss) private var dismiss
 
-    private let gain = Color(red: 1.0, green: 0.28, blue: 0.30)
+    private var gain: Color { store.priceColorStyle.gainColor }
+    private var loss: Color { store.priceColorStyle.lossColor }
     private let intervals = [0, 15, 30, 60]
 
     private func intervalLabel(_ m: Int) -> String { m == 0 ? "关闭" : "\(m)分钟" }
@@ -6665,6 +7373,25 @@ struct PreferencesView: View {
                         .labelsHidden()
                         Text(store.newsHoldingsOnly ? "只显示标题含持仓名称/代码的资讯" : "显示大盘热门财经资讯")
                             .font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                    }
+
+                    block("涨跌颜色") {
+                        Picker("", selection: Binding(
+                            get: { store.priceColorStyle },
+                            set: { store.priceColorStyle = $0; store.savePreferences() }
+                        )) {
+                            ForEach(PriceColorStyle.allCases) { style in
+                                Text(style.label).tag(style)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+
+                        HStack(spacing: 10) {
+                            colorLegend("涨", color: gain)
+                            colorLegend("跌", color: loss)
+                            Spacer()
+                        }
                     }
 
                     block("推送频率") {
@@ -6836,6 +7563,19 @@ struct PreferencesView: View {
             content()
         }
     }
+
+    private func colorLegend(_ title: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.62))
+        }
+        .padding(.horizontal, 9)
+        .frame(height: 24)
+        .background(color.opacity(0.12), in: Capsule())
+        .overlay(Capsule().stroke(color.opacity(0.25)))
+    }
 }
 
 struct IndexSettingsView: View {
@@ -6953,6 +7693,7 @@ private struct PriceAlertEditor: View {
     let position: Position
     let currentPrice: Double
     let existingRule: PriceAlertRule?
+    let colorStyle: PriceColorStyle
     let onSave: (Double, Double, Bool) -> Void
     let onDelete: () -> Void
 
@@ -6967,12 +7708,14 @@ private struct PriceAlertEditor: View {
         position: Position,
         currentPrice: Double,
         existingRule: PriceAlertRule?,
+        colorStyle: PriceColorStyle,
         onSave: @escaping (Double, Double, Bool) -> Void,
         onDelete: @escaping () -> Void
     ) {
         self.position = position
         self.currentPrice = currentPrice
         self.existingRule = existingRule
+        self.colorStyle = colorStyle
         self.onSave = onSave
         self.onDelete = onDelete
 
@@ -7050,7 +7793,8 @@ private struct PriceAlertEditor: View {
                     upperValue: $upperPrice,
                     bounds: sliderBounds,
                     step: priceStep,
-                    currentValue: currentPrice
+                    currentValue: currentPrice,
+                    colorStyle: colorStyle
                 )
                 .frame(height: 56)
 
@@ -7058,12 +7802,12 @@ private struct PriceAlertEditor: View {
                     priceBox(
                         title: "跌到提醒",
                         value: $lowerPrice,
-                        color: Color(red: 0.20, green: 1.0, blue: 0.56)
+                        color: colorStyle.lossColor
                     )
                     priceBox(
                         title: "涨到提醒",
                         value: $upperPrice,
-                        color: Color(red: 1.0, green: 0.28, blue: 0.30)
+                        color: colorStyle.gainColor
                     )
                 }
 
@@ -7211,6 +7955,7 @@ private struct PriceRangeSlider: View {
     let bounds: ClosedRange<Double>
     let step: Double
     let currentValue: Double
+    let colorStyle: PriceColorStyle
 
     private let thumbSize: CGFloat = 18
     @State private var isDraggingLower = false
@@ -7233,9 +7978,9 @@ private struct PriceRangeSlider: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.20, green: 1.0, blue: 0.56),
+                                colorStyle.lossColor,
                                 .orange,
-                                Color(red: 1.0, green: 0.28, blue: 0.30)
+                                colorStyle.gainColor
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -7250,7 +7995,7 @@ private struct PriceRangeSlider: View {
                     .offset(x: currentX + thumbSize / 2)
 
                 sliderThumb(
-                    color: Color(red: 0.20, green: 1.0, blue: 0.56),
+                    color: colorStyle.lossColor,
                     percentage: percentFromCurrent(lowerValue),
                     isDragging: isDraggingLower
                 )
@@ -7273,7 +8018,7 @@ private struct PriceRangeSlider: View {
                     )
 
                 sliderThumb(
-                    color: Color(red: 1.0, green: 0.28, blue: 0.30),
+                    color: colorStyle.gainColor,
                     percentage: percentFromCurrent(upperValue),
                     isDragging: isDraggingUpper
                 )
@@ -8456,15 +9201,15 @@ struct ShareCardView: View {
     let positions: [Position]
     let date: Date
 
-    private let gainColor = Color(red: 1.0, green: 0.30, blue: 0.32)
-    private let lossColor = Color(red: 0.22, green: 0.94, blue: 0.55)
+    private var gainColor: Color { PriceColorStyle.saved.gainColor }
+    private var lossColor: Color { PriceColorStyle.saved.lossColor }
 
     private var slogan: String {
-        if returnRate >= 5 { return "红牛出栏，今天吃大肉" }
+        if returnRate >= 5 { return "小牛出栏，今天吃大肉" }
         if returnRate >= 2 { return "小赚一笔，\(appearance.name)已经开始蹦迪" }
         if returnRate >= 0 { return "稳稳的幸福，\(appearance.name)陪我拿住" }
         if returnRate >= -3 { return "小亏当学费，\(appearance.name)有点紧张" }
-        return "绿熊冬眠中，来日方长"
+        return "小熊冬眠中，来日方长"
     }
 
     private var petFrameName: String {
